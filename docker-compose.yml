@@ -1,0 +1,104 @@
+version: '3.8'
+services:
+  api-gateway:
+    build: ./api-gateway
+    ports:
+      - "3000:3000"
+    depends_on:
+      - product-service
+      - order-service
+      - payment-service
+      - auth-service
+      - inventory-service
+      - review-service
+    environment:
+      - PORT=3000 #This should match port expose in the services
+      - PRODUCT_SERVICE_URL=http://product-service:3001
+      - ORDER_SERVICE_URL=http://order-service:3002
+      - PAYMENT_SERVICE_URL=http://payment-service:3003
+      - AUTH_SERVICE_URL=http://auth-service:3004
+      - INVENTORY_SERVICE_URL=http://inventory-service:3006
+      - REVIEW_SERVICE_URL=http://review-service:3007
+      - JWT_SECRET=your_jwt_secret_key # IMPORTANT: Replace with a strong secret key
+
+  auth-service:
+    build: ./auth-service
+    ports:
+      - "3004:3004"
+    environment:
+      - PORT=3004
+      - MONGODB_URI=mongodb://bewchan061:GE3WoTQJHYOvW4hq@localhost:27017/laptop-pc-store
+      - JWT_SECRET=your_jwt_secret_key # IMPORTANT: Replace with a strong secret key
+    depends_on:
+      - mongo
+
+  product-service:
+    build: ./product-service
+    ports:
+      - "3001:3001"
+    environment:
+      - PORT=3001
+      - MONGODB_URI=mongodb://bewchan061:GE3WoTQJHYOvW4hq@localhost:27017/laptop-pc-store
+    depends_on:
+      - mongo
+
+  order-service:
+    build: ./order-service
+    ports:
+      - "3002:3002"
+    environment:
+      - PORT=3002
+      - MONGODB_URI=mongodb://bewchan061:GE3WoTQJHYOvW4hq@localhost:27017/laptop-pc-store
+      - PRODUCT_SERVICE_URL=http://product-service:3001  # Required to check if products are available
+    depends_on:
+      - product-service
+      - mongo
+
+  payment-service:
+    build: ./payment-service
+    ports:
+      - "3003:3003"
+    environment:
+      - PORT=3003 # Required for Express
+      - PAYMENT_GATEWAY_API_KEY=your_payment_gateway_api_key # Optional, for integration with payment gateway
+
+  shipping-service:
+    build: ./shipping-service
+    ports:
+      - "3005:3005"
+    environment:
+      - PORT=3005
+      - SHIPPING_PROVIDER_API_KEY=your_shipping_provider_api_key # Optional, for integration with shipping provider
+
+  inventory-service:
+    build: ./inventory-service
+    ports:
+      - "3006:3006"
+    environment:
+      - PORT=3006
+      - MONGODB_URI=mongodb://bewchan061:GE3WoTQJHYOvW4hq@localhost:27017/laptop-pc-store
+    depends_on:
+      - mongo
+
+  review-service:
+    build: ./review-service
+    ports:
+      - "3007:3007"
+    environment:
+      - PORT=3007
+      - MONGODB_URI=mongodb://bewchan061:GE3WoTQJHYOvW4hq@localhost:27017/laptop-pc-store
+    depends_on:
+      - mongo
+
+  mongo:
+    image: mongo:latest
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: bewchan061
+      MONGO_INITDB_ROOT_PASSWORD: GE3WoTQJHYOvW4hq
+    volumes:
+      - mongo_data:/data/db
+
+volumes:
+  mongo_data:

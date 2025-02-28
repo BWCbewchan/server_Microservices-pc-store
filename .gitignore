@@ -1,0 +1,11 @@
+/api-gateway/node_modules
+
+/auth-service/node_modules
+/inventory-service/node_modules
+/order-service/node_modules
+/payment-service/node_modules
+/product-service/node_modules
+/review-service/node_modules
+/shipping-service/node_modules
+/node_modules
+/common/node_modules
