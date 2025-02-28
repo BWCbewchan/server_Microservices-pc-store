@@ -1,88 +1,67 @@
-// api-gateway/app.js
 const express = require('express');
 const { createProxyMiddleware } = require('http-proxy-middleware');
+const dotenv = require('dotenv');
+
+dotenv.config(); // Load biến môi trường từ file .env
+
 const app = express();
-require('dotenv').config();
-const authMiddleware = require('./middleware/authMiddleware');  // Import authentication middleware
-const cors = require('cors'); // Import CORS middleware
+const port = process.env.PORT || 3000;
 
-// Enable CORS for all origins in development (VERY IMPORTANT)
-app.use(cors());
-
+// Middleware để parse JSON
 app.use(express.json());
 
-// Authentication Middleware (applied globally)
-app.use(authMiddleware.authenticateToken);
-
-// Route requests to specific services
+// Định tuyến yêu cầu đến các dịch vụ
 const productServiceProxy = createProxyMiddleware('/products', {
-    target: process.env.PRODUCT_SERVICE_URL || 'http://product-service:3001', // Use env variable
-    changeOrigin: true,
-    pathRewrite: {
-        '^/products': '/', // Remove the /products prefix when forwarding
-    },
-    logLevel: 'debug'
+  target: process.env.PRODUCT_SERVICE_URL || 'http://localhost:3001',
+  changeOrigin: true,
 });
 
 const orderServiceProxy = createProxyMiddleware('/orders', {
-    target: process.env.ORDER_SERVICE_URL || 'http://order-service:3002',
-    changeOrigin: true,
-        pathRewrite: {
-        '^/orders': '/', // Remove the /orders prefix when forwarding
-    },
-    logLevel: 'debug'
+  target: process.env.ORDER_SERVICE_URL || 'http://localhost:3002',
+  changeOrigin: true,
 });
 
 const paymentServiceProxy = createProxyMiddleware('/payments', {
-    target: process.env.PAYMENT_SERVICE_URL || 'http://payment-service:3003',
-    changeOrigin: true,
-     pathRewrite: {
-        '^/payments': '/', // Remove the /payments prefix when forwarding
-    },
-    logLevel: 'debug'
+  target: process.env.PAYMENT_SERVICE_URL || 'http://localhost:3003',
+  changeOrigin: true,
 });
 
 const authServiceProxy = createProxyMiddleware('/auth', {
-    target: process.env.AUTH_SERVICE_URL || 'http://auth-service:3004',
-    changeOrigin: true,
-     pathRewrite: {
-        '^/auth': '/', // Remove the /auth prefix when forwarding
-    },
-    logLevel: 'debug'
+  target: process.env.AUTH_SERVICE_URL || 'http://localhost:3004',
+  changeOrigin: true,
 });
 
-const inventoryServiceProxy = createProxyMiddleware('/inventory', {
-    target: process.env.INVENTORY_SERVICE_URL || 'http://inventory-service:3006',
-    changeOrigin: true,
-    pathRewrite: {
-       '^/inventory': '/', // Remove the /inventory prefix when forwarding
-   },
-   logLevel: 'debug'
+const shippingServiceProxy = createProxyMiddleware('/shippings', {
+  target: process.env.SHIPPING_SERVICE_URL || 'http://localhost:3005',
+  changeOrigin: true,
+});
+
+const inventoryServiceProxy = createProxyMiddleware('/inventories', {
+  target: process.env.INVENTORY_SERVICE_URL || 'http://localhost:3006',
+  changeOrigin: true,
 });
 
 const reviewServiceProxy = createProxyMiddleware('/reviews', {
-    target: process.env.REVIEW_SERVICE_URL || 'http://review-service:3007',
-    changeOrigin: true,
-    pathRewrite: {
-       '^/reviews': '/', // Remove the /reviews prefix when forwarding
-   },
-   logLevel: 'debug'
+  target: process.env.REVIEW_SERVICE_URL || 'http://localhost:3007',
+  changeOrigin: true,
 });
 
+// Sử dụng các proxy middleware
 app.use('/products', productServiceProxy);
 app.use('/orders', orderServiceProxy);
 app.use('/payments', paymentServiceProxy);
 app.use('/auth', authServiceProxy);
-app.use('/inventory', inventoryServiceProxy);
+app.use('/shippings', shippingServiceProxy);
+app.use('/inventories', inventoryServiceProxy);
 app.use('/reviews', reviewServiceProxy);
 
-// Protected Route Example (Applying Authorization)
-app.get('/admin', authMiddleware.authorizeRole(['admin']), (req, res) => {
-    // This route is only accessible to users with the "admin" role
-    res.json({ message: 'Admin area access granted!' });
+// Xử lý lỗi
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).json({ message: 'Internal Server Error' });
 });
 
-const port = process.env.PORT || 3000;
+// Khởi động server
 app.listen(port, () => {
-    console.log(`API Gateway đang chạy trên cổng ${port}`);
+  console.log(`API Gateway đang chạy trên cổng ${port}`);
 });

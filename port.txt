@@ -1,0 +1,9 @@
+Dịch vụ	Cổng (đề xuất)
+api-gateway	3000
+auth-service	3004
+inventory-service	3006
+order-service	3002
+payment-service	3003
+product-service	3001
+review-service	3007
+shipping-service	3005

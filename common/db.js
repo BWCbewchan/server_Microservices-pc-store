@@ -1,19 +1,19 @@
-// common/db.js
+// db.js
 const mongoose = require('mongoose');
+require('dotenv').config(); // Load biến môi trường từ file .env
 
 const connectDB = async () => {
+  console.log(process.env.MONGODB_URI);
   try {
-    await mongoose.connect(process.env.MONGODB_URI || 'mongodb://bewchan061:GE3WoTQJHYOvW4hq@localhost:27017/laptop-pc-store', {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
+    await mongoose.connect(process.env.MONGODB_URI, {
+      // Không cần các tùy chọn deprecated
     });
-
+    console.log(process.env.MONGODB_URI);
     console.log('Kết nối MongoDB thành công!');
-  } catch (err) {
-    console.error('Lỗi kết nối MongoDB:', err.message);
-    process.exit(1);
+  } catch (error) {
+    console.error('Lỗi kết nối MongoDB:', error.message);
+    process.exit(1); // Thoát chương trình nếu kết nối thất bại
   }
 };
 
-connectDB();
-module.exports = mongoose.connection;
+module.exports = connectDB;
