@@ -1,0 +1,335 @@
+openapi: 3.0.0
+info:
+  title: Product Service API
+  description: API documentation for the Product Service
+  version: 1.0.0
+servers:
+  - url: http://localhost:4004
+    description: for server local
+  - url: https://product-services-8x46.onrender.com
+    description: for server htttps
+
+components:
+  schemas:
+    Product:
+      type: object
+      properties:
+        _id:
+          type: string
+          description: The auto-generated id of the product
+        name:
+          type: string
+          description: The name of the product
+        description:
+          type: string
+          description: The description of the product
+        price:
+          type: number
+          description: The price of the product
+        category:
+          type: string
+          description: The category of the product
+        image:
+          type: string
+          description: The URL of the product image
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - name
+        - price
+        - category
+
+paths:
+  /products:
+    get:
+      summary: Get all products
+      tags:
+        - Products
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+          description: Page number
+        - in: query
+          name: limit
+          schema:
+            type: integer
+          description: Number of items per page
+        - in: query
+          name: category
+          schema:
+            type: string
+          description: Filter by category
+      responses:
+        '200':
+          description: A list of products
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Product'
+    post:
+      summary: Create a new product
+      tags:
+        - Products
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Product'
+      responses:
+        '201':
+          description: Product created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Product'
+
+  /products/{id}:
+    get:
+      summary: Get a product by ID
+      tags:
+        - Products
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: The product ID
+      responses:
+        '200':
+          description: Product found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Product'
+        '404':
+          description: Product not found
+
+    put:
+      summary: Update a product
+      tags:
+        - Products
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: The product ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Product'
+      responses:
+        '200':
+          description: Product updated successfully
+        '404':
+          description: Product not found
+
+    delete:
+      summary: Delete a product
+      tags:
+        - Products
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: The product ID
+      responses:
+        '200':
+          description: Product deleted successfully
+        '404':
+          description: Product not found
+
+  /create-product:
+    post:
+      summary: Create a new product
+      tags:
+        - Products
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Product'
+      responses:
+        '201':
+          description: Product created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Product'
+
+  /products-new:
+    get:
+      summary: Get new products
+      tags:
+        - Products
+      responses:
+        '200':
+          description: List of new products
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Product'
+
+  /products-brand/{brand}:
+    get:
+      summary: Get products by brand
+      tags:
+        - Products
+      parameters:
+        - in: path
+          name: brand
+          required: true
+          schema:
+            type: string
+          description: The brand name
+      responses:
+        '200':
+          description: List of products by brand
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Product'
+
+  /products-category/{category}:
+    get:
+      summary: Get products by category
+      tags:
+        - Products
+      parameters:
+        - in: path
+          name: category
+          required: true
+          schema:
+            type: string
+          description: The category name
+      responses:
+        '200':
+          description: List of products by category
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Product'
+
+  /products-filters:
+    get:
+      summary: Get products by filters
+      tags:
+        - Products
+      parameters:
+        - in: query
+          name: name
+          schema:
+            type: string
+          description: Filter by product name
+        - in: query
+          name: category
+          schema:
+            type: string
+          description: Filter by category
+        - in: query
+          name: price
+          schema:
+            type: number
+          description: Filter by price
+      responses:
+        '200':
+          description: Filtered list of products
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Product'
+
+  /price-counts:
+    get:
+      summary: Get price counts by category
+      tags:
+        - Products
+      responses:
+        '200':
+          description: Price counts grouped by category
+          content:
+            application/json:
+              schema:
+                type: object
+
+  /product/{id}/review:
+    post:
+      summary: Add a review to a product
+      tags:
+        - Products
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: The product ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                rating:
+                  type: number
+                comment:
+                  type: string
+      responses:
+        '201':
+          description: Review added successfully
+
+  /productsImage:
+    post:
+      summary: Upload product image
+      tags:
+        - Products
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                image:
+                  type: string
+                  format: binary
+      responses:
+        '200':
+          description: Image uploaded successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  url:
+                    type: string

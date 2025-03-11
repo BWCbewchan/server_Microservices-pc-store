@@ -10,3 +10,5 @@
 /node_modules
 /common/node_modules
 
+
+.early.coverage
