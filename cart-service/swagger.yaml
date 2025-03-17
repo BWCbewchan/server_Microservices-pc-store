@@ -1,0 +1,166 @@
+openapi: 3.0.0
+info:
+  title: Cart Service API
+  description: API for managing shopping cart
+  version: 1.0.0
+servers:
+  - url: http://localhost:4000/cart
+paths:
+  /add:
+    post:
+      summary: Add product to cart
+      description: Adds a product to the user's shopping cart.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                userId:
+                  type: string
+                  description: The ID of the user
+                productId:
+                  type: string
+                  description: The ID of the product to add
+                quantity:
+                  type: integer
+                  description: The quantity of the product to add
+      responses:
+        '200':
+          description: Product added to cart successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  _id:
+                    type: string
+                  userId:
+                    type: string
+                  items:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        productId:
+                          type: string
+                        quantity:
+                          type: integer
+        '500':
+          description: Error adding product to cart
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+
+  /{userId}:
+    get:
+      summary: Get user's cart
+      description: Retrieves the shopping cart for a specific user.
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          description: The ID of the user to retrieve the cart for
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successfully retrieved cart
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  _id:
+                    type: string
+                  userId:
+                    type: string
+                  items:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        productId:
+                          type: string
+                        quantity:
+                          type: integer
+        '404':
+          description: Cart not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+        '500':
+          description: Error retrieving cart
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+
+  /remove:
+    delete:
+      summary: Remove product from cart
+      description: Removes a product from the user's shopping cart.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                userId:
+                  type: string
+                  description: The ID of the user
+                productId:
+                  type: string
+                  description: The ID of the product to remove
+      responses:
+        '200':
+          description: Product removed from cart successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  _id:
+                    type: string
+                  userId:
+                    type: string
+                  items:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        productId:
+                          type: string
+                        quantity:
+                          type: integer
+        '404':
+          description: Cart not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+        '500':
+          description: Error removing product from cart
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string

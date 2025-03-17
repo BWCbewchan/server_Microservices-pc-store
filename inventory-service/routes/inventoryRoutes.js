@@ -2,9 +2,14 @@
 const express = require('express');
 const router = express.Router();
 const inventoryController = require('../controllers/inventoryController');
-const { authenticateToken, authorizeRole } = require('../../api-gateway/middleware/authMiddleware');
 
+// Route để lấy tất cả các sản phẩm trong tồn kho
+router.get('/', inventoryController.listAllInventory);
+
+// Route để lấy thông tin tồn kho theo productId
 router.get('/:productId', inventoryController.getInventory);
-router.put('/:productId', authenticateToken, authorizeRole(['admin']), inventoryController.updateInventory);
+
+// Route để cập nhật tồn kho theo productId
+router.put('/:productId', inventoryController.updateInventory);
 
 module.exports = router;

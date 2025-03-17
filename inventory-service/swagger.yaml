@@ -1,0 +1,160 @@
+openapi: 3.0.0
+info:
+  title: Inventory Service API
+  description: API for managing product inventory
+  version: 1.0.0
+servers:
+  - url: http://localhost:3006/inventory
+    description: for server local
+  - url: https://inventory-service-test.onrender.com/inventory
+    description: for server htttps
+paths:
+  /:
+    get:
+      summary: List all inventory items
+      description: Retrieve a list of all inventory items.
+      responses:
+        '200':
+          description: A list of inventory items
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    _id:
+                      type: string
+                    productId:
+                      type: string
+                    quantity:
+                      type: integer
+                    reserved:
+                      type: integer
+                    updatedAt:
+                      type: string
+                      format: date-time
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+
+  /{productId}:
+    get:
+      summary: Get inventory for a specific product
+      parameters:
+        - name: productId
+          in: path
+          required: true
+          description: The ID of the product to retrieve inventory for
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response with inventory details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  _id:
+                    type: string
+                  productId:
+                    type: string
+                  quantity:
+                    type: integer
+                  reserved:
+                    type: integer
+                  updatedAt:
+                    type: string
+                    format: date-time
+        '404':
+          description: Inventory not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+
+    put:
+      summary: Update inventory for a specific product
+      parameters:
+        - name: productId
+          in: path
+          required: true
+          description: The ID of the product to update inventory for
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                quantity:
+                  type: integer
+                reserved:
+                  type: integer
+      responses:
+        '200':
+          description: Successful response with updated inventory details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  _id:
+                    type: string
+                  productId:
+                    type: string
+                  quantity:
+                    type: integer
+                  reserved:
+                    type: integer
+                  updatedAt:
+                    type: string
+                    format: date-time
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+        '404':
+          description: Inventory not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string

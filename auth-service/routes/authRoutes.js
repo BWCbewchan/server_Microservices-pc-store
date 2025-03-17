@@ -2,10 +2,15 @@
 const express = require('express');
 const router = express.Router();
 const authController = require('../controllers/authController');
-const { authenticateToken } = require('../../api-gateway/middleware/authMiddleware'); // Example of importing middleware - but better to centralize
+const authenticateToken = require('../middleware/authenticateToken');
 
+// Đăng ký
 router.post('/register', authController.register);
+
+// Đăng nhập
 router.post('/login', authController.login);
-router.post('/verifyToken', authenticateToken, authController.verifyToken); // Example: Protected route - might be needed depending on how auth is handled
+
+// Xác thực token
+router.post('/verifyToken', authenticateToken, authController.verifyToken);
 
 module.exports = router;

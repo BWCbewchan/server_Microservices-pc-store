@@ -2,17 +2,16 @@
   "name": "microservices",
   "version": "1.0.0",
   "main": "index.js",
-  
-    "scripts": {
-      "start": "node app.js",
-      "start:all": "concurrently \"cd api-gateway && npm start\" \"cd auth-service && npm start\" \"cd product-service && npm start\" \"cd order-service && npm start\" \"cd payment-service && npm start\" \"cd shipping-service && npm start\" \"cd inventory-service && npm start\" \"cd review-service && npm start\""
-    },
-  
+  "scripts": {
+    "start": "node app.js",
+    "start:all": "concurrently \"cd api-gateway && npm start\" \"cd auth-service && npm start\" \"cd product-service && npm start\" \"cd order-service && npm start\" \"cd payment-service && npm start\" \"cd shipping-service && npm start\" \"cd inventory-service && npm start\" \"cd review-service && npm start\""
+  },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "description": "",
   "dependencies": {
+    "axios": "^1.8.3",
     "body-parser": "^1.20.3",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
