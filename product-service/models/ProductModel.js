@@ -4,14 +4,13 @@ const productSchema = new mongoose.Schema(
   {
     name: { type: String, required: true },
     description: { type: String, required: true },
-    details: { type: [String], required: true }, // Chuyển details thành mảng
+    details: { type: [String], required: true },
     brand: { type: String, required: true },
     category: { type: String, required: true },
     price: { type: Number, required: true },
     discount: { type: Number, default: 0 },
     image: { type: String },
-    // color: { type: String, required: true },
-    color: { type: [String], required: true }, // Mảng màu sắc
+    color: { type: [String], required: true },
     new: { type: Boolean, default: false },
     stock: { type: Number, default: 0 },
     rating: { type: Number, default: 0 },
@@ -19,7 +18,6 @@ const productSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
-
 
 // productSchema.methods.addReview = function(newRating) {
 //   this.reviews += 1;

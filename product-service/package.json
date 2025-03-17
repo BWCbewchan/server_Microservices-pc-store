@@ -10,7 +10,8 @@
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",
-    "prepare": "husky install"
+    "prepare": "husky install",
+    "seed": "node scripts/seedData.js"
   },
   "dependencies": {
     "cloudinary": "^2.5.1",

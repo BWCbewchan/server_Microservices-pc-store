@@ -239,9 +239,10 @@ paths:
 
   /products-filters:
     get:
-      summary: Get products by filters
       tags:
         - Products
+      summary: Get products by filters
+      description: Get products with filtering, sorting and pagination
       parameters:
         - in: query
           name: name
@@ -254,19 +255,66 @@ paths:
             type: string
           description: Filter by category
         - in: query
-          name: price
+          name: priceRange
           schema:
-            type: number
-          description: Filter by price
+            type: string
+          description: Filter by price range (format: "$0.00 - $1,000.00")
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+          description: Page number for pagination
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 12
+          description: Number of items per page
+        - in: query
+          name: sort
+          schema:
+            type: string
+            enum: [price_asc, price_desc, name_asc, name_desc, rating_desc]
+          description: Sort products by specified criteria
       responses:
         '200':
-          description: Filtered list of products
+          description: Successfully retrieved filtered products
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/Product'
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      products:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Product'
+                      total:
+                        type: integer
+                        description: Total number of products matching the filters
+                      currentPage:
+                        type: integer
+                        description: Current page number
+                      totalPages:
+                        type: integer
+                        description: Total number of pages
+                      limit:
+                        type: integer
+                        description: Number of items per page
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  error:
+                    type: object
 
   /price-counts:
     get:
@@ -333,3 +381,28 @@ paths:
                 properties:
                   url:
                     type: string
+
+  /products/search:
+    get:
+      summary: Search products
+      tags:
+        - Products
+      parameters:
+        - in: query
+          name: query
+          schema:
+            type: string
+          description: Search query
+      responses:
+        '200':
+          description: List of products matching the search query
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Product'
+        '400':
+          description: Query parameter is required
+        '500':
+          description: Error searching for products

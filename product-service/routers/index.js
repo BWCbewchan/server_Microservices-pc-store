@@ -11,6 +11,7 @@ const getAllProducts = require("../controller/getAllProducts");
 const uploadImage = require("../controller/uploadImage");
 const getProductsByFilters = require("../controller/filterProduct/getProductsByFilters");
 const getPriceCountsByCategory = require("../controller/filterProduct/getPriceCountsByCategory");
+const searchProduct = require("../controller/filterProduct/searchProduct"); // Import the search controller
 const router = express.Router();
 
 // Create product api
@@ -32,13 +33,13 @@ router.get("/products-filters", getProductsByFilters);
 router.get("/price-counts", getPriceCountsByCategory);
 
 // Route lấy chi tiết sản phẩm theo ID
-router.get("/product/:id", getProductById);
+router.get("/products/:id", getProductById);
 
 // Route cập nhật sản phẩm theo ID
-router.put("/product/:id", updateProduct);
+router.put("/products/:id", updateProduct);
 
 // Route xóa sản phẩm theo ID
-router.delete("/product/:id", deleteProduct);
+router.delete("/products/:id", deleteProduct);
 
 // Route thêm đánh giá cho sản phẩm theo ID
 router.post("/product/:id/review", addReview);
@@ -48,5 +49,8 @@ router.get("/products", getAllProducts);
 
 // Route dùng để upload ảnh sản phẩm
 router.post("/productsImage", uploadImage);
+
+// Route to search products
+router.get('/products/search', searchProduct); // Add the search route
 
 module.exports = router;
