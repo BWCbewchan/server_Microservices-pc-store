@@ -3,17 +3,40 @@ const mongoose = require('mongoose');
 const { Schema } = mongoose;
 
 const orderSchema = new Schema({
-  customer: { type: String, required: true }, // Can be a reference to User model in Customer Service
-  items: [{ type: Schema.Types.ObjectId, ref: 'Product' }], // Reference to products in Product Service
-  total: { type: Number, required: true },
-  shippingAddress: { type: String, required: true },
-  billingAddress: { type: String, required: true },
-  paymentMethod: { type: String, required: true },
-  status: { type: String, enum: ['pending', 'processing', 'shipped', 'delivered', 'canceled'], default: 'pending' },
-  orderDate: { type: Date, default: Date.now },
-  shippingDate: { type: Date }
-}, {
-  timestamps: true
-});
+  userId: {
+    type: mongoose.Schema.Types.ObjectId,
+    required: true,
+    ref: 'User'
+  },
+  items: [{
+    productId: {
+      type: mongoose.Schema.Types.ObjectId,
+      required: true,
+      ref: 'Product'
+    },
+    quantity: Number,
+    price: Number
+  }],
+  totalAmount: {
+    type: Number,
+    required: true
+  },
+  shippingAddress: {
+    street: String,
+    city: String,
+    state: String,
+    zipCode: String
+  },
+  status: {
+    type: String,
+    enum: ['pending', 'processing', 'shipped', 'delivered', 'cancelled'],
+    default: 'pending'
+  },
+  paymentStatus: {
+    type: String,
+    enum: ['pending', 'completed', 'failed'],
+    default: 'pending'
+  }
+}, { timestamps: true });
 
 module.exports = mongoose.model('Order', orderSchema);

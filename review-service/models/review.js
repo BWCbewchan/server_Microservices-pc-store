@@ -3,11 +3,28 @@ const mongoose = require('mongoose');
 const { Schema } = mongoose;
 
 const reviewSchema = new Schema({
-  productId: { type: Schema.Types.ObjectId, ref: 'Product', required: true },
-  userId: { type: String, required: true }, // Store user ID - can be linked to Customer Service later
-  rating: { type: Number, min: 1, max: 5, required: true },
-  comment: { type: String, required: true },
-  date: { type: Date, default: Date.now }
-});
+  userId: {
+    type: mongoose.Schema.Types.ObjectId,
+    required: true,
+    ref: 'User'
+  },
+  productId: {
+    type: mongoose.Schema.Types.ObjectId,
+    required: true,
+    ref: 'Product'
+  },
+  rating: {
+    type: Number,
+    required: true,
+    min: 1,
+    max: 5
+  },
+  comment: String,
+  images: [String],
+  likes: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  }]
+}, { timestamps: true });
 
 module.exports = mongoose.model('Review', reviewSchema);

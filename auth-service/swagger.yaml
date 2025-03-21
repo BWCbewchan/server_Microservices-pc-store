@@ -1,152 +1,77 @@
 openapi: 3.0.0
 info:
   title: Auth Service API
-  description: API for user authentication
   version: 1.0.0
-servers:
-  - url: http://localhost:3004/auth
+  description: Authentication and User Management API
+
 paths:
-  /register:
+  /auth/register:
     post:
-      summary: Register a new user
-      description: Creates a new user account.
+      tags:
+        - Authentication
+      summary: Register new user
       requestBody:
         required: true
         content:
           application/json:
             schema:
               type: object
+              required:
+                - email
+                - password
+                - firstName
+                - lastName
               properties:
-                username:
-                  type: string
-                  description: The username of the user
-                password:
-                  type: string
-                  description: The password of the user
                 email:
                   type: string
-                  description: The email of the user
-                role:
+                  format: email
+                password:
                   type: string
-                  description: The role of the user (user/admin)
+                  minLength: 6
+                firstName:
+                  type: string
+                lastName:
+                  type: string
       responses:
-        '201':
+        201:
           description: User registered successfully
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-        '400':
-          description: Email already registered
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-        '500':
-          description: Error during registration
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-
-  /login:
+        400:
+          description: Email already exists
+        
+  /auth/login:
     post:
-      summary: Login a user
-      description: Authenticates a user and returns a JWT token.
+      tags:
+        - Authentication
+      summary: User login
       requestBody:
         required: true
         content:
           application/json:
             schema:
               type: object
+              required:
+                - email
+                - password
               properties:
                 email:
                   type: string
-                  description: The email of the user
                 password:
                   type: string
-                  description: The password of the user
       responses:
-        '200':
-          description: User logged in successfully
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  token:
-                    type: string
-        '401':
-          description: Invalid email or password
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-        '500':
-          description: Error during login
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
+        200:
+          description: Login successful
+        401:
+          description: Invalid credentials
 
-  /verifyToken:
-    post:
-      summary: Verify JWT token
-      description: Checks if the provided JWT token is valid.
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                token:
-                  type: string
-                  description: The JWT token to verify
+  /users/profile:
+    get:
+      tags:
+        - User
+      summary: Get user profile
+      security:
+        - BearerAuth: []
       responses:
-        '200':
-          description: Token is valid
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  valid:
-                    type: boolean
-                  userId:
-                    type: string
-                  role:
-                    type: string
-        '401':
-          description: Invalid token
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-        '500':
-          description: Error during token verification
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
+        200:
+          description: User profile retrieved successfully
+        401:
+          description: Unauthorized

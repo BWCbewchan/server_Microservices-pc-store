@@ -1,7 +1,7 @@
 openapi: 3.0.0
 info:
   title: Product Service API
-  description: API documentation for the Product Service
+  description: Product Management API
   version: 1.0.0
 servers:
   - url: http://localhost:4004
@@ -46,56 +46,71 @@ components:
 paths:
   /products:
     get:
-      summary: Get all products
       tags:
         - Products
+      summary: Get all products
       parameters:
         - in: query
           name: page
           schema:
             type: integer
-          description: Page number
+            default: 1
         - in: query
           name: limit
           schema:
             type: integer
-          description: Number of items per page
+            default: 10
         - in: query
           name: category
           schema:
             type: string
-          description: Filter by category
+        - in: query
+          name: brand
+          schema:
+            type: string
+        - in: query
+          name: minPrice
+          schema:
+            type: number
+        - in: query
+          name: maxPrice
+          schema:
+            type: number
       responses:
-        '200':
-          description: A list of products
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  status:
-                    type: string
-                  data:
-                    type: array
-                    items:
-                      $ref: '#/components/schemas/Product'
+        200:
+          description: List of products
+
     post:
-      summary: Create a new product
       tags:
         - Products
+      summary: Create new product
+      security:
+        - BearerAuth: []
       requestBody:
         required: true
         content:
-          application/json:
+          multipart/form-data:
             schema:
-              $ref: '#/components/schemas/Product'
+              type: object
+              properties:
+                name:
+                  type: string
+                price:
+                  type: number
+                description:
+                  type: string
+                category:
+                  type: string
+                brand:
+                  type: string
+                images:
+                  type: array
+                  items:
+                    type: string
+                    format: binary
       responses:
-        '201':
+        201:
           description: Product created successfully
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Product'
 
   /products/{id}:
     get:

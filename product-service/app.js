@@ -6,7 +6,8 @@ const connectDB = require("./config/connectDB");
 const swaggerUi = require('swagger-ui-express');
 const YAML = require('yamljs');
 const swaggerDocument = YAML.load('./swagger.yaml');
-
+const morgan = require('morgan');
+const compression = require("compression");
 dotenv.config();
 const app = express();
 
@@ -14,6 +15,11 @@ const port = process.env.PORT || 4004;
 
 // Kết nối DB
 connectDB();
+
+// Sử dụng morgan để ghi lại các request với định dạng "dev"
+app.use(morgan("dev"));
+app.use(compression())
+// Cấu hình Swagger
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
 // Danh sách origin được phép
@@ -22,13 +28,13 @@ const allowedOrigins = [
   process.env.FRONTEND_URL_2 || "http://localhost:5173",
 ];
 
-console.log("Allowed Origins:", allowedOrigins);
+console.log("Allowed Origins:", allowedOrigins.join(", "));
 
 // Cấu hình CORS
 app.use(
   cors({
     origin: function (origin, callback) {
-      console.log("Origin:", origin); // Add logging to see the origin of the request
+      console.log("Origin:", origin);
       if (!origin || allowedOrigins.includes(origin)) {
         callback(null, true);
       } else {

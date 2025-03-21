@@ -1,18 +1,19 @@
 auth-service/
-│
 ├── config/
-│   └── connectDB.js
-│
-├── controllers/
-│   └── authController.js
-│
+│   ├── database.js
+│   └── redis.js
+├── controller/
+│   ├── authController.js      # Xử lý login, register, refresh token
+│   └── userController.js      # Xử lý user profile, RBAC
 ├── models/
-│   └── user.js
-│
-├── routes/
-│   └── authRoutes.js
-│
-├── .env
+│   └── User.js               # User schema với RBAC
+├── routers/
+│   ├── authRoutes.js
+│   └── userRoutes.js
+├── middleware/
+│   ├── auth.js
+│   └── validator.js
+├── swagger.yaml              # API documentation cho auth
 ├── app.js
-├── package.json
-└── Dockerfile
+├── Dockerfile
+└── .env.example
