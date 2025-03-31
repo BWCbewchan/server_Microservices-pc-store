@@ -1,0 +1,18 @@
+auth-service/
+│
+├── config/
+│   └── connectDB.js
+│
+├── controllers/
+│   └── authController.js
+│
+├── models/
+│   └── user.js
+│
+├── routes/
+│   └── authRoutes.js
+│
+├── .env
+├── app.js
+├── package.json
+└── Dockerfile
