@@ -1,104 +1,165 @@
 openapi: 3.0.0
 info:
   title: Inventory Service API
-  description: API for managing product inventory
+  description: |
+    API for managing product inventory, suppliers, and stock monitoring
+    
+    Features:
+    - Inventory management
+    - Stock level monitoring
+    - Supplier management
+    - Purchase history tracking
+    - Demand forecasting
   version: 1.0.0
+
 servers:
   - url: http://localhost:3006/inventory
-    description: for server local
-  - url: https://inventory-service-test.onrender.com/inventory
-    description: for server htttps
+    description: Development server
+
+tags:
+  - name: Inventory
+    description: Basic inventory operations
+  - name: Suppliers
+    description: Supplier management
+  - name: Monitoring
+    description: Stock monitoring and alerts
+  - name: Analytics
+    description: Purchase history and forecasting
+
+components:
+  schemas:
+    Inventory:
+      type: object
+      properties:
+        _id:
+          type: string
+        productId:
+          type: string
+        quantity:
+          type: integer
+        reserved:
+          type: integer
+        minStockLevel:
+          type: integer
+        maxStockLevel:
+          type: integer
+        reorderPoint:
+          type: integer
+        lastStockCheck:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    Supplier:
+      type: object
+      required:
+        - name
+        - email
+      properties:
+        name:
+          type: string
+        email:
+          type: string
+        phone:
+          type: string
+        address:
+          type: string
+        rating:
+          type: number
+          minimum: 1
+          maximum: 5
+
+    PurchaseHistory:
+      type: object
+      required:
+        - supplierId
+        - quantity
+        - unitPrice
+      properties:
+        supplierId:
+          type: string
+        quantity:
+          type: integer
+        unitPrice:
+          type: number
+        totalPrice:
+          type: number
+        orderDate:
+          type: string
+          format: date-time
+        deliveryDate:
+          type: string
+          format: date-time
+        status:
+          type: string
+          enum: [pending, delivered, cancelled]
+
+    DemandForecast:
+      type: object
+      properties:
+        predictedDemand:
+          type: integer
+        confidence:
+          type: number
+        period:
+          type: string
+          format: date-time
+        factors:
+          type: array
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+              impact:
+                type: number
+
 paths:
   /:
     get:
+      tags: [Inventory]
       summary: List all inventory items
-      description: Retrieve a list of all inventory items.
       responses:
-        '200':
-          description: A list of inventory items
+        200:
+          description: List of all inventory items
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  type: object
-                  properties:
-                    _id:
-                      type: string
-                    productId:
-                      type: string
-                    quantity:
-                      type: integer
-                    reserved:
-                      type: integer
-                    updatedAt:
-                      type: string
-                      format: date-time
-        '500':
+                  $ref: '#/components/schemas/Inventory'
+        500:
           description: Server error
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
 
   /{productId}:
     get:
-      summary: Get inventory for a specific product
+      tags: [Inventory]
+      summary: Get inventory for specific product
       parameters:
         - name: productId
           in: path
           required: true
-          description: The ID of the product to retrieve inventory for
           schema:
             type: string
       responses:
-        '200':
-          description: Successful response with inventory details
+        200:
+          description: Inventory details
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  _id:
-                    type: string
-                  productId:
-                    type: string
-                  quantity:
-                    type: integer
-                  reserved:
-                    type: integer
-                  updatedAt:
-                    type: string
-                    format: date-time
-        '404':
-          description: Inventory not found
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-        '500':
-          description: Server error
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
+                $ref: '#/components/schemas/Inventory'
+        404:
+          description: Product not found
 
     put:
-      summary: Update inventory for a specific product
+      tags: [Inventory]
+      summary: Update inventory levels
       parameters:
         - name: productId
           in: path
           required: true
-          description: The ID of the product to update inventory for
           schema:
             type: string
       requestBody:
@@ -113,48 +174,170 @@ paths:
                 reserved:
                   type: integer
       responses:
-        '200':
-          description: Successful response with updated inventory details
+        200:
+          description: Updated inventory
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  _id:
-                    type: string
-                  productId:
-                    type: string
-                  quantity:
-                    type: integer
-                  reserved:
-                    type: integer
-                  updatedAt:
-                    type: string
-                    format: date-time
-        '400':
-          description: Invalid input
+                $ref: '#/components/schemas/Inventory'
+
+  /alerts/low-stock:
+    get:
+      tags: [Monitoring]
+      summary: Get low stock alerts
+      responses:
+        200:
+          description: List of items with low stock
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-        '404':
-          description: Inventory not found
+                type: array
+                items:
+                  $ref: '#/components/schemas/Inventory'
+
+  /{productId}/purchase-history:
+    get:
+      tags: [Analytics]
+      summary: Get purchase history
+      parameters:
+        - name: productId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: startDate
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: endDate
+          in: query
+          schema:
+            type: string
+            format: date
+      responses:
+        200:
+          description: Purchase history
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-        '500':
-          description: Server error
+                type: array
+                items:
+                  $ref: '#/components/schemas/PurchaseHistory'
+
+  /{productId}/purchase:
+    post:
+      tags: [Inventory]
+      summary: Add purchase record
+      parameters:
+        - name: productId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PurchaseHistory'
+      responses:
+        201:
+          description: Purchase recorded
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  message:
-                    type: string
+                $ref: '#/components/schemas/Inventory'
+
+  /{productId}/forecast:
+    post:
+      tags: [Analytics]
+      summary: Update demand forecast
+      parameters:
+        - name: productId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DemandForecast'
+      responses:
+        201:
+          description: Forecast updated
+
+  /{productId}/suppliers:
+    post:
+      tags: [Suppliers]
+      summary: Add new supplier
+      parameters:
+        - name: productId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Supplier'
+      responses:
+        201:
+          description: Supplier added
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Supplier'
+
+  /{productId}/suppliers/{supplierId}:
+    put:
+      tags: [Suppliers]
+      summary: Update supplier
+      parameters:
+        - name: productId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: supplierId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Supplier'
+      responses:
+        200:
+          description: Supplier updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Supplier'
+
+    delete:
+      tags: [Suppliers]
+      summary: Remove supplier
+      parameters:
+        - name: productId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: supplierId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: Supplier removed

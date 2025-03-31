@@ -2,13 +2,12 @@ const express = require('express');
 const router = express.Router();
 const cartController = require('../controllers/cartController');
 
-// Route để thêm sản phẩm vào giỏ hàng
-router.post('/add', cartController.addToCart);
-
-// Route để lấy giỏ hàng của người dùng
+// Cart management routes
 router.get('/:userId', cartController.getCart);
-
-// Route để xóa sản phẩm khỏi giỏ hàng
+router.post('/add', cartController.addToCart);
+router.put('/update-quantity', cartController.updateQuantity);
 router.delete('/remove', cartController.removeFromCart);
+router.delete('/:userId/clear', cartController.clearCart);
+router.get('/:userId/summary', cartController.getCartSummary);
 
 module.exports = router;

@@ -1,25 +1,71 @@
-// auth-service/models/user.js
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
-const { Schema } = mongoose;
 
-const userSchema = new Schema({
-  username: { type: String, required: true, unique: true },
-  password: { type: String, required: true },
-  email: { type: String, required: true, unique: true },
-  role: { type: String, enum: ['user', 'admin'], default: 'user' }
+const addressSchema = new mongoose.Schema({
+  street: { type: String, required: true },
+  city: { type: String, required: true },
+  state: { type: String, required: true },
+  zipCode: { type: String, required: true },
+  isDefault: { type: Boolean, default: false }
 });
 
-// Hash the password before saving
-userSchema.pre('save', async function (next) {
+const userSchema = new mongoose.Schema({
+  email: { 
+    type: String, 
+    required: true, 
+    unique: true,
+    trim: true,
+    lowercase: true
+  },
+  password: { 
+    type: String, 
+    required: true,
+    minlength: 6
+  },
+  fullName: { 
+    type: String, 
+    required: true,
+    trim: true
+  },
+  phone: { 
+    type: String,
+    trim: true
+  },
+  role: { 
+    type: String, 
+    enum: ['user', 'admin', 'staff'], 
+    default: 'user' 
+  },
+  addresses: [addressSchema],
+  avatar: { type: String },
+  status: { 
+    type: String, 
+    enum: ['active', 'inactive', 'banned'], 
+    default: 'active' 
+  },
+  lastLogin: { type: Date },
+  activityLog: [{
+    action: String,
+    timestamp: { type: Date, default: Date.now },
+    details: Object
+  }]
+}, { 
+  timestamps: true 
+});
+
+userSchema.pre('save', async function(next) {
   if (!this.isModified('password')) return next();
-  const salt = await bcrypt.genSalt(10);
-  this.password = await bcrypt.hash(this.password, salt);
-  next();
+  
+  try {
+    const salt = await bcrypt.genSalt(10);
+    this.password = await bcrypt.hash(this.password, salt);
+    next();
+  } catch (error) {
+    next(error);
+  }
 });
 
-// Method to compare passwords
-userSchema.methods.comparePassword = async function (candidatePassword) {
+userSchema.methods.comparePassword = async function(candidatePassword) {
   return await bcrypt.compare(candidatePassword, this.password);
 };
 

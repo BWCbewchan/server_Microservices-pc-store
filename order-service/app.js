@@ -2,14 +2,22 @@
 const express = require('express');
 const app = express();
 require('dotenv').config();
-
-require('../common/db'); // Connect to MongoDB
-
+const connectDB = require('./config/connectDB');
 const orderRoutes = require('./routes/orderRoutes');
-const axios = require('axios'); // For making requests to other services
+const axios = require('axios');
+const swaggerUi = require('swagger-ui-express');
+const YAML = require('yamljs');
+const swaggerDocument = YAML.load('./swagger.yaml');
+
+// Connect to MongoDB using config
+connectDB();
 
 app.use(express.json());
 
+// Swagger documentation route
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
+
+// Routes
 app.use('/orders', orderRoutes);
 
 const port = process.env.PORT || 3002;

@@ -1,23 +1,34 @@
 const express = require('express');
-const app = express();
+const cors = require('cors');
 require('dotenv').config();
-const connectDB = require("./config/connectDB");
-const cartRoutes = require('./routes/cartRoutes'); // Import cart routes
+const connectDB = require('./config/connectDB');
+const cartRoutes = require('./routes/cartRoutes');
 const swaggerUi = require('swagger-ui-express');
 const YAML = require('yamljs');
 const swaggerDocument = YAML.load('./swagger.yaml');
 
+const app = express();
+
+// Middleware
+app.use(cors());
 app.use(express.json());
 
-connectDB(); // Kết nối đến MongoDB
+// Connect to MongoDB
+connectDB();
 
-// Sử dụng router cho giỏ hàng
-app.use('/cart', cartRoutes); // Đảm bảo rằng router được sử dụng với prefix '/cart'
+// Routes
+app.use('/cart', cartRoutes);
 
-// Cấu hình Swagger
+// Swagger documentation
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
-const port = process.env.PORT || 3000;
+// Error handling middleware
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).json({ message: 'Đã xảy ra lỗi server' });
+});
+
+const port = process.env.PORT || 4000;
 app.listen(port, () => {
-  console.log(`Server is running on port ${port}`);
+  console.log(`Cart service is running on port ${port}`);
 });

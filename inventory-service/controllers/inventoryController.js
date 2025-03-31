@@ -46,3 +46,80 @@ exports.listAllInventory = async (req, res) => {
     res.status(500).json({ message: 'Lỗi server', error: err.message });
   }
 };
+
+exports.addPurchaseHistory = async (req, res) => {
+  try {
+    const { productId } = req.params;
+    const purchaseData = req.body;
+
+    const inventory = await Inventory.findOne({ productId });
+    if (!inventory) {
+      return res.status(404).json({ message: 'Không tìm thấy sản phẩm' });
+    }
+
+    inventory.purchaseHistory.push(purchaseData);
+    inventory.quantity += purchaseData.quantity;
+    await inventory.save();
+
+    res.status(201).json(inventory);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+exports.updateDemandForecast = async (req, res) => {
+  try {
+    const { productId } = req.params;
+    const forecastData = req.body;
+
+    const inventory = await Inventory.findOne({ productId });
+    if (!inventory) {
+      return res.status(404).json({ message: 'Không tìm thấy sản phẩm' });
+    }
+
+    inventory.demandForecasts.push(forecastData);
+    await inventory.save();
+
+    res.status(201).json(inventory.demandForecasts);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+exports.getStockAlerts = async (req, res) => {
+  try {
+    const lowStockItems = await Inventory.find({
+      $where: function() {
+        return this.quantity <= this.minStockLevel;
+      }
+    });
+
+    res.json(lowStockItems);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+exports.getPurchaseHistory = async (req, res) => {
+  try {
+    const { productId } = req.params;
+    const { startDate, endDate } = req.query;
+
+    const inventory = await Inventory.findOne({ productId });
+    if (!inventory) {
+      return res.status(404).json({ message: 'Không tìm thấy sản phẩm' });
+    }
+
+    let history = inventory.purchaseHistory;
+    if (startDate && endDate) {
+      history = history.filter(h => 
+        h.orderDate >= new Date(startDate) && 
+        h.orderDate <= new Date(endDate)
+      );
+    }
+
+    res.json(history);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};

@@ -2,15 +2,56 @@
 const mongoose = require('mongoose');
 const { Schema } = mongoose;
 
+const trackingSchema = new Schema({
+  status: {
+    type: String,
+    enum: ['processing', 'in_transit', 'out_for_delivery', 'delivered', 'failed'],
+    default: 'processing'
+  },
+  location: String,
+  timestamp: { type: Date, default: Date.now },
+  description: String,
+  carrier: String,
+  trackingNumber: String
+});
+
+const returnSchema = new Schema({
+  reason: {
+    type: String,
+    required: true
+  },
+  items: [{
+    productId: {
+      type: Schema.Types.ObjectId,
+      ref: 'Product',
+      required: true
+    },
+    quantity: Number,
+    reason: String
+  }],
+  status: {
+    type: String,
+    enum: ['pending', 'approved', 'rejected', 'completed'],
+    default: 'pending'
+  },
+  refundAmount: Number,
+  refundStatus: {
+    type: String,
+    enum: ['pending', 'processed', 'failed'],
+    default: 'pending'
+  },
+  createdAt: { type: Date, default: Date.now }
+});
+
 const orderSchema = new Schema({
   userId: {
-    type: mongoose.Schema.Types.ObjectId,
+    type: Schema.Types.ObjectId,
     required: true,
     ref: 'User'
   },
   items: [{
     productId: {
-      type: mongoose.Schema.Types.ObjectId,
+      type: Schema.Types.ObjectId,
       required: true,
       ref: 'Product'
     },
@@ -34,9 +75,18 @@ const orderSchema = new Schema({
   },
   paymentStatus: {
     type: String,
-    enum: ['pending', 'completed', 'failed'],
+    enum: ['pending', 'completed', 'failed', 'refunded'],
     default: 'pending'
-  }
+  },
+  tracking: [trackingSchema],
+  returnRequest: returnSchema,
+  invoiceNumber: String,
+  invoiceUrl: String,
+  emailNotifications: [{
+    type: String,
+    timestamp: Date,
+    status: String
+  }]
 }, { timestamps: true });
 
 module.exports = mongoose.model('Order', orderSchema);

@@ -2,14 +2,136 @@ openapi: 3.0.0
 info:
   title: Order Service API
   version: 1.0.0
-  description: Order Management API
+  description: |
+    Advanced Order Management API with tracking, returns, invoicing, and notifications
+    
+    Features:
+    - Order management
+    - Order tracking
+    - Returns and refunds
+    - Invoice generation
+    - Email notifications
+
+servers:
+  - url: http://localhost:3002
+    description: Development server
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    Order:
+      type: object
+      properties:
+        _id:
+          type: string
+        userId:
+          type: string
+        items:
+          type: array
+          items:
+            type: object
+            properties:
+              productId:
+                type: string
+              quantity:
+                type: integer
+              price:
+                type: number
+        totalAmount:
+          type: number
+        shippingAddress:
+          $ref: '#/components/schemas/Address'
+        status:
+          type: string
+          enum: [pending, processing, shipped, delivered, cancelled]
+        paymentStatus:
+          type: string
+          enum: [pending, completed, failed, refunded]
+        tracking:
+          type: array
+          items:
+            $ref: '#/components/schemas/TrackingInfo'
+        returnRequest:
+          $ref: '#/components/schemas/ReturnRequest'
+        invoiceNumber:
+          type: string
+        invoiceUrl:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    Address:
+      type: object
+      properties:
+        street:
+          type: string
+        city:
+          type: string
+        state:
+          type: string
+        zipCode:
+          type: string
+
+    TrackingInfo:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [processing, in_transit, out_for_delivery, delivered, failed]
+        location:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+        description:
+          type: string
+        carrier:
+          type: string
+        trackingNumber:
+          type: string
+
+    ReturnRequest:
+      type: object
+      properties:
+        reason:
+          type: string
+        items:
+          type: array
+          items:
+            type: object
+            properties:
+              productId:
+                type: string
+              quantity:
+                type: integer
+              reason:
+                type: string
+        status:
+          type: string
+          enum: [pending, approved, rejected, completed]
+        refundAmount:
+          type: number
+        refundStatus:
+          type: string
+          enum: [pending, processed, failed]
+        createdAt:
+          type: string
+          format: date-time
 
 paths:
   /orders:
     get:
-      tags:
-        - Orders
-      summary: Get user's orders
+      tags: [Orders]
+      summary: Get all orders
       security:
         - BearerAuth: []
       parameters:
@@ -26,11 +148,19 @@ paths:
       responses:
         200:
           description: List of orders
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Order'
+        401:
+          description: Unauthorized
+        500:
+          description: Server error
 
-  /orders/create:
     post:
-      tags:
-        - Orders
+      tags: [Orders]
       summary: Create new order
       security:
         - BearerAuth: []
@@ -41,19 +171,228 @@ paths:
             schema:
               type: object
               required:
+                - items
                 - shippingAddress
               properties:
+                items:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      productId:
+                        type: string
+                      quantity:
+                        type: integer
                 shippingAddress:
-                  type: object
-                  properties:
-                    street:
-                      type: string
-                    city:
-                      type: string
-                    state:
-                      type: string
-                    zipCode:
-                      type: string
+                  $ref: '#/components/schemas/Address'
       responses:
         201:
-          description: Order created successfully 
+          description: Order created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Order'
+        400:
+          description: Invalid input
+        401:
+          description: Unauthorized
+
+  /orders/{orderId}:
+    get:
+      tags: [Orders]
+      summary: Get order by ID
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: orderId
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: Order details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Order'
+        404:
+          description: Order not found
+
+    put:
+      tags: [Orders]
+      summary: Update order
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: orderId
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Order'
+      responses:
+        200:
+          description: Order updated
+        404:
+          description: Order not found
+
+    delete:
+      tags: [Orders]
+      summary: Delete order
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: orderId
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: Order deleted
+        404:
+          description: Order not found
+
+  /orders/{orderId}/tracking:
+    get:
+      tags: [Tracking]
+      summary: Get order tracking history
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: orderId
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: Tracking history
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TrackingInfo'
+
+    post:
+      tags: [Tracking]
+      summary: Add tracking update
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: orderId
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TrackingInfo'
+      responses:
+        200:
+          description: Tracking updated
+
+  /orders/{orderId}/return:
+    post:
+      tags: [Returns]
+      summary: Create return request
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: orderId
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReturnRequest'
+      responses:
+        201:
+          description: Return request created
+
+  /orders/{orderId}/refund:
+    put:
+      tags: [Returns]
+      summary: Process refund
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: orderId
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status:
+                  type: string
+                  enum: [pending, processed, failed]
+                refundAmount:
+                  type: number
+      responses:
+        200:
+          description: Refund processed
+
+  /orders/{orderId}/invoice:
+    get:
+      tags: [Invoices]
+      summary: Generate invoice
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: orderId
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: format
+          schema:
+            type: string
+            enum: [pdf, html]
+            default: pdf
+      responses:
+        200:
+          description: Invoice generated
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+            application/json:
+              schema:
+                type: object
+                properties:
+                  invoiceUrl:
+                    type: string
+                  message:
+                    type: string
+
+tags:
+  - name: Orders
+    description: Order management operations
+  - name: Tracking
+    description: Order tracking operations
+  - name: Returns
+    description: Return and refund management
+  - name: Invoices
+    description: Invoice generation
