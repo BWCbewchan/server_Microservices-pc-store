@@ -4,7 +4,7 @@
   "main": "index.js",
   "scripts": {
     "start": "node app.js",
-    "start:all": "concurrently \"cd api-gateway && npm start\" \"cd auth-service && npm start\" \"cd product-service && npm start\" \"cd order-service && npm start\" \"cd payment-service && npm start\" \"cd shipping-service && npm start\" \"cd inventory-service && npm start\" \"cd review-service && npm start\""
+    "start:all": "concurrently \"cd api-gateway && npm start\" \"cd auth-service && npm start\" \"cd product-service && npm start\" \"cd order-service && npm start\" \"cd payment-service && npm start\" \"cd shipping-service && npm start\" \"cd inventory-service && npm start\""
   },
   "keywords": [],
   "author": "",
@@ -15,7 +15,9 @@
     "body-parser": "^1.20.3",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
-    "jsonwebtoken": "^9.0.2"
+    "jsonwebtoken": "^9.0.2",
+    "swagger-ui-express": "^5.0.1",
+    "yamljs": "^0.3.0"
   },
   "devDependencies": {
     "concurrently": "^9.1.2"
