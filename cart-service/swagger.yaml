@@ -1,213 +1,87 @@
 openapi: 3.0.0
 info:
   title: Cart Service API
-  description: |
-    API for Shopping Cart Management
-    
-    ## Features
-    - Cart management (create, read, update, delete)
-    - Item management within cart
-    - Cart summary and calculations
-    
-    ## Authentication
-    All endpoints require JWT token in Authorization header
-    
-    ## Error Codes
-    - 400: Bad Request
-    - 401: Unauthorized
-    - 404: Not Found
-    - 500: Server Error
   version: 1.0.0
-  contact:
-    email: support@pcstore.com
-
+  description: API for managing shopping carts
 servers:
-  - url: http://localhost:4000
-    description: Development server
-
-tags:
-  - name: Cart
-    description: Shopping cart operations
-
-components:
-  securitySchemes:
-    bearerAuth:
-      type: http
-      scheme: bearer
-      bearerFormat: JWT
-
-  schemas:
-    CartItem:
-      type: object
-      properties:
-        productId:
-          type: string
-          description: ID of the product
-        quantity:
-          type: integer
-          minimum: 1
-          description: Quantity of the product
-        price:
-          type: number
-          description: Price per unit
-        name:
-          type: string
-          description: Product name
-        image:
-          type: string
-          description: Product image URL
-
-    Cart:
-      type: object
-      properties:
-        _id:
-          type: string
-        userId:
-          type: string
-        items:
-          type: array
-          items:
-            $ref: '#/components/schemas/CartItem'
-        total:
-          type: number
-        status:
-          type: string
-          enum: [active, completed, abandoned]
-        createdAt:
-          type: string
-          format: date-time
-        updatedAt:
-          type: string
-          format: date-time
-
-    CartSummary:
-      type: object
-      properties:
-        itemCount:
-          type: integer
-        total:
-          type: number
+  - url: http://localhost:4005
+    description: Cart service
 
 paths:
-  /cart/{userId}:
-    get:
+  /add/{userId}/{productId}/{quantity}:
+    post:
       tags: [Cart]
-      summary: Get user's cart
+      summary: Add item to cart
       parameters:
         - name: userId
           in: path
           required: true
           schema:
             type: string
-      security:
-        - bearerAuth: []
-      responses:
-        200:
-          description: Cart retrieved successfully
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Cart'
-        404:
-          description: Cart not found
-
-  /cart/add:
-    post:
-      tags: [Cart]
-      summary: Add item to cart
-      security:
-        - bearerAuth: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required: [userId, productId, quantity, price, name]
-              properties:
-                userId:
-                  type: string
-                productId:
-                  type: string
-                quantity:
-                  type: integer
-                  minimum: 1
-                price:
-                  type: number
-                name:
-                  type: string
-                image:
-                  type: string
+        - name: productId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: quantity
+          in: path
+          required: true
+          schema:
+            type: integer
       responses:
         200:
           description: Item added successfully
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Cart'
         400:
-          description: Invalid input data
+          description: Invalid input
 
-  /cart/update-quantity:
+  /update/{userId}/{productId}/{quantity}:
     put:
       tags: [Cart]
       summary: Update item quantity
-      security:
-        - bearerAuth: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required: [userId, productId, quantity]
-              properties:
-                userId:
-                  type: string
-                productId:
-                  type: string
-                quantity:
-                  type: integer
-                  minimum: 1
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: productId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: quantity
+          in: path
+          required: true
+          schema:
+            type: integer
       responses:
         200:
-          description: Quantity updated successfully
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Cart'
+          description: Quantity updated
         404:
-          description: Cart or item not found
+          description: Cart/item not found
 
-  /cart/remove:
+  /remove/{userId}/{productId}:
     delete:
       tags: [Cart]
       summary: Remove item from cart
-      security:
-        - bearerAuth: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required: [userId, productId]
-              properties:
-                userId:
-                  type: string
-                productId:
-                  type: string
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: productId
+          in: path
+          required: true
+          schema:
+            type: string
       responses:
         200:
-          description: Item removed successfully
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Cart'
+          description: Item removed
         404:
-          description: Cart or item not found
+          description: Cart/item not found
 
-  /cart/{userId}/clear:
+  /clear/{userId}:
     delete:
       tags: [Cart]
       summary: Clear entire cart
@@ -217,30 +91,63 @@ paths:
           required: true
           schema:
             type: string
-      security:
-        - bearerAuth: []
       responses:
         200:
-          description: Cart cleared successfully
+          description: Cart cleared
         404:
           description: Cart not found
 
-  /cart/{userId}/summary:
+  /check/{userId}:
     get:
       tags: [Cart]
-      summary: Get cart summary
+      summary: Validate cart contents
       parameters:
         - name: userId
           in: path
           required: true
           schema:
             type: string
-      security:
-        - bearerAuth: []
       responses:
         200:
-          description: Cart summary retrieved successfully
+          description: Cart status
+        404:
+          description: Cart not found
+
+  /{userId}:
+    get:
+      tags: [Cart]
+      summary: Get cart contents
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: Cart contents
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/CartSummary'
+                $ref: '#/components/schemas/Cart'
+        404:
+          description: Cart not found
+
+components:
+  schemas:
+    Cart:
+      type: object
+      properties:
+        userId:
+          type: string
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/CartItem'
+    CartItem:
+      type: object
+      properties:
+        productId:
+          type: string
+        quantity:
+          type: integer

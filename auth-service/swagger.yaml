@@ -1,38 +1,7 @@
 openapi: 3.0.0
 info:
-  title: PC Store Auth Service API
-  description: |
-    # Authentication and User Management API
-    
-    ## Overview
-    This API provides authentication and user management services for PC Store platform.
-    
-    ## Key Features
-    - User Registration and Login
-    - JWT Token Authentication
-    - Profile Management
-    - Address Management
-    - Role-based Access Control
-    
-    ## Authentication
-    - All protected endpoints require JWT Bearer token
-    - Token format: `Bearer <your_jwt_token>`
-    - Token expiration: 24 hours
-    
-    ## Error Codes
-    - 200: Success
-    - 201: Created successfully
-    - 400: Invalid input/Bad request
-    - 401: Unauthorized/Invalid token
-    - 403: Forbidden/Account banned
-    - 409: Conflict (e.g., Email exists)
-    - 500: Server error
-    
-    ## Data Validation Rules
-    - Email: Must be unique and valid format
-    - Password: Minimum 6 characters
-    - Phone: Format +84XXXXXXXXX (Optional)
-    - Full Name: Required, non-empty string
+  title: PC Store Authentication Service API
+  description: API for user authentication and management
   version: 1.0.0
   contact:
     name: PC Store Support
@@ -41,90 +10,6 @@ info:
 servers:
   - url: http://localhost:3004
     description: Development server
-  - url: https://api.pcstore.com/auth
-    description: Production server
-
-components:
-  securitySchemes:
-    bearerAuth:
-      type: http
-      scheme: bearer
-      bearerFormat: JWT
-      description: |
-        JWT Authorization header using the Bearer scheme.
-        Enter your token in the format: "Bearer {token}"
-  schemas:
-    User:
-      type: object
-      description: User model representing a registered user
-      properties:
-        id:
-          type: string
-          description: Unique MongoDB ObjectId
-          example: "507f1f77bcf86cd799439011"
-        email:
-          type: string
-          format: email
-          description: User's unique email address
-          example: "user@example.com"
-        fullName:
-          type: string
-          description: User's full name
-          example: "John Doe"
-        phone:
-          type: string
-          description: User's phone number (Vietnam format)
-          example: "+84123456789"
-        role:
-          type: string
-          enum: [user, admin, staff]
-          description: |
-            User's role in the system:
-            * user - Regular customer
-            * admin - System administrator
-            * staff - Store staff member
-          example: "user"
-        status:
-          type: string
-          enum: [active, inactive, banned]
-          description: |
-            Account status:
-            * active - Normal access
-            * inactive - Temporary disabled
-            * banned - Permanently blocked
-          example: "active"
-        createdAt:
-          type: string
-          format: date-time
-          description: Account creation timestamp
-        lastLogin:
-          type: string
-          format: date-time
-          description: Last successful login timestamp
-    Address:
-      type: object
-      description: Delivery address information
-      properties:
-        street:
-          type: string
-          description: Street address including house number
-          example: "123 Main St"
-        city:
-          type: string
-          description: City name
-          example: "Ho Chi Minh City"
-        state:
-          type: string
-          description: State/Province
-          example: "HCM"
-        zipCode:
-          type: string
-          description: Postal code
-          example: "70000"
-        isDefault:
-          type: boolean
-          description: Whether this is the default delivery address
-          default: false
 
 paths:
   /auth/register:
@@ -136,87 +21,38 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              required:
-                - email
-                - password
-                - fullName
-              properties:
-                email:
-                  type: string
-                  format: email
-                  example: "user@example.com"
-                password:
-                  type: string
-                  format: password
-                  minLength: 6
-                  example: "password123"
-                fullName:
-                  type: string
-                  example: "John Doe"
-                phone:
-                  type: string
-                  example: "+84123456789"
+              $ref: '#/components/schemas/UserRegistration'
       responses:
         201:
-          description: Registration successful
+          description: User created successfully
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                    example: "Đăng ký thành công"
+                $ref: '#/components/schemas/User'
         400:
-          description: Validation error
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                    example: "Vui lòng điền đầy đủ thông tin"
-                  details:
-                    type: object
-                    properties:
-                      email:
-                        type: string
-                        example: "Email là bắt buộc"
+          description: Invalid input
         409:
           description: Email already exists
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                    example: "Email đã được đăng ký"
+        500:
+          description: Server error
 
   /auth/login:
     post:
       tags: [Authentication]
-      summary: User login
+      summary: Authenticate user
       requestBody:
         required: true
         content:
           application/json:
             schema:
               type: object
-              required:
-                - email
-                - password
               properties:
                 email:
                   type: string
                   format: email
-                  example: "user@example.com"
                 password:
                   type: string
                   format: password
-                  example: "password123"
       responses:
         200:
           description: Login successful
@@ -227,29 +63,35 @@ paths:
                 properties:
                   token:
                     type: string
-                    example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
                   user:
                     $ref: '#/components/schemas/User'
         401:
           description: Invalid credentials
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                    example: "Email hoặc mật khẩu không đúng"
         403:
           description: Account banned
+        500:
+          description: Server error
+
+  /auth/verify:
+    get:
+      tags: [Authentication]
+      summary: Verify JWT token
+      security:
+        - bearerAuth: []
+      responses:
+        200:
+          description: Valid token
           content:
             application/json:
               schema:
                 type: object
                 properties:
-                  message:
-                    type: string
-                    example: "Tài khoản đã bị khóa"
+                  valid:
+                    type: boolean
+                  user:
+                    $ref: '#/components/schemas/User'
+        401:
+          description: Invalid token
 
   /auth/profile:
     get:
@@ -266,54 +108,66 @@ paths:
                 $ref: '#/components/schemas/User'
         401:
           description: Unauthorized
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                    example: "Token không hợp lệ hoặc đã hết hạn"
 
-  /auth/verify:
-    get:
-      tags: [Authentication]
-      summary: Verify JWT token
-      security:
-        - bearerAuth: []
-      responses:
-        200:
-          description: Token is valid
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  valid:
-                    type: boolean
-                    example: true
-                  user:
-                    type: object
-                    properties:
-                      id:
-                        type: string
-                        example: "507f1f77bcf86cd799439011"
-                      role:
-                        type: string
-                        example: "user"
-        401:
-          description: Invalid token
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                    example: "Token không hợp lệ hoặc đã hết hạn"
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    UserRegistration:
+      type: object
+      required:
+        - email
+        - password
+        - fullName
+      properties:
+        email:
+          type: string
+          format: email
+          example: "user@example.com"
+        password:
+          type: string
+          format: password
+          minLength: 6
+          example: "password123"
+        fullName:
+          type: string
+          example: "John Doe"
+        phone:
+          type: string
+          example: "+84123456789"
+
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+          example: "507f1f77bcf86cd799439011"
+        email:
+          type: string
+          format: email
+        fullName:
+          type: string
+        phone:
+          type: string
+        role:
+          type: string
+          enum: [user, admin, staff]
+        status:
+          type: string
+          enum: [active, inactive, banned]
+        createdAt:
+          type: string
+          format: date-time
+        lastLogin:
+          type: string
+          format: date-time
 
 tags:
   - name: Authentication
-    description: Authentication endpoints
+    description: User authentication endpoints
   - name: Profile
     description: User profile management
