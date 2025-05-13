@@ -1,0 +1,13 @@
+version: "3.8"
+services:
+  api-gateway:
+    build: ./api-gateway
+    ports:
+      - "3000:3000"
+    depends_on:
+      - product-catalog-service
+
+  product-catalog-service:
+    build: ./product-catalog-service
+    ports:
+      - "4004:4004"

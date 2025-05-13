@@ -64,6 +64,11 @@ export default function Header() {
                 Settings
               </Link>
             </NavigationMenuItem>
+            <NavigationMenuItem>
+              <Link to="/orders" className={getLinkClass("/orders")}>
+                Orders
+              </Link>
+            </NavigationMenuItem>
           </NavigationMenuList>
         </NavigationMenu>
       </div>
