@@ -1,0 +1,116 @@
+@import "font_face.css";
+
+:root {
+  color-scheme: light dark;
+  color: rgba(255, 255, 255, 0.87);
+  background-color: #242424;
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  padding: 0;
+  margin: 0;
+  box-sizing: border-box;
+}
+
+html {
+  font-size: 62.5%;
+}
+
+a {
+  font-weight: 500;
+  color: #646cff;
+  text-decoration: inherit;
+}
+a:hover {
+  color: #535bf2;
+}
+
+body {
+  font-family: "Poppins", sans-serif;
+  font-size: 1.6rem;
+  line-height: 1.5;
+  /* display: flex; */
+  /* place-items: center; */
+  /* min-width: 320px; */
+  /* min-height: 100vh; */
+}
+
+h1 {
+  font-size: 3.2em;
+  line-height: 1.1;
+}
+
+h2 {
+  font-size: 2.4em;
+  line-height: 1.2;
+}
+
+button::after {
+  display: none !important;
+}
+
+p {
+  margin: 0;
+}
+
+.hover:hover {
+  opacity: 0.8;
+}
+
+.filter-section {
+  transition: all 0.3s ease-in-out;
+  overflow: hidden;
+}
+
+.filter-collapsed {
+  max-width: 0;
+  opacity: 0;
+  padding: 0;
+  transition: all 0.3s ease-in-out;
+}
+
+.holographic-card {
+  transition: all 0.5s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.holographic-card::before {
+  content: "";
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: linear-gradient(0deg, transparent, transparent 65%, #6a8dc2);
+  transform: rotate(-45deg);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.holographic-card:hover {
+  cursor: pointer;
+  z-index: 1;
+  transform: scale(1.05);
+  box-shadow: 0 0 20px #537fc0;
+}
+
+.holographic-card:hover::before {
+  animation: holographic-effect 1s forwards;
+}
+
+@keyframes holographic-effect {
+  0% {
+    opacity: 0;
+    transform: rotate(-45deg);
+  }
+  100% {
+    opacity: 1;
+    transform: rotate(-45deg) translateY(100%);
+  }
+}
