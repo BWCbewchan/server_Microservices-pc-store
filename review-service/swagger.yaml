@@ -4,12 +4,53 @@ info:
   version: 1.0.0
   description: Product Review Management API
 
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    Review:
+      type: object
+      properties:
+        _id:
+          type: string
+        userId:
+          type: string
+          description: Reference to User
+        productId:
+          type: string
+          description: Reference to Product
+        rating:
+          type: number
+          minimum: 1
+          maximum: 5
+        comment:
+          type: string
+        images:
+          type: array
+          items:
+            type: string
+        likes:
+          type: array
+          items:
+            type: string
+            description: User IDs who liked the review
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
 paths:
-  /reviews/add:
+  /reviews:
     post:
       tags:
         - Reviews
-      summary: Add product review
+      summary: Create a new review
       security:
         - BearerAuth: []
       requestBody:
@@ -37,13 +78,21 @@ paths:
                     format: binary
       responses:
         201:
-          description: Review added successfully
+          description: Review created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Review'
+        401:
+          description: Unauthorized
+        500:
+          description: Internal Server Error
 
   /reviews/{productId}:
     get:
       tags:
         - Reviews
-      summary: Get product reviews
+      summary: Get reviews for a specific product
       parameters:
         - in: path
           name: productId
@@ -62,4 +111,44 @@ paths:
             default: 10
       responses:
         200:
-          description: List of reviews 
+          description: List of reviews
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  reviews:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Review'
+                  totalPages:
+                    type: integer
+                  currentPage:
+                    type: integer
+        500:
+          description: Internal Server Error
+
+  /reviews/{id}:
+    delete:
+      tags:
+        - Reviews
+      summary: Delete a review
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: Review deleted successfully
+        401:
+          description: Unauthorized
+        403:
+          description: Forbidden - User not authorized to delete this review
+        404:
+          description: Review not found
+        500:
+          description: Internal Server Error

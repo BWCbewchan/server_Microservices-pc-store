@@ -1,129 +1,33 @@
 openapi: 3.0.0
 info:
-  title: Inventory Service API
+  title: PC Store Inventory Service API
   description: |
-    API for managing product inventory, suppliers, and stock monitoring
-    
-    Features:
-    - Inventory management
-    - Stock level monitoring
-    - Supplier management
-    - Purchase history tracking
-    - Demand forecasting
-  version: 1.0.0
+    ## Inventory Management System
+    Microservice responsible for:
+    - Real-time stock tracking
+    - Inventory synchronization
+    - Stock operations
+    - Inventory reporting
+  version: 1.0.1
+  contact:
+    name: PC Store Support
+    email: support@pcstore.com
 
 servers:
-  - url: http://localhost:3006/inventory
+  - url: http://localhost:4000
     description: Development server
-
-tags:
-  - name: Inventory
-    description: Basic inventory operations
-  - name: Suppliers
-    description: Supplier management
-  - name: Monitoring
-    description: Stock monitoring and alerts
-  - name: Analytics
-    description: Purchase history and forecasting
-
-components:
-  schemas:
-    Inventory:
-      type: object
-      properties:
-        _id:
-          type: string
-        productId:
-          type: string
-        quantity:
-          type: integer
-        reserved:
-          type: integer
-        minStockLevel:
-          type: integer
-        maxStockLevel:
-          type: integer
-        reorderPoint:
-          type: integer
-        lastStockCheck:
-          type: string
-          format: date-time
-        updatedAt:
-          type: string
-          format: date-time
-
-    Supplier:
-      type: object
-      required:
-        - name
-        - email
-      properties:
-        name:
-          type: string
-        email:
-          type: string
-        phone:
-          type: string
-        address:
-          type: string
-        rating:
-          type: number
-          minimum: 1
-          maximum: 5
-
-    PurchaseHistory:
-      type: object
-      required:
-        - supplierId
-        - quantity
-        - unitPrice
-      properties:
-        supplierId:
-          type: string
-        quantity:
-          type: integer
-        unitPrice:
-          type: number
-        totalPrice:
-          type: number
-        orderDate:
-          type: string
-          format: date-time
-        deliveryDate:
-          type: string
-          format: date-time
-        status:
-          type: string
-          enum: [pending, delivered, cancelled]
-
-    DemandForecast:
-      type: object
-      properties:
-        predictedDemand:
-          type: integer
-        confidence:
-          type: number
-        period:
-          type: string
-          format: date-time
-        factors:
-          type: array
-          items:
-            type: object
-            properties:
-              name:
-                type: string
-              impact:
-                type: number
+  - url: https://api.pcstore.com/inventory
+    description: Production server
 
 paths:
-  /:
+  /products:
     get:
       tags: [Inventory]
-      summary: List all inventory items
+      summary: Get all products with stock info
+      description: Retrieve product list from Product Service with inventory data
       responses:
         200:
-          description: List of all inventory items
+          description: Successfully retrieved products
           content:
             application/json:
               schema:
@@ -131,12 +35,28 @@ paths:
                 items:
                   $ref: '#/components/schemas/Inventory'
         500:
-          description: Server error
+          $ref: '#/components/responses/ServerError'
 
-  /{productId}:
+  /inventory:
     get:
       tags: [Inventory]
-      summary: Get inventory for specific product
+      summary: Get complete inventory
+      responses:
+        200:
+          description: Inventory list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Inventory'
+        404:
+          $ref: '#/components/responses/NotFound'
+
+  /inventory/{productId}:
+    get:
+      tags: [Inventory]
+      summary: Get inventory details by product ID
       parameters:
         - name: productId
           in: path
@@ -151,17 +71,12 @@ paths:
               schema:
                 $ref: '#/components/schemas/Inventory'
         404:
-          description: Product not found
+          $ref: '#/components/responses/NotFound'
 
-    put:
+  /inventory/bulk:
+    post:
       tags: [Inventory]
-      summary: Update inventory levels
-      parameters:
-        - name: productId
-          in: path
-          required: true
-          schema:
-            type: string
+      summary: Get bulk inventory data
       requestBody:
         required: true
         content:
@@ -169,175 +84,295 @@ paths:
             schema:
               type: object
               properties:
-                quantity:
-                  type: integer
-                reserved:
-                  type: integer
+                productIds:
+                  type: array
+                  items:
+                    type: string
       responses:
         200:
-          description: Updated inventory
+          description: Bulk inventory data
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Inventory'
+                $ref: '#/components/schemas/BulkStockResponse'
 
-  /alerts/low-stock:
-    get:
-      tags: [Monitoring]
-      summary: Get low stock alerts
-      responses:
-        200:
-          description: List of items with low stock
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/Inventory'
-
-  /{productId}/purchase-history:
-    get:
-      tags: [Analytics]
-      summary: Get purchase history
+  /inventory/import/{productId}/{quantity}:
+    post:
+      tags: [Operations]
+      summary: Import stock to inventory
       parameters:
         - name: productId
           in: path
           required: true
           schema:
             type: string
-        - name: startDate
-          in: query
+        - name: quantity
+          in: path
+          required: true
           schema:
-            type: string
-            format: date
-        - name: endDate
-          in: query
-          schema:
-            type: string
-            format: date
+            type: integer
       responses:
         200:
-          description: Purchase history
+          description: Stock updated successfully
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/PurchaseHistory'
-
-  /{productId}/purchase:
+                $ref: '#/components/schemas/Inventory'
+        400:
+          $ref: '#/components/responses/BadRequest'
+          
+  /inventory/restore/{productId}/{quantity}:
     post:
+      tags: [Operations]
+      summary: Restore stock to inventory
+      parameters:
+        - name: productId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: quantity
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        200:
+          description: Stock restored successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  quantity:
+                    type: integer
+        400:
+          $ref: '#/components/responses/BadRequest'
+        404:
+          $ref: '#/components/responses/NotFound'
+
+  /inventory/confirm:
+    post:
+      tags: [Operations]
+      summary: Confirm order and update stock
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                items:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/OrderItem'
+      responses:
+        200:
+          description: Stock updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+        207:
+          description: Partial success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  failedItems:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        success:
+                          type: boolean
+                        productId:
+                          type: string
+                        error:
+                          type: string
+        400:
+          $ref: '#/components/responses/BadRequest'
+          
+  /inventory/sync:
+    post:
+      tags: [Synchronization]
+      summary: Sync inventory with Product Service
+      responses:
+        200:
+          description: Synchronization completed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  updated:
+                    type: integer
+                  failed:
+                    type: integer
+        404:
+          description: No products found to sync
+        500:
+          $ref: '#/components/responses/ServerError'
+          
+  /inventory/stats:
+    get:
+      tags: [Reports]
+      summary: Get inventory statistics
+      responses:
+        200:
+          description: Inventory statistics
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  totalStock:
+                    type: integer
+        500:
+          $ref: '#/components/responses/ServerError'
+
+  /inventory/product/{productId}:
+    get:
       tags: [Inventory]
-      summary: Add purchase record
+      summary: Get product stock information
       parameters:
         - name: productId
-          in: path
-          required: true
-          schema:
-            type: string
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/PurchaseHistory'
-      responses:
-        201:
-          description: Purchase recorded
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Inventory'
-
-  /{productId}/forecast:
-    post:
-      tags: [Analytics]
-      summary: Update demand forecast
-      parameters:
-        - name: productId
-          in: path
-          required: true
-          schema:
-            type: string
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/DemandForecast'
-      responses:
-        201:
-          description: Forecast updated
-
-  /{productId}/suppliers:
-    post:
-      tags: [Suppliers]
-      summary: Add new supplier
-      parameters:
-        - name: productId
-          in: path
-          required: true
-          schema:
-            type: string
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/Supplier'
-      responses:
-        201:
-          description: Supplier added
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/Supplier'
-
-  /{productId}/suppliers/{supplierId}:
-    put:
-      tags: [Suppliers]
-      summary: Update supplier
-      parameters:
-        - name: productId
-          in: path
-          required: true
-          schema:
-            type: string
-        - name: supplierId
-          in: path
-          required: true
-          schema:
-            type: string
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/Supplier'
-      responses:
-        200:
-          description: Supplier updated
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Supplier'
-
-    delete:
-      tags: [Suppliers]
-      summary: Remove supplier
-      parameters:
-        - name: productId
-          in: path
-          required: true
-          schema:
-            type: string
-        - name: supplierId
           in: path
           required: true
           schema:
             type: string
       responses:
         200:
-          description: Supplier removed
+          description: Stock information
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  inStock:
+                    type: boolean
+                  stockInInventory:
+                    type: integer
+        404:
+          $ref: '#/components/responses/NotFound'
+        500:
+          $ref: '#/components/responses/ServerError'
+
+components:
+  schemas:
+    Inventory:
+      type: object
+      properties:
+        productId:
+          type: string
+          example: "ABC123"
+        name:
+          type: string
+          example: "Gaming Laptop"
+        quantity:
+          type: integer
+          example: 50
+        lowStockThreshold:
+          type: integer
+          example: 5
+        updatedAt:
+          type: string
+          format: date-time
+
+    OrderItem:
+      type: object
+      required:
+        - productId
+        - quantity
+      properties:
+        productId:
+          type: string
+        quantity:
+          type: integer
+          minimum: 1
+
+    BulkStockResponse:
+      type: object
+      properties:
+        stocks:
+          type: array
+          items:
+            type: object
+            properties:
+              productId:
+                type: string
+              availableStock:
+                type: integer
+              lowStockAlert:
+                type: boolean
+
+    ErrorResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        errorCode:
+          type: string
+        message:
+          type: string
+        details:
+          type: string
+          
+    Product:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        description: 
+          type: string
+        price:
+          type: number
+        stock:
+          type: integer
+
+  responses:
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    BadRequest:
+      description: Invalid request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    ServerError:
+      description: Server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+tags:
+  - name: Inventory
+    description: Core inventory management
+  - name: Operations
+    description: Stock operations and transactions
+  - name: Reports
+    description: Inventory analytics and reporting
+  - name: Synchronization
+    description: Data synchronization

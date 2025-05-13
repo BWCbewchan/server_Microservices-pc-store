@@ -1,92 +1,38 @@
-// order-service/models/order.js
-const mongoose = require('mongoose');
-const { Schema } = mongoose;
+const mongoose = require("mongoose");
 
-const trackingSchema = new Schema({
-  status: {
-    type: String,
-    enum: ['processing', 'in_transit', 'out_for_delivery', 'delivered', 'failed'],
-    default: 'processing'
-  },
-  location: String,
-  timestamp: { type: Date, default: Date.now },
-  description: String,
-  carrier: String,
-  trackingNumber: String
+const OrderItemSchema = new mongoose.Schema({
+    productId: { type: mongoose.Schema.Types.ObjectId, ref: "Product", required: true },
+    name: { type: String, required: true },
+    quantity: { type: Number, required: true, min: 1 },
+    price: { type: Number, required: true }, // Giá tại thời điểm đặt hàng
 });
 
-const returnSchema = new Schema({
-  reason: {
-    type: String,
-    required: true
-  },
-  items: [{
-    productId: {
-      type: Schema.Types.ObjectId,
-      ref: 'Product',
-      required: true
+const OrderSchema = new mongoose.Schema({
+    // userId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
+    userId: { type: String, required: true },
+    customer: {
+        name: { type: String, required: true },
+        address: { type: String, required: true },
+        phone: { type: String, required: true },
+        email: { type: String, required: true }
     },
-    quantity: Number,
-    reason: String
-  }],
-  status: {
-    type: String,
-    enum: ['pending', 'approved', 'rejected', 'completed'],
-    default: 'pending'
-  },
-  refundAmount: Number,
-  refundStatus: {
-    type: String,
-    enum: ['pending', 'processed', 'failed'],
-    default: 'pending'
-  },
-  createdAt: { type: Date, default: Date.now }
-});
-
-const orderSchema = new Schema({
-  userId: {
-    type: Schema.Types.ObjectId,
-    required: true,
-    ref: 'User'
-  },
-  items: [{
-    productId: {
-      type: Schema.Types.ObjectId,
-      required: true,
-      ref: 'Product'
+    items: [OrderItemSchema],
+    shipping: {
+        method: { type: String, required: true },
+        fee: { type: Number, required: true, default: 0 },
+        status: { type: String, enum: ["processing", "shipped", "delivered"], default: "processing" },
+        trackingNumber: { type: String, default: "" }
     },
-    quantity: Number,
-    price: Number
-  }],
-  totalAmount: {
-    type: Number,
-    required: true
-  },
-  shippingAddress: {
-    street: String,
-    city: String,
-    state: String,
-    zipCode: String
-  },
-  status: {
-    type: String,
-    enum: ['pending', 'processing', 'shipped', 'delivered', 'cancelled'],
-    default: 'pending'
-  },
-  paymentStatus: {
-    type: String,
-    enum: ['pending', 'completed', 'failed', 'refunded'],
-    default: 'pending'
-  },
-  tracking: [trackingSchema],
-  returnRequest: returnSchema,
-  invoiceNumber: String,
-  invoiceUrl: String,
-  emailNotifications: [{
-    type: String,
-    timestamp: Date,
-    status: String
-  }]
+    payment: {
+        method: { type: String, required: true },
+        status: { type: String, enum: ["pending", "paid", "failed"], default: "pending" }
+    },
+    finalTotal: { type: Number, required: true }, // Tổng tiền cuối cùng sau phí vận chuyển
+    notes: {
+        customerNote: { type: String, default: "" },
+        sellerNote: { type: String, default: "" }
+    },
+    status: { type: String, enum: ["pending", "confirmed",  "completed","cancelled"], default: "pending" },
 }, { timestamps: true });
 
-module.exports = mongoose.model('Order', orderSchema);
+module.exports = mongoose.model("Order", OrderSchema);

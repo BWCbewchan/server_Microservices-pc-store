@@ -1,31 +1,34 @@
-const express = require('express');
+const express = require("express");
 const router = express.Router();
-const orderController = require('../controllers/orderController');
-const trackingController = require('../controllers/trackingController');
-const returnController = require('../controllers/returnController');
-const invoiceController = require('../controllers/invoiceController');
-const validateOrder = require('../middleware/orderValidation');
-const { authenticateToken, authorizeRole } = require('../../api-gateway/middleware/authMiddleware');
+const orderController = require("../controllers/orderController");
 
-// Public routes (no authentication required - for example, webhook from payment gateway)
-// router.post('/webhook', orderController.handlePaymentWebhook); // Example
+// Tạo đơn hàng
+// router.post("/create", orderController.createOrder);
+router.post(
+    "/create/:userId/:customer/:items/:shipping/:payment/:finalTotal/:notes",
+    orderController.createOrder
+);
 
-// Protected routes (require authentication)
-router.get('/', authenticateToken, authorizeRole(['admin']), orderController.getAllOrders);
-router.get('/:id', authenticateToken, orderController.getOrderById);
-router.post('/', authenticateToken, validateOrder, orderController.createOrder);
-router.put('/:id', authenticateToken, authorizeRole(['admin']), orderController.updateOrder);
-router.delete('/:id', authenticateToken, authorizeRole(['admin']), orderController.deleteOrder);
 
-// Tracking routes
-router.get('/:orderId/tracking', authenticateToken, trackingController.getTrackingHistory);
-router.post('/:orderId/tracking', authenticateToken, authorizeRole(['admin']), trackingController.updateTracking);
+// Lấy đơn hàng theo id
+router.get("/:orderId", orderController.getOrderById);
 
-// Return/Refund routes
-router.post('/:orderId/return', authenticateToken, returnController.createReturnRequest);
-router.put('/:orderId/refund', authenticateToken, authorizeRole(['admin']), returnController.processRefund);
+// Lấy đơn hàng của user
+router.get("/user/:userId", orderController.getOrdersByUser);
 
-// Invoice routes
-router.get('/:orderId/invoice', authenticateToken, invoiceController.generateInvoice);
+// Lấy tất cả đơn hàng (Admin)
+router.get("/", orderController.getAllOrders);
 
+// Cập nhật đơn hàng (Admin)
+// router.put("/:orderId", orderController.updateOrder);
+router.put('/update/:orderId/:updateData', orderController.updateOrder);
+
+
+// Hủy đơn hàng
+router.post("/cancel/:orderId", orderController.cancelOrder);
+// Hủy đơn hàng (Admin) - cho phép hủy bất kỳ đơn hàng nào
+router.post("/admin/cancel/:orderId", orderController.adminCancelOrder);
+
+// Xóa đơn hàng (Admin) - xóa hoàn toàn đơn hàng khỏi CSDL
+router.delete("/admin/delete/:orderId", orderController.adminDeleteOrder);
 module.exports = router;
