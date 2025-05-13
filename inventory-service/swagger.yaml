@@ -120,6 +120,38 @@ paths:
                 $ref: '#/components/schemas/Inventory'
         400:
           $ref: '#/components/responses/BadRequest'
+          
+  /inventory/restore/{productId}/{quantity}:
+    post:
+      tags: [Operations]
+      summary: Restore stock to inventory
+      parameters:
+        - name: productId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: quantity
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        200:
+          description: Stock restored successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  quantity:
+                    type: integer
+        400:
+          $ref: '#/components/responses/BadRequest'
+        404:
+          $ref: '#/components/responses/NotFound'
 
   /inventory/confirm:
     post:
@@ -139,10 +171,106 @@ paths:
       responses:
         200:
           description: Stock updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
         207:
           description: Partial success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  failedItems:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        success:
+                          type: boolean
+                        productId:
+                          type: string
+                        error:
+                          type: string
         400:
           $ref: '#/components/responses/BadRequest'
+          
+  /inventory/sync:
+    post:
+      tags: [Synchronization]
+      summary: Sync inventory with Product Service
+      responses:
+        200:
+          description: Synchronization completed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  updated:
+                    type: integer
+                  failed:
+                    type: integer
+        404:
+          description: No products found to sync
+        500:
+          $ref: '#/components/responses/ServerError'
+          
+  /inventory/stats:
+    get:
+      tags: [Reports]
+      summary: Get inventory statistics
+      responses:
+        200:
+          description: Inventory statistics
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  totalStock:
+                    type: integer
+        500:
+          $ref: '#/components/responses/ServerError'
+
+  /inventory/product/{productId}:
+    get:
+      tags: [Inventory]
+      summary: Get product stock information
+      parameters:
+        - name: productId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: Stock information
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  inStock:
+                    type: boolean
+                  stockInInventory:
+                    type: integer
+        404:
+          $ref: '#/components/responses/NotFound'
+        500:
+          $ref: '#/components/responses/ServerError'
 
 components:
   schemas:
@@ -204,6 +332,20 @@ components:
           type: string
         details:
           type: string
+          
+    Product:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        description: 
+          type: string
+        price:
+          type: number
+        stock:
+          type: integer
 
   responses:
     NotFound:
@@ -234,16 +376,3 @@ tags:
     description: Inventory analytics and reporting
   - name: Synchronization
     description: Data synchronization
-
-    # Add this new schema
-    Product:
-      type: object
-      properties:
-        id:
-          type: string
-        name:
-          type: string
-        description: 
-          type: string
-        price:
-          type: number
