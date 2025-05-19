@@ -46,6 +46,23 @@ router.post("/register", (req, res) => {
   authController.register(req, res);
 });
 
+// Add missing login route
+router.post("/login", (req, res) => {
+  // Add explicit CORS headers to this critical endpoint
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  
+  // Log the incoming request for debugging
+  console.log(`[${new Date().toISOString()}] Login endpoint hit, params:`, {
+    email: req.param('email'),
+    password: req.param('password') ? '********' : undefined
+  });
+  
+  // Process login
+  authController.login(req, res);
+});
+
 // Add simple echo endpoint to test connection
 router.post("/echo", (req, res) => {
   res.header('Access-Control-Allow-Origin', '*');
