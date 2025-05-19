@@ -154,21 +154,42 @@ const Navigation = () => {
                     {/* Hiển thị menu User nếu đã đăng nhập, ngược lại hiển thị nút Đăng nhập/Đăng ký */}
                     {currentUser ? (
                         <div className="d-flex align-items-center">
-                            {/* User dropdown */}
+                            {/* User name - directly clickable to profile */}
+                            <button
+                                className="btn btn-outline-primary me-2"
+                                onClick={() => navigate('/userAccount')}
+                                style={{ 
+                                    fontSize: "14px", 
+                                    borderRadius: "20px",
+                                    display: "flex",
+                                    alignItems: "center"
+                                }}
+                                title="Xem thông tin cá nhân"
+                            >
+                                {/* User avatar or icon */}
+                                <i className="fas fa-user-circle me-2"></i>
+                                <span>{currentUser.name || 'Người dùng'}</span>
+                            </button>
+                            
+                            {/* Options dropdown */}
                             <div className="dropdown me-2">
                                 <button
-                                    className="btn btn-outline-primary dropdown-toggle"
+                                    className="btn btn-outline-secondary dropdown-toggle"
                                     type="button"
-                                    id="userDropdown"
+                                    id="userOptions"
                                     data-bs-toggle="dropdown"
                                     aria-expanded="false"
-                                    style={{ fontSize: "14px", borderRadius: "20px" }}
+                                    style={{ 
+                                        fontSize: "14px", 
+                                        borderRadius: "20px",
+                                        padding: "0.375rem 0.75rem"
+                                    }}
                                 >
-                                    <span className="me-2">{currentUser.name || 'Người dùng'}</span>
+                                    <i className="fas fa-cog"></i>
                                 </button>
-                                <ul className="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
-                                    <li><Link className="dropdown-item" to="/userAccount">Tài khoản của tôi</Link></li>
+                                <ul className="dropdown-menu dropdown-menu-end" aria-labelledby="userOptions">
                                     <li><Link className="dropdown-item" to="/userAccount/orders">Đơn hàng của tôi</Link></li>
+                                    <li><Link className="dropdown-item" to="/userAccount/wishlist">Sản phẩm yêu thích</Link></li>
                                     <li><hr className="dropdown-divider" /></li>
                                     <li><button className="dropdown-item text-danger" onClick={handleLogout}>Đăng xuất</button></li>
                                 </ul>
