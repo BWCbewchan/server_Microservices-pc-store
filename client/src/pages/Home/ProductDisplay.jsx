@@ -1,14 +1,14 @@
-import ProductSection from "../../components/ProductDisplay/ProductSection";
 import BrandSection from "../../components/ProductDisplay/BrandSection";
 import InstagramPost from "../../components/ProductDisplay/InstagramPost";
+import ProductSection from "../../components/ProductDisplay/ProductSection";
 
-import IMAGES from "../../constants/images";
-import TestimonialCard from "../../components/ProductDisplay/TestimonialCard";
-import ProductFeatures from "../../components/ProductDisplay/ProductFeatures";
-import ICONS from "../../constants/icons";
-import { useEffect, useState } from "react";
 import axios from "axios";
+import { useEffect, useState } from "react";
 import io from "socket.io-client";
+import ProductFeatures from "../../components/ProductDisplay/ProductFeatures";
+import TestimonialCard from "../../components/ProductDisplay/TestimonialCard";
+import ICONS from "../../constants/icons";
+import IMAGES from "../../constants/images";
 
 const ProductDisplay = () => {
   const [newProducts, setNewProducts] = useState([]);
@@ -21,13 +21,29 @@ const ProductDisplay = () => {
   useEffect(() => {
     const fetchNewProducts = async () => {
       try {
-        const URL = `${import.meta.env.VITE_APP_API_GATEWAY_URL}/products/products-new`;
-        const response = await axios.get(URL, { withCredentials: true });
+        // Try the main endpoint first
+        const url = `${import.meta.env.VITE_APP_API_GATEWAY_URL}/products/products-new`;
+        console.log('Fetching new products from:', url);
+        
+        let response;
+        try {
+          response = await axios.get(url, { withCredentials: false });
+        } catch (error) {
+          console.log('Failed to get products from main endpoint, trying mock endpoint');
+          // If main endpoint fails, try the mock endpoint
+          response = await axios.get(`${import.meta.env.VITE_APP_API_GATEWAY_URL}/mock/products/products-new`);
+        }
 
-        setNewProducts(response?.data?.data);
-        console.log("New products: ", response?.data?.data);
+        if (response?.data?.data) {
+          setNewProducts(response.data.data);
+          console.log("New products loaded successfully:", response.data.data.length);
+        } else {
+          console.warn("New products response missing data property:", response?.data);
+          setNewProducts([]);
+        }
       } catch (error) {
-        console.log("Error fetching new products: ", error);
+        console.error("Error fetching new products:", error);
+        setNewProducts([]);
       }
     };
     fetchNewProducts();
@@ -36,11 +52,29 @@ const ProductDisplay = () => {
   useEffect(() => {
     const fetchProductData = async (category, setState) => {
       try {
-        const URL = `${import.meta.env.VITE_APP_API_GATEWAY_URL}/products/products-category/${category}`;
-        const response = await axios.get(URL, { withCredentials: true });
-        setState(response?.data?.data);
+        // Try the main endpoint first
+        const url = `${import.meta.env.VITE_APP_API_GATEWAY_URL}/products/products-category/${category}`;
+        console.log(`Fetching ${category} products from:`, url);
+        
+        let response;
+        try {
+          response = await axios.get(url, { withCredentials: false });
+        } catch (error) {
+          console.log(`Failed to get ${category} products from main endpoint, trying mock endpoint`);
+          // If main endpoint fails, try the mock endpoint
+          response = await axios.get(`${import.meta.env.VITE_APP_API_GATEWAY_URL}/mock/products/products-category/${category}`);
+        }
+
+        if (response?.data?.data) {
+          setState(response.data.data);
+          console.log(`${category} products loaded successfully:`, response.data.data.length);
+        } else {
+          console.warn(`${category} products response missing data property:`, response?.data);
+          setState([]);
+        }
       } catch (error) {
-        console.log(`Error fetching ${category} products: `, error);
+        console.error(`Error fetching ${category} products:`, error);
+        setState([]);
       }
     };
 
@@ -136,10 +170,20 @@ const ProductDisplay = () => {
   useEffect(() => {
     const fetchUriSocket = async () => {
       try {
-        const response = await axios.get(`${import.meta.env.VITE_APP_API_GATEWAY_URL}/notification/base-url`);
-        setUriSocket(response.data.baseUrl);
+        const url = `${import.meta.env.VITE_APP_API_GATEWAY_URL}/notification/base-url`;
+        console.log('Fetching socket URL from:', url);
+        
+        const response = await axios.get(url, { withCredentials: false });
+        if (response?.data?.baseUrl) {
+          setUriSocket(response.data.baseUrl);
+          console.log('Socket URL loaded:', response.data.baseUrl);
+        } else {
+          console.warn('Socket URL response missing baseUrl property:', response?.data);
+          setUriSocket('http://localhost:4001'); // Fallback URL
+        }
       } catch (error) {
-        console.log("Error fetching socket URL: ", error);
+        console.error("Error fetching socket URL:", error);
+        setUriSocket('http://localhost:4001'); // Fallback URL on error
       }
     };
     fetchUriSocket();
@@ -148,7 +192,7 @@ const ProductDisplay = () => {
   let socket;
   if (uriSocket) {
     socket = io(uriSocket, {
-      withCredentials: true,
+      withCredentials: false,
       transports: ["websocket"],
     });
     console.log("Socket connected: ", socket);
@@ -156,7 +200,6 @@ const ProductDisplay = () => {
 
   const handleNotification = async() => {
     try {
-      // Test gửi nên gửi thẳng dữ liệu
       const response = await axios.post(`${import.meta.env.VITE_APP_API_GATEWAY_URL}/notification/send-notification`);
       console.log("Notification sent: ", response.data);
     } catch (error) {

@@ -8,7 +8,7 @@ echo "Starting all services..."
 # Lấy danh sách thư mục (bỏ qua node_modules)
 SERVICES=$(ls -d */ | grep -v "node_modules" | sed 's:/$::')
 
-# SERVICES="api-gateway product-catalog-service" -> Test riêng
+# SERVICES="api-gateway product-catalog-service auth-service" -> Test riêng
 
 COMMANDS=()
 for SERVICE in $SERVICES; do
