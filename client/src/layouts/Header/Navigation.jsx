@@ -4,6 +4,7 @@ import { AiOutlineClose } from "react-icons/ai";
 import { CiSearch } from "react-icons/ci";
 import { FiShoppingCart } from "react-icons/fi";
 import { Link, useNavigate } from "react-router-dom";
+import { toast } from "react-toastify";
 import Logo from "../../assets/images/logo.png";
 import { AuthContext } from "../../context/AuthContext";
 
@@ -23,8 +24,15 @@ const Navigation = () => {
     ];
 
     const handleLogout = () => {
-        logout();
-        navigate("/login");
+        if (window.confirm('Bạn có chắc muốn đăng xuất không?')) {
+            const success = logout();
+            if (success) {
+                toast.info('Đăng xuất thành công');
+                navigate('/login');
+            } else {
+                toast.error('Có lỗi khi đăng xuất');
+            }
+        }
     };
 
     return (
@@ -154,13 +162,13 @@ const Navigation = () => {
                                 aria-expanded="false"
                                 style={{ fontSize: "14px", borderRadius: "20px" }}
                             >
-                                <span className="me-2">{currentUser.name}</span>
+                                <span className="me-2">{currentUser.name || 'Người dùng'}</span>
                             </button>
                             <ul className="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
                                 <li><Link className="dropdown-item" to="/userAccount">Tài khoản của tôi</Link></li>
                                 <li><Link className="dropdown-item" to="/userAccount/orders">Đơn hàng của tôi</Link></li>
                                 <li><hr className="dropdown-divider" /></li>
-                                <li><button className="dropdown-item" onClick={handleLogout}>Đăng xuất</button></li>
+                                <li><button className="dropdown-item text-danger" onClick={handleLogout}>Đăng xuất</button></li>
                             </ul>
                         </div>
                     ) : (
