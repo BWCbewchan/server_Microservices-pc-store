@@ -153,23 +153,36 @@ const Navigation = () => {
 
                     {/* Hiển thị menu User nếu đã đăng nhập, ngược lại hiển thị nút Đăng nhập/Đăng ký */}
                     {currentUser ? (
-                        <div className="dropdown">
+                        <div className="d-flex align-items-center">
+                            {/* User dropdown */}
+                            <div className="dropdown me-2">
+                                <button
+                                    className="btn btn-outline-primary dropdown-toggle"
+                                    type="button"
+                                    id="userDropdown"
+                                    data-bs-toggle="dropdown"
+                                    aria-expanded="false"
+                                    style={{ fontSize: "14px", borderRadius: "20px" }}
+                                >
+                                    <span className="me-2">{currentUser.name || 'Người dùng'}</span>
+                                </button>
+                                <ul className="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
+                                    <li><Link className="dropdown-item" to="/userAccount">Tài khoản của tôi</Link></li>
+                                    <li><Link className="dropdown-item" to="/userAccount/orders">Đơn hàng của tôi</Link></li>
+                                    <li><hr className="dropdown-divider" /></li>
+                                    <li><button className="dropdown-item text-danger" onClick={handleLogout}>Đăng xuất</button></li>
+                                </ul>
+                            </div>
+                            
+                            {/* Direct logout button */}
                             <button
-                                className="btn btn-outline-primary dropdown-toggle"
-                                type="button"
-                                id="userDropdown"
-                                data-bs-toggle="dropdown"
-                                aria-expanded="false"
+                                className="btn btn-danger"
                                 style={{ fontSize: "14px", borderRadius: "20px" }}
+                                onClick={handleLogout}
+                                title="Đăng xuất"
                             >
-                                <span className="me-2">{currentUser.name || 'Người dùng'}</span>
+                                <i className="fas fa-sign-out-alt"></i> Đăng xuất
                             </button>
-                            <ul className="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
-                                <li><Link className="dropdown-item" to="/userAccount">Tài khoản của tôi</Link></li>
-                                <li><Link className="dropdown-item" to="/userAccount/orders">Đơn hàng của tôi</Link></li>
-                                <li><hr className="dropdown-divider" /></li>
-                                <li><button className="dropdown-item text-danger" onClick={handleLogout}>Đăng xuất</button></li>
-                            </ul>
                         </div>
                     ) : (
                         <>
