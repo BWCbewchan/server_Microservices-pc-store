@@ -5,24 +5,36 @@ import ICONS from "../../constants/icons";
 const FilterSection = ({ initialCategory, setProducts, appliedFilters, setAppliedFilters, setClearFilter }) => {
   const [isCategoryVisible, setIsCategoryVisible] = useState(true);
   const [isPriceVisible, setIsPriceVisible] = useState(true);
+  const [isFilterVisible, setIsFilterVisible] = useState(true);
 
   const [categories, setCategories] = useState([]);
-  const [prices, setPrices] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState(null);
-  const [selectedPrice, setSelectedPrice] = useState(null);
+
+  // Price range state
+  const [minPrice, setMinPrice] = useState(0);
+  const [maxPrice, setMaxPrice] = useState(10000);
+  const [currentMinPrice, setCurrentMinPrice] = useState(0);
+  const [currentMaxPrice, setCurrentMaxPrice] = useState(10000);
+  const [priceFilterApplied, setPriceFilterApplied] = useState(false);
 
   useEffect(() => {
     const fetchFilterData = async () => {
       try {
         const response = await axios.get(`${import.meta.env.VITE_APP_API_GATEWAY_URL}/products/price-counts`);
         setCategories(response.data.categories);
-        setPrices(response.data.prices);
+
+        // Set min/max price from API without applying filters
+        if (response.data.priceRange) {
+          const min = response.data.priceRange.min || 0;
+          const max = response.data.priceRange.max || 5000;
+          setMinPrice(min);
+          setMaxPrice(max);
+          setCurrentMinPrice(min);
+          setCurrentMaxPrice(max);
+        }
+
         if (initialCategory) {
           setSelectedCategory(initialCategory);
-          const priceResponse = await axios.get(`${import.meta.env.VITE_APP_API_GATEWAY_URL}/products/price-counts`, {
-            params: { category: initialCategory },
-          });
-          setPrices(priceResponse.data.prices);
           setAppliedFilters((prev) => ({ ...prev, category: initialCategory }));
         }
       } catch (error) {
@@ -33,30 +45,41 @@ const FilterSection = ({ initialCategory, setProducts, appliedFilters, setApplie
   }, [initialCategory, setAppliedFilters]);
 
   useEffect(() => {
-    const filters = {
-      category: selectedCategory,
-      priceRange: selectedPrice,
-    };
-    const fetchProductsData = async () => {
-      try {
-        const response = await axios.get(`${import.meta.env.VITE_APP_API_GATEWAY_URL}/products/products-filters`, {
-          params: filters,
-        });
-        setProducts(response.data.data);
-      } catch (error) {
-        console.error("Error fetching products data:", error);
-      }
-    };
-    fetchProductsData();
-  }, [selectedCategory, selectedPrice, setProducts]);
+    // Only apply filters if category is selected or price filter has been explicitly applied
+    if (selectedCategory || priceFilterApplied) {
+      const filters = {
+        category: selectedCategory || "",
+        minPrice: priceFilterApplied ? currentMinPrice : undefined,
+        maxPrice: priceFilterApplied ? currentMaxPrice : undefined
+      };
+
+      const fetchProductsData = async () => {
+        try {
+          const response = await axios.get(`${import.meta.env.VITE_APP_API_GATEWAY_URL}/products/products-filters`, {
+            params: filters,
+          });
+          setProducts(response.data.data);
+        } catch (error) {
+          console.error("Error fetching products data:", error);
+        }
+      };
+
+      fetchProductsData();
+    }
+  }, [selectedCategory, priceFilterApplied, currentMinPrice, currentMaxPrice, setProducts]);
 
   useEffect(() => {
     if (appliedFilters.category === "") {
       setSelectedCategory(null);
-    } else if (appliedFilters.price === "") {
-      setSelectedPrice(null);
+    }
+    if (appliedFilters.price === "") {
+      setPriceFilterApplied(false);
     }
   }, [appliedFilters]);
+
+  const toggleFilterVisibility = () => {
+    setIsFilterVisible(!isFilterVisible);
+  };
 
   const toggleCategoryVisibility = () => {
     setIsCategoryVisible(!isCategoryVisible);
@@ -68,137 +91,251 @@ const FilterSection = ({ initialCategory, setProducts, appliedFilters, setApplie
 
   useEffect(() => {
     const handleCategoryClick = async () => {
-      setSelectedPrice(null);
       if (selectedCategory) {
-        setAppliedFilters({ category: selectedCategory, price: "" });
-        try {
-          const response = await axios.get(`${import.meta.env.VITE_APP_API_GATEWAY_URL}/products/price-counts`, {
-            params: { category: selectedCategory },
-          });
-          setPrices(response.data.prices);
-        } catch (error) {
-          console.error("Error fetching price counts:", error);
-        }
+        // Only include price in the filter if price filter has been applied
+        setAppliedFilters({
+          category: selectedCategory,
+          price: priceFilterApplied ? `$${currentMinPrice}-$${currentMaxPrice}` : ""
+        });
       } else {
         setAppliedFilters({ category: "", price: "" });
         setClearFilter((prev) => !prev);
-        try {
-          const response = await axios.get(`${import.meta.env.VITE_APP_API_GATEWAY_URL}/products/price-counts`);
-          setPrices(response.data.prices);
-        } catch (error) {
-          console.error("Error fetching price counts:", error);
-        }
       }
     };
     handleCategoryClick();
-  }, [selectedCategory, setAppliedFilters, setClearFilter]);
+  }, [selectedCategory, priceFilterApplied, currentMinPrice, currentMaxPrice, setAppliedFilters, setClearFilter]);
 
-  const handlePriceClick = (price) => {
-    setSelectedPrice(price === selectedPrice ? null : price);
-    if (price !== selectedPrice) {
-      setAppliedFilters((prev) => ({ ...prev, price }));
+  const handlePriceApply = () => {
+    setAppliedFilters((prev) => ({
+      ...prev,
+      price: `$${currentMinPrice}-$${currentMaxPrice}`
+    }));
+  };
+
+  const handleMinPriceChange = (e) => {
+    const value = parseInt(e.target.value) || 0;
+    const newValue = Math.min(value, currentMaxPrice - 10);
+    setCurrentMinPrice(newValue);
+    if (!priceFilterApplied) setPriceFilterApplied(true);
+    updatePriceFilter(newValue, currentMaxPrice);
+  };
+
+  const handleMaxPriceChange = (e) => {
+    const value = parseInt(e.target.value) || 0;
+    const newValue = Math.max(value, currentMinPrice + 10);
+    setCurrentMaxPrice(newValue);
+    if (!priceFilterApplied) setPriceFilterApplied(true);
+    updatePriceFilter(currentMinPrice, newValue);
+  };
+
+  const handleSliderChange = (e) => {
+    // Get slider value
+    const value = parseInt(e.target.value);
+    const sliderType = e.target.dataset.type;
+
+    // Update the appropriate price value
+    if (sliderType === 'min') {
+      const newMin = Math.min(value, currentMaxPrice - 10);
+      setCurrentMinPrice(newMin);
+      if (!priceFilterApplied) setPriceFilterApplied(true);
+      updatePriceFilter(newMin, currentMaxPrice);
     } else {
-      setAppliedFilters((prev) => ({ ...prev, price: "" }));
+      const newMax = Math.max(value, currentMinPrice + 10);
+      setCurrentMaxPrice(newMax);
+      if (!priceFilterApplied) setPriceFilterApplied(true);
+      updatePriceFilter(currentMinPrice, newMax);
+    }
+  };
+
+  const updatePriceFilter = (min, max) => {
+    // Only update price filter if price filtering is enabled
+    if (priceFilterApplied) {
+      setAppliedFilters((prev) => ({
+        ...prev,
+        price: `$${min}-$${max}`
+      }));
     }
   };
 
   const handleClearFilters = async () => {
     setSelectedCategory(null);
-    setSelectedPrice(null);
+    setCurrentMinPrice(minPrice);
+    setCurrentMaxPrice(maxPrice);
+    setPriceFilterApplied(false);
     setAppliedFilters({ category: "", price: "" });
     setClearFilter((prev) => !prev);
   };
 
-  const transitionStyles = {
-    transition: "max-height 0.6s ease-in-out",
-    overflow: "hidden",
-  };
-
   return (
-    <div className="p-3" style={{ backgroundColor: "#F9FAFB" }}>
-      <div className="text-center mb-4">
-        <p className="fw-bold mb-3" style={{ fontSize: "16px" }}>
-          Filters
-        </p>
-
+    <div className="card shadow-sm border-0 rounded-3 overflow-hidden">
+      <div className="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+        <h5 className="mb-0 fw-bold">Filters</h5>
         <button
-          className="btn btn-primary w-100 fw-bold text-white hover"
-          style={{
-            height: "37px",
-            borderColor: "#CACDD8",
-            borderWidth: 2,
-            fontSize: "15px",
-            borderRadius: "999px",
-          }}
-          onClick={handleClearFilters}
+          className="btn btn-sm text-white p-0"
+          onClick={toggleFilterVisibility}
+          aria-label="Toggle filters"
         >
-          Clear Filters ({(selectedCategory ? 1 : 0) + (selectedPrice ? 1 : 0)})
+          <i className={`fas fa-chevron-${isFilterVisible ? 'up' : 'down'}`}></i>
         </button>
       </div>
 
-      <div className="mb-4">
-        <div
-          className="d-flex justify-content-between align-items-center mb-3"
-          style={{ cursor: "pointer" }}
-          onClick={toggleCategoryVisibility}
+      <div className={`card-body bg-white ${isFilterVisible ? '' : 'd-none'}`}>
+        <button
+          className="btn btn-primary w-100 mb-4 fw-bold text-white"
+          onClick={handleClearFilters}
         >
-          <p className="mb-0 fw-bold">Category</p>
-          <img src={ICONS.Arrow} alt="" style={{ transform: isCategoryVisible ? "rotate(0deg)" : "rotate(90deg)" }} />
-        </div>
-        <div
-          style={{
-            ...transitionStyles,
-            maxHeight: isCategoryVisible ? "500px" : "0",
-          }}
-        >
-          {categories.map((category, index) => (
-            <button
-              key={index}
-              className={`btn w-100 d-flex align-items-center justify-content-between hover ${selectedCategory === category.name ? "active btn-outline-primary" : ""
-                }`}
-              style={{ borderRadius: "6px", fontSize: "14px" }}
-              onClick={() => setSelectedCategory((prev) => (prev === category.name ? null : category.name))}
-            >
-              {category.name} <span>{category.count}</span>
-            </button>
-          ))}
-        </div>
-      </div>
+          <i className="fas fa-times-circle me-2"></i>
+          Clear All Filters
+        </button>
 
-      <div className="mb-4">
-        <div
-          className="d-flex justify-content-between align-items-center mb-3"
-          style={{ cursor: "pointer" }}
-          onClick={togglePriceVisibility}
-        >
-          <p className="mb-0 fw-bold">Price</p>
-          <img src={ICONS.Arrow} alt="" style={{ transform: isPriceVisible ? "rotate(0deg)" : "rotate(90deg)" }} />
+        {/* Category Section */}
+        <div className="mb-4">
+          <div className="accordion" id="filterAccordion">
+            <div className="accordion-item border-0 p-0 bg-transparent">
+              <h2 className="accordion-header" id="categoryHeading">
+                <button
+                  className={`accordion-button ${isCategoryVisible ? '' : 'collapsed'} p-0 bg-transparent shadow-none`}
+                  type="button"
+                  onClick={toggleCategoryVisibility}
+                >
+                  <span className="fw-bold">Categories</span>
+                </button>
+              </h2>
+              <div
+                className={`accordion-collapse collapse ${isCategoryVisible ? 'show' : ''}`}
+                id="categoryCollapse"
+              >
+                <div className="accordion-body px-0 pt-3 pb-0">
+                  <div className="category-list" style={{ maxHeight: "200px", overflowY: "auto" }}>
+                    {categories.map((category, index) => (
+                      <div key={index} className="form-check mb-2">
+                        <input
+                          className="form-check-input"
+                          type="checkbox"
+                          id={`category-${index}`}
+                          checked={selectedCategory === category.name}
+                          onChange={() => setSelectedCategory(
+                            prev => prev === category.name ? null : category.name
+                          )}
+                        />
+                        <label
+                          className="form-check-label d-flex justify-content-between w-100"
+                          htmlFor={`category-${index}`}
+                        >
+                          <span>{category.name}</span>
+                          <span className="badge rounded-pill bg-light text-dark">{category.count}</span>
+                        </label>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
-        <div
-          style={{
-            ...transitionStyles,
-            maxHeight: isPriceVisible ? "500px" : "0",
-          }}
-        >
-          {prices.map((price, index) => (
-            <button
-              key={index}
-              className={`btn w-100 d-flex align-items-center justify-content-between hover hover ${selectedPrice === price.range ? "active btn-outline-primary" : ""
-                }`}
-              style={{ borderRadius: "6px", fontSize: "14px" }}
-              onClick={() => handlePriceClick(price.range)}
-            >
-              {price.range} <span>{price.count}</span>
-            </button>
-          ))}
-        </div>
-      </div>
 
-      <div className="mb-4">
-        <div className="d-flex justify-content-between align-items-center mb-3">
-          <p className="mb-0 fw-bold">Color</p>
+        {/* Price Range Section */}
+        <hr className="my-3" />
+
+        <div className="mb-3">
+          <div className="accordion" id="priceAccordion">
+            <div className="accordion-item border-0 p-0 bg-transparent">
+              <h2 className="accordion-header" id="priceHeading">
+                <button
+                  className={`accordion-button ${isPriceVisible ? '' : 'collapsed'} p-0 bg-transparent shadow-none`}
+                  type="button"
+                  onClick={togglePriceVisibility}
+                >
+                  <span className="fw-bold">Price Range</span>
+                </button>
+              </h2>
+              <div
+                className={`accordion-collapse collapse ${isPriceVisible ? 'show' : ''}`}
+                id="priceCollapse"
+              >
+                <div className="accordion-body px-0 pt-3 pb-0">
+                  <div className="mb-3">
+                    <div className="row g-2">
+                      <div className="col-6">
+                        <div className="input-group">
+                          <span className="input-group-text fw-bold">$</span>
+                          <input
+                            type="number"
+                            className="form-control py-2 fs-5"
+                            placeholder="Min"
+                            value={currentMinPrice}
+                            onChange={handleMinPriceChange}
+                            style={{ height: "45px" }}
+                          />
+                        </div>
+                      </div>
+                      <div className="col-6">
+                        <div className="input-group">
+                          <span className="input-group-text fw-bold">$</span>
+                          <input
+                            type="number"
+                            className="form-control py-2 fs-5"
+                            placeholder="Max"
+                            value={currentMaxPrice}
+                            onChange={handleMaxPriceChange}
+                            style={{ height: "45px" }}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Fixed Range Sliders */}
+                  <div className="price-range-container mb-4 px-2">
+                    {/* Price range labels */}
+                    <div className="d-flex justify-content-between mb-0">
+                      <small className="text-muted">${minPrice}</small>
+                      <small className="text-muted">${maxPrice}</small>
+                    </div>
+
+                    {/* Min price slider */}
+                    <div className="mb-3">
+                      <label htmlFor="minPriceRange" className="form-label mb-1">Min Price</label>
+                      <input
+                        type="range"
+                        className="form-range"
+                        id="minPriceRange"
+                        min={minPrice}
+                        max={maxPrice}
+                        step="10"
+                        value={currentMinPrice}
+                        onChange={handleSliderChange}
+                        data-type="min"
+                      />
+                    </div>
+
+                    {/* Max price slider */}
+                    <div>
+                      <label htmlFor="maxPriceRange" className="form-label mb-1">Max Price</label>
+                      <input
+                        type="range"
+                        className="form-range"
+                        id="maxPriceRange"
+                        min={minPrice}
+                        max={maxPrice}
+                        step="10"
+                        value={currentMaxPrice}
+                        onChange={handleSliderChange}
+                        data-type="max"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
-        <div className="rounded-circle bg-dark" style={{ width: "23px", height: "23px" }}></div>
+
+        <hr className="my-3" />
+
+        <small className="text-muted d-block text-center mt-4">
+          Use filters to refine your search results
+        </small>
       </div>
     </div>
   );

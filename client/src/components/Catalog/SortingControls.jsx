@@ -4,9 +4,17 @@ import { Link } from "react-router-dom";
 
 const SortingControls = ({ productsPerPage, setProductsPerPage, totalProducts, currentPage }) => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [isSortDropdownOpen, setIsSortDropdownOpen] = useState(false);
+  const [sortOption, setSortOption] = useState("Default");
+
+  const sortOptions = ["Default", "Price Low to High", "Price High to Low", "Name A-Z", "Name Z-A"];
 
   const toggleDropdown = () => {
     setIsDropdownOpen(!isDropdownOpen);
+  };
+
+  const toggleSortDropdown = () => {
+    setIsSortDropdownOpen(!isSortDropdownOpen);
   };
 
   const handleSelect = (value) => {
@@ -14,71 +22,98 @@ const SortingControls = ({ productsPerPage, setProductsPerPage, totalProducts, c
     setIsDropdownOpen(false);
   };
 
+  const handleSortSelect = (option) => {
+    setSortOption(option);
+    setIsSortDropdownOpen(false);
+  };
+
   const startItem = (currentPage - 1) * productsPerPage + 1;
   const endItem = Math.min(currentPage * productsPerPage, totalProducts);
 
   return (
-    <div className="row align-items-center mb-4">
-      <div className="col-12 col-md-3">
-        <Link
-          to="/"
-          className="d-flex align-items-center justify-content-center btn w-100 border-0 fw-bold hover"
-          style={{ fontSize: "14px" }}
-        >
-          <img src={ICONS.Arrow} alt="" style={{ transform: "rotate(90deg)" }} />
-          Back
-        </Link>
-      </div>
-      <div className="col">
-        <div className="d-flex align-items-center justify-content-between">
-          <p className="text-muted" style={{ fontSize: "13px", color: "#A2A6B0" }}>
-            Items {startItem}-{endItem} of {totalProducts}
-          </p>
+    <div className="card shadow-sm border-0 mb-3">
+      <div className="card-body p-3">
+        <div className="row align-items-center">
+          {/* Back Link - Hidden on small screens */}
+          <div className="col-auto d-none d-md-block">
+            <Link to="/" className="btn btn-sm btn-outline-secondary d-flex align-items-center">
+              <i className="fas fa-arrow-left me-1"></i>
+              Back
+            </Link>
+          </div>
 
-          <div className="d-flex gap-2 align-items-center">
-            <button
-              className="btn fw-bold hover"
-              style={{ width: "176px", height: "50px", borderColor: "#CACDD8", borderWidth: 2, fontSize: "13px" }}
-            >
-              <span className="text-muted" style={{ color: "#A2A6B0" }}>
-                Sort By:{" "}
-              </span>
-              Default
-              <img src={ICONS.Arrow} alt="" />
-            </button>
+          {/* Items Counter */}
+          <div className="col-12 col-sm-4 col-md-3 mb-2 mb-sm-0 text-center text-sm-start">
+            <span className="text-muted small">
+              Items {startItem}-{endItem} of {totalProducts}
+            </span>
+          </div>
 
+          {/* Sorting Controls */}
+          <div className="col-12 col-sm-8 col-md d-flex flex-wrap justify-content-center justify-content-sm-end gap-2">
+            {/* Sort By Dropdown */}
             <div className="dropdown">
               <button
-                className="btn fw-bold hover dropdown-toggle"
-                style={{ width: "176px", height: "50px", fontSize: "13px", borderColor: "#CACDD8", borderWidth: 2 }}
-                onClick={toggleDropdown}
+                className="btn btn-outline-secondary d-flex align-items-center justify-content-between"
+                style={{ minWidth: "160px", fontSize: "0.9rem" }}
+                onClick={toggleSortDropdown}
+                aria-expanded={isSortDropdownOpen}
               >
-                <span className="text-muted" style={{ color: "#A2A6B0" }}>
-                  Show:{" "}
+                <span>
+                  <span className="text-muted me-1">Sort By:</span>
+                  {sortOption}
                 </span>
-                {productsPerPage} per page
-                <img src={ICONS.Arrow} alt="" />
+                <i className="fas fa-chevron-down ms-2"></i>
               </button>
-              {isDropdownOpen && (
-                <div
-                  className="dropdown-menu py-0 show w-100"
-                  style={{ borderRadius: 0, borderColor: "#CACDD8", borderWidth: 2, borderTop: 0 }}
-                >
-                  {[10, 20, 30, 40].map((value) => (
+
+              {isSortDropdownOpen && (
+                <div className="dropdown-menu shadow show" style={{ minWidth: "160px" }}>
+                  {sortOptions.map((option) => (
                     <button
-                      key={value}
-                      className="dropdown-item d-flex align-items-center justify-content-center fs-5 fw-bold py-3"
-                      onClick={() => handleSelect(value)}
+                      key={option}
+                      className="dropdown-item"
+                      onClick={() => handleSortSelect(option)}
                     >
-                      <p className="m-0">{value} per page</p>
+                      {option}
                     </button>
                   ))}
                 </div>
               )}
             </div>
 
-            <button className="btn border-0 hover">
-              <img src={ICONS.All} alt="" />
+            {/* Items Per Page Dropdown */}
+            <div className="dropdown">
+              <button
+                className="btn btn-outline-secondary d-flex align-items-center justify-content-between"
+                style={{ minWidth: "160px", fontSize: "0.9rem" }}
+                onClick={toggleDropdown}
+                aria-expanded={isDropdownOpen}
+              >
+                <span>
+                  <span className="text-muted me-1">Show:</span>
+                  {productsPerPage} per page
+                </span>
+                <i className="fas fa-chevron-down ms-2"></i>
+              </button>
+
+              {isDropdownOpen && (
+                <div className="dropdown-menu shadow show" style={{ minWidth: "160px" }}>
+                  {[10, 20, 40, 60].map((value) => (
+                    <button
+                      key={value}
+                      className="dropdown-item"
+                      onClick={() => handleSelect(value)}
+                    >
+                      {value} per page
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Grid View Toggle - Hidden on small screens */}
+            <button className="btn btn-outline-secondary d-none d-md-block">
+              <i className="fas fa-th"></i>
             </button>
           </div>
         </div>
