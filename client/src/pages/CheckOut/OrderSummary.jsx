@@ -1,6 +1,4 @@
-import React from "react";
-
-const OrderSummary = ({ items, subtotal, shippingFee, finalTotal }) => {
+const OrderSummary = ({ items, shippingFee, finalTotal }) => {
     if (!items || items.length === 0) {
         return (
             <div style={{ textAlign: "center", padding: "20px" }}>

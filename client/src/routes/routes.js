@@ -11,11 +11,9 @@ import UserAccount from '../pages/UserAccount/UserAccount';
 import UserOrders from '../pages/UserAccount/UserOrders';
 import UserWishlist from '../pages/UserAccount/UserWishlist';
 
-// Create a dummy Signup component inline to avoid import issues
-const Signup = () => {
-  const Login = require('../pages/Login/Login').default;
-  return Login;
-};
+// Create a dummy Signup component that just renders Login
+// This avoids the require() which causes a no-undef error
+const Signup = Login;
 
 const publicRoutes = [
   { path: "/", component: Home },

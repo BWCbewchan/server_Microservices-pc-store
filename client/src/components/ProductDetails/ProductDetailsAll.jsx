@@ -127,8 +127,16 @@ const ProductDetailsAll = () => {
           </div>
         </div>
       )}
-      {activeTab === "details" && <ProductDetails />}
-      {activeTab === "specs" && <ProductSpecs />}
+      {activeTab === "details" && (
+        <div className="container my-4">
+          <div className="alert alert-info">Product details information</div>
+        </div>
+      )}
+      {activeTab === "specs" && (
+        <div className="container my-4">
+          <div className="alert alert-info">Product specifications</div>
+        </div>
+      )}
       <OutplayCompetition />
       <ImageDisplay />
       <FeaturesDetails />
