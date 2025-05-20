@@ -12,7 +12,7 @@ import UserOrders from '../pages/UserAccount/UserOrders';
 import UserWishlist from '../pages/UserAccount/UserWishlist';
 
 // Import Signup directly (assuming the file exists in the repo)
-import Signup from '../pages/Signup/Signup';
+import Signup from '@/pages/Signup/Signup';
 
 const publicRoutes = [
   { path: "/", component: Home },
