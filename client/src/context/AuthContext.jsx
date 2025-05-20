@@ -338,27 +338,83 @@ export const AuthProvider = ({ children }) => {
 
   const logout = () => {
     try {
-      console.log("Logging out user...");
-
-      clearToken();
-      localStorage.removeItem('user');
-      sessionStorage.removeItem('user');
-
-      document.cookie = "token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
-
-      localStorage.removeItem('accessToken');
-      localStorage.removeItem('refreshToken');
-      sessionStorage.removeItem('accessToken');
-      sessionStorage.removeItem('refreshToken');
-
+      console.log("Starting COMPLETE logout process - aggressive clearing of ALL storage");
+      
+      // 1. First, update state immediately
       setCurrentUser(null);
-      setError(null);
-
-      console.log("User logged out successfully");
-      return true;
-    } catch (err) {
-      console.error('Logout error:', err);
-      return false;
+      
+      // 2. Directly access window storage objects (most reliable)
+      window.localStorage.clear();
+      window.sessionStorage.clear();
+      
+      // 3. Explicitly remove common auth-related items one by one
+      const storageTypes = [window.localStorage, window.sessionStorage];
+      const itemsToRemove = [
+        'token', 'user', 'tokenData', 'authExpiration', 'refreshToken', 
+        'userData', 'auth', 'session', 'currentUser', 'userInfo'
+      ];
+      
+      storageTypes.forEach(storage => {
+        // First try the whole list
+        itemsToRemove.forEach(item => {
+          storage.removeItem(item);
+        });
+        
+        // Then try to clear everything again
+        storage.clear();
+      });
+      
+      // 4. Use our helper for token-specific cleanup
+      clearToken();
+      
+      // 5. Verify localStorage is completely empty
+      if (window.localStorage.length > 0) {
+        console.warn("localStorage still has items after clearing:", window.localStorage.length);
+        
+        // Get all remaining keys
+        const remainingKeys = [];
+        for (let i = 0; i < window.localStorage.length; i++) {
+          const key = window.localStorage.key(i);
+          remainingKeys.push(key);
+        }
+        console.warn("Remaining localStorage keys:", remainingKeys);
+        
+        // Try to remove each remaining key
+        remainingKeys.forEach(key => {
+          window.localStorage.removeItem(key);
+        });
+        
+        // Clear all one more time
+        window.localStorage.clear();
+      }
+      
+      // 6. Final verification
+      if (window.localStorage.length === 0 && window.sessionStorage.length === 0) {
+        console.log("Logout SUCCESS: All storage is completely empty");
+      } else {
+        console.error("Logout INCOMPLETE: Storage still contains items", {
+          localStorageLength: window.localStorage.length,
+          sessionStorageLength: window.sessionStorage.length
+        });
+      }
+      
+      // 7. Return success but also inform caller if storage wasn't cleared
+      return { 
+        success: true, 
+        storageCleared: window.localStorage.length === 0 && window.sessionStorage.length === 0 
+      };
+    } catch (error) {
+      console.error("Critical error during logout:", error);
+      
+      // Last resort - try one more time with direct method
+      try {
+        window.localStorage.clear();
+        window.sessionStorage.clear();
+      } catch (e) {
+        console.error("Final attempt to clear storage failed:", e);
+      }
+      
+      return { success: false, error: error.message };
     }
   };
 

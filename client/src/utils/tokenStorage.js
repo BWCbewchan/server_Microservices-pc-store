@@ -74,14 +74,40 @@ export const getToken = () => {
 // Clear token from all storages
 export const clearToken = () => {
   try {
+    // First try removing the token directly
     localStorage.removeItem('token');
-    localStorage.removeItem('tokenData');
     sessionStorage.removeItem('token');
+    
+    // Then try removing with window reference
+    window.localStorage.removeItem('token');
+    window.sessionStorage.removeItem('token');
+    
+    // Also clear any related data
+    localStorage.removeItem('tokenData');
     sessionStorage.removeItem('tokenData');
-    document.cookie = 'authToken=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+    localStorage.removeItem('authExpiration');
+    sessionStorage.removeItem('authExpiration');
+    
+    // Verify the token is gone
+    const tokenStillExists = localStorage.getItem('token') || sessionStorage.getItem('token');
+    if (tokenStillExists) {
+      console.error("Token still exists after clearing, forcing full clear");
+      localStorage.clear();
+      sessionStorage.clear();
+    }
+    
     return true;
   } catch (error) {
     console.error("Error clearing token:", error);
+    
+    // Last resort
+    try {
+      localStorage.clear();
+      sessionStorage.clear();
+    } catch (e) {
+      console.error("Final attempt to clear storage failed:", e);
+    }
+    
     return false;
   }
 };

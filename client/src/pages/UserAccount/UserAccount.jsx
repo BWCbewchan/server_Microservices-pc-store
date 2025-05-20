@@ -97,12 +97,65 @@ const UserAccount = () => {
   
   // Handler for logout
   const handleLogout = () => {
-    const success = logout();
-    if (success) {
+    try {
+      console.log("Executing complete logout from UserAccount");
+      
+      // 1. First update UI immediately
+      setLoading(true);
+      
+      // 2. Call context logout function
+      const result = logout();
+      if (!result.storageCleared) {
+        console.warn("Context logout didn't clear all storage, doing direct clear...");
+      }
+      
+      // 3. ALWAYS do our own direct cleanup as well
+      try {
+        // Clear all individual items first
+        ['token', 'user', 'tokenData', 'authExpiration', 'refreshToken', 'userData', 'auth', 'session'].forEach(item => {
+          window.localStorage.removeItem(item);
+          window.sessionStorage.removeItem(item);
+        });
+        
+        // Then clear everything completely
+        window.localStorage.clear();
+        window.sessionStorage.clear();
+        
+        console.log("UserAccount direct storage clearing complete");
+      } catch (clearError) {
+        console.error("Error during direct storage clearing:", clearError);
+      }
+      
+      // 4. Show a success message
       toast.info("Đăng xuất thành công");
-      navigate("/login");
-    } else {
-      toast.error("Có lỗi khi đăng xuất");
+      
+      // 5. Check if anything remains
+      if (window.localStorage.length > 0 || window.sessionStorage.length > 0) {
+        console.error("Storage still contains items after multiple clear attempts!");
+        
+        // Show everything that's left
+        for (let i = 0; i < window.localStorage.length; i++) {
+          const key = window.localStorage.key(i);
+          console.error(`localStorage still contains: ${key}`);
+        }
+        
+        // Force a page reload as absolute last resort
+        window.location.href = "/login";
+        return;
+      }
+      
+      // 6. Navigate with replace to prevent back navigation
+      navigate("/login", { replace: true });
+    } catch (error) {
+      console.error("Critical error during logout from UserAccount:", error);
+      
+      // Force a page reload as absolute last resort
+      toast.error("Đã xảy ra lỗi, đang tải lại trang...");
+      setTimeout(() => {
+        window.localStorage.clear();
+        window.sessionStorage.clear();
+        window.location.href = "/login";
+      }, 2000);
     }
   };
   
