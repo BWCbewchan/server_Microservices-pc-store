@@ -109,13 +109,28 @@ jobs:
             exit 1
           fi
       
-      # Deploy to static hosting
+      # Deploy to static hosting and capture the domain URL
       - name: Deploy to static hosting
+        id: deploy
         run: |
           echo "Deploying to static hosting..."
           if [ -n "$NETLIFY_AUTH_TOKEN" ]; then
             npm install -g netlify-cli
-            netlify deploy --dir=client/dist --prod
+            
+            # Deploy and capture output
+            DEPLOY_OUTPUT=$(netlify deploy --dir=client/dist --prod --json)
+            echo "Deployment output: $DEPLOY_OUTPUT"
+            
+            # Extract URL from JSON output
+            DEPLOY_URL=$(echo $DEPLOY_OUTPUT | grep -o '"url":"[^"]*"' | sed 's/"url":"//g' | sed 's/"//g')
+            SITE_NAME=$(echo $DEPLOY_URL | sed 's/https:\/\///g' | sed 's/.netlify.app//g')
+            
+            # Set outputs for use in other steps
+            echo "deploy_url=$DEPLOY_URL" >> $GITHUB_OUTPUT
+            echo "site_name=$SITE_NAME" >> $GITHUB_OUTPUT
+            
+            echo "✅ Deployed successfully to: $DEPLOY_URL"
+            echo "✅ Your Netlify site name is: $SITE_NAME"
           else
             echo "Skipping actual deployment - no deployment token provided"
             echo "In a real scenario, this would deploy to your hosting service"
@@ -131,7 +146,14 @@ jobs:
           echo "## Deployment Summary" >> $GITHUB_STEP_SUMMARY
           if [ -n "$NETLIFY_AUTH_TOKEN" ]; then
             echo "✅ Successfully deployed to production" >> $GITHUB_STEP_SUMMARY
+            
+            # Display deployment URLs if available
+            if [ -n "${{ steps.deploy.outputs.deploy_url }}" ]; then
+              echo "🔗 **Deployment URL:** [${{ steps.deploy.outputs.deploy_url }}](${{ steps.deploy.outputs.deploy_url }})" >> $GITHUB_STEP_SUMMARY
+              echo "🌐 **Netlify Site Name:** ${{ steps.deploy.outputs.site_name }}.netlify.app" >> $GITHUB_STEP_SUMMARY
+            fi
           else
             echo "⚠️ Simulated deployment only (no deployment tokens provided)" >> $GITHUB_STEP_SUMMARY
+            echo "To enable actual deployment, add NETLIFY_AUTH_TOKEN and NETLIFY_SITE_ID secrets" >> $GITHUB_STEP_SUMMARY
           fi
           echo "📅 Deployment date: $(date)" >> $GITHUB_STEP_SUMMARY
