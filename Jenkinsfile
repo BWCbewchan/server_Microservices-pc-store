@@ -108,6 +108,20 @@ pipeline {
                         }
                     }
                 }
+                stage('Auth Service') {
+                    when {
+                        anyOf {
+                            changeset "backend/auth-service/**"
+                            expression { return params.FORCE_BUILD_ALL }
+                        }
+                    }
+                    steps {
+                        dir('backend/auth-service') {
+                            bat 'npm install'
+                            bat 'npm test || exit 0'
+                        }
+                    }
+                }
             }
         }
 
