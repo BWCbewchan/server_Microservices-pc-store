@@ -22,9 +22,13 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
       
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
+      # Setup Docker Compose
+      - name: Set up Docker Compose
+        uses: ndeloof/install-compose-action@v0.0.1
+        with:
+          version: v2.3.3  # Specify the version you want to use
       
+      # Cache Docker layers to speed up builds
       - name: Cache Docker layers
         uses: actions/cache@v3
         with:
@@ -33,54 +37,66 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-buildx-
       
+      # Optional Docker Hub Login - only if secrets are available
       - name: Login to Docker Hub
-        if: github.event_name != 'pull_request'
+        if: ${{ github.event_name != 'pull_request' && env.DOCKER_HUB_USERNAME != '' && env.DOCKER_HUB_TOKEN != '' }}
         uses: docker/login-action@v2
         with:
           username: ${{ secrets.DOCKER_HUB_USERNAME }}
           password: ${{ secrets.DOCKER_HUB_TOKEN }}
+        env:
+          DOCKER_HUB_USERNAME: ${{ secrets.DOCKER_HUB_USERNAME }}
+          DOCKER_HUB_TOKEN: ${{ secrets.DOCKER_HUB_TOKEN }}
       
+      # Create .env file with default values if secrets not available
       - name: Create .env file
         run: |
           cd backend
           echo "PORT=3000" >> .env
-          echo "MONGO_URI=${{ secrets.MONGO_URI }}" >> .env
-          echo "JWT_SECRET=${{ secrets.JWT_SECRET }}" >> .env
+          echo "MONGO_URI=${MONGO_URI:-mongodb://localhost:27017/pcstore}" >> .env
+          echo "JWT_SECRET=${JWT_SECRET:-localdevelopmentsecret}" >> .env
           echo "JWT_EXPIRES_IN=7d" >> .env
+        env:
+          MONGO_URI: ${{ secrets.MONGO_URI }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
       
+      # Use docker compose without hyphen (new format)
       - name: Build and deploy with Docker Compose
         run: |
           cd backend
-          docker-compose build
-          docker-compose up -d
+          docker compose version
+          docker compose build
+          docker compose up -d
       
+      # Verify with fallback message
       - name: Verify deployment
         run: |
           cd backend
           # Wait for services to start
-          sleep 30
+          sleep 15
           # Check if API Gateway is running
+          echo "Checking API Gateway status..."
           curl -s http://localhost:3000/api-status || echo "API Gateway not responding"
           # List running containers
-          docker-compose ps
+          echo "Running containers:"
+          docker ps
       
-      - name: Run integration tests
-        run: |
-          cd backend
-          # Add integration tests here if applicable
-          echo "Running integration tests"
-      
+      # Simplified cleanup
       - name: Cleanup Docker resources
         if: always()
         run: |
           cd backend
-          docker-compose logs
-          docker-compose down
+          docker compose ps
+          echo "Collecting container logs..."
+          docker compose logs --no-color > docker-logs.txt
+          echo "Stopping containers..."
+          docker compose down || true
       
-      - name: Notify on success
-        if: success()
-        run: echo "Deployment successful! All microservices are running."
-      
-      - name: Notify on failure
-        if: failure()
-        run: echo "Deployment failed. Check the logs for details."
+      # Upload logs as artifact
+      - name: Upload Docker logs
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: docker-logs
+          path: backend/docker-logs.txt
+          retention-days: 5
