@@ -1,8 +1,18 @@
 import * as React from "react";
 import 'bootstrap/dist/css/bootstrap.min.css';
 
-const CartItem = ({ name ,image, description, price, quantity, isChecked, onToggle, onEdit, onRemove, onQuantityChange }) => {
+const CartItem = ({ name, image, description, price, quantity, isChecked, onToggle, onEdit, onRemove, onQuantityChange }) => {
     const [currentQuantity, setCurrentQuantity] = React.useState(quantity);
+
+    // Format price with dollar sign, commas and two decimal places
+    const formatPrice = (value) => {
+        return new Intl.NumberFormat('en-US', {
+            style: 'currency',
+            currency: 'USD',
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        }).format(value);
+    };
 
     const handleQuantityChange = (e) => {
         const updatedQuantity = Math.max(1, parseInt(e.target.value) || 1);
@@ -26,13 +36,13 @@ const CartItem = ({ name ,image, description, price, quantity, isChecked, onTogg
                     style={{ width: "120px", height: "120px", objectFit: "contain", marginRight: "16px" }}
                 />
                 <div style={{ fontFamily: "Poppins, sans-serif", fontSize: "14px", lineHeight: "1.5" }}>
-                   
+
                     {description}
                 </div>
             </div>
 
             <div style={{ flex: 1, textAlign: "center", fontWeight: "700", fontSize: "16px" }}>
-                ${price}
+                {formatPrice(parseFloat(price))}
             </div>
 
             <div style={{ flex: 1, display: "flex", justifyContent: "center" }}>
@@ -46,7 +56,7 @@ const CartItem = ({ name ,image, description, price, quantity, isChecked, onTogg
             </div>
 
             <div style={{ flex: 1, textAlign: "center", fontWeight: "700", fontSize: "16px" }}>
-                ${(currentQuantity * parseFloat(price.replace(",", ""))).toFixed(2)}
+                {formatPrice(currentQuantity * parseFloat(price))}
             </div>
 
             <div className="d-flex flex-column ms-3">

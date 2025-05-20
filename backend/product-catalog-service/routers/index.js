@@ -12,6 +12,7 @@ const uploadImage = require("../controller/uploadImage");
 const getProductsByFilters = require("../controller/filterProduct/getProductsByFilters");
 const getPriceCountsByCategory = require("../controller/filterProduct/getPriceCountsByCategory");
 const updateStock = require("../controller/updateStock");
+const searchProducts = require("../controller/filterProduct/searchProducts");
 const router = express.Router();
 
 // Create product api
@@ -31,6 +32,9 @@ router.get("/products-filters", getProductsByFilters);
 
 // Get price counts by category
 router.get("/price-counts", getPriceCountsByCategory);
+
+// Tìm kiếm sản phẩm theo tên
+router.get("/products-search", searchProducts);
 
 // Route lấy chi tiết sản phẩm theo ID
 router.get("/product/:id", getProductById);

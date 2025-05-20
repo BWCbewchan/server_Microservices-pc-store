@@ -24,7 +24,7 @@ const ProductDisplay = () => {
         // Try the main endpoint first
         const url = `${import.meta.env.VITE_APP_API_GATEWAY_URL}/products/products-new`;
         console.log('Fetching new products from:', url);
-        
+
         let response;
         try {
           response = await axios.get(url, { withCredentials: false });
@@ -55,7 +55,7 @@ const ProductDisplay = () => {
         // Try the main endpoint first
         const url = `${import.meta.env.VITE_APP_API_GATEWAY_URL}/products/products-category/${category}`;
         console.log(`Fetching ${category} products from:`, url);
-        
+
         let response;
         try {
           response = await axios.get(url, { withCredentials: false });
@@ -172,7 +172,7 @@ const ProductDisplay = () => {
       try {
         const url = `${import.meta.env.VITE_APP_API_GATEWAY_URL}/notification/base-url`;
         console.log('Fetching socket URL from:', url);
-        
+
         const response = await axios.get(url, { withCredentials: false });
         if (response?.data?.baseUrl) {
           setUriSocket(response.data.baseUrl);
@@ -198,7 +198,7 @@ const ProductDisplay = () => {
     console.log("Socket connected: ", socket);
   }
 
-  const handleNotification = async() => {
+  const handleNotification = async () => {
     try {
       const response = await axios.post(`${import.meta.env.VITE_APP_API_GATEWAY_URL}/notification/send-notification`);
       console.log("Notification sent: ", response.data);

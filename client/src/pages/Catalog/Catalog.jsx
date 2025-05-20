@@ -12,33 +12,56 @@ import ICONS from "../../constants/icons";
 const Catalog = () => {
   const location = useLocation();
   const initialCategory = new URLSearchParams(location.search).get("category");
+  const searchQuery = new URLSearchParams(location.search).get("name");
 
   const [appliedFilters, setAppliedFilters] = useState({
     category: initialCategory || "",
     price: "",
+    name: searchQuery || "",
   });
   const [products, setProducts] = useState([]);
   const [clearFilter, setClearFilter] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [productsPerPage, setProductsPerPage] = useState(20);
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    if (!initialCategory) {
-      const fetchProducts = async () => {
-        try {
-          const URL = `${import.meta.env.VITE_APP_API_GATEWAY_URL}/products/products`;
-          const response = await axios.get(URL, { withCredentials: true });
+    const fetchProducts = async () => {
+      try {
+        setIsLoading(true);
+        let URL;
+        let params = {};
 
-          setProducts(response?.data?.data);
-          console.log("Products: ", response?.data?.data);
-        } catch (error) {
-          console.log("Error fetching products: ", error);
+        if (initialCategory) {
+          // Nếu có category, tải sản phẩm theo category
+          URL = `${import.meta.env.VITE_APP_API_GATEWAY_URL}/products/products-category/${initialCategory}`;
+        } else if (searchQuery) {
+          // Nếu có tham số tìm kiếm từ URL, sử dụng endpoint products-search
+          URL = `${import.meta.env.VITE_APP_API_GATEWAY_URL}/products/products-search`;
+          params = { name: searchQuery };
+        } else {
+          // Nếu không có category và search query, tải tất cả sản phẩm
+          URL = `${import.meta.env.VITE_APP_API_GATEWAY_URL}/products/products`;
         }
-      };
-      fetchProducts();
-    }
-  }, [clearFilter, initialCategory]);
+
+        console.log("Fetching products from URL:", URL, "with params:", params);
+        const response = await axios.get(URL, {
+          params,
+          withCredentials: true,
+        });
+
+        setProducts(response?.data?.data);
+        console.log("Products: ", response?.data?.data);
+      } catch (error) {
+        console.log("Error fetching products: ", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchProducts();
+  }, [clearFilter, initialCategory, searchQuery]);
 
   const handleRemoveFilter = (filter) => {
     setAppliedFilters((prev) => ({

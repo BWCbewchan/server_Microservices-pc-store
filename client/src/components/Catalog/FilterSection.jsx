@@ -154,9 +154,8 @@ const FilterSection = ({ initialCategory, setProducts, appliedFilters, setApplie
           {categories.map((category, index) => (
             <button
               key={index}
-              className={`btn w-100 d-flex align-items-center justify-content-between hover ${
-                selectedCategory === category.name ? "active btn-outline-primary" : ""
-              }`}
+              className={`btn w-100 d-flex align-items-center justify-content-between hover ${selectedCategory === category.name ? "active btn-outline-primary" : ""
+                }`}
               style={{ borderRadius: "6px", fontSize: "14px" }}
               onClick={() => setSelectedCategory((prev) => (prev === category.name ? null : category.name))}
             >
@@ -184,9 +183,8 @@ const FilterSection = ({ initialCategory, setProducts, appliedFilters, setApplie
           {prices.map((price, index) => (
             <button
               key={index}
-              className={`btn w-100 d-flex align-items-center justify-content-between hover hover ${
-                selectedPrice === price.range ? "active btn-outline-primary" : ""
-              }`}
+              className={`btn w-100 d-flex align-items-center justify-content-between hover hover ${selectedPrice === price.range ? "active btn-outline-primary" : ""
+                }`}
               style={{ borderRadius: "6px", fontSize: "14px" }}
               onClick={() => handlePriceClick(price.range)}
             >

@@ -15,6 +15,17 @@ const ProductCard = ({ _id, stock, image, rating, name, price, discount }) => {
 
   // Calculate final price
   const finalPrice = price - (price * discount) / 100;
+
+  // Format price with dollar sign, commas and two decimal places
+  const formatPrice = (value) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    }).format(value);
+  };
+
   // Xử lý thêm sản phẩm vào giỏ hàng
   const handleAddToCart = async (productId) => {
     try {
@@ -26,8 +37,8 @@ const ProductCard = ({ _id, stock, image, rating, name, price, discount }) => {
       const res = await axios.post(`${CART_API_URL}/${fakeUserId}/${productId}/1`);
       // console.log("Thêm vào giỏ hàng thành công", res.data);
       // alert("them vao gio hang thanh cong")
-            toast.success("🛒Thêm vào giỏ hàng thành công");
-      
+      toast.success("🛒Thêm vào giỏ hàng thành công");
+
       // Có thể hiển thị thông báo thành công cho người dùng tại đây
     } catch (error) {
       console.error("Lỗi khi thêm vào giỏ hàng", error.response?.data || error.message);
@@ -58,7 +69,7 @@ const ProductCard = ({ _id, stock, image, rating, name, price, discount }) => {
           onClick={(e) => {
             e.preventDefault();
             handleAddToCart(_id)
-        }}
+          }}
         >
           <img src={ICONS.Cart} alt="" className="hover" />
         </button>
@@ -88,9 +99,9 @@ const ProductCard = ({ _id, stock, image, rating, name, price, discount }) => {
           {name}
         </p>
         <div style={{ marginTop: "auto" }}>
-          <span className="text-muted text-decoration-line-through">${price}</span>
+          <span className="text-muted text-decoration-line-through">{formatPrice(price)}</span>
           <br />
-          <span className="fw-bold">${finalPrice.toFixed(2)}</span>
+          <span className="fw-bold">{formatPrice(finalPrice)}</span>
         </div>
       </div>
     </NavLink>

@@ -1,8 +1,11 @@
-import React from "react";
-import FooterLinkItem from "./FooterLinkItem"; // Đảm bảo đường dẫn chính xác
+import React, { useState } from "react";
+import FooterLinkItem from "./FooterLinkItem";
+import { Link } from "react-router-dom";
 
 const Footer = () => {
-  // Các nhóm link khác...
+  const [email, setEmail] = useState("");
+
+  // Footer link groups
   const footerLinks = {
     Information: [
       { name: "About Us", link: "/about-us" },
@@ -45,143 +48,144 @@ const Footer = () => {
     ],
   };
 
-  return (
-    <footer
-      style={{
-        backgroundColor: "#000",
-        padding: "10px 20px",
-        color: "white",
-        fontFamily: "Poppins, sans-serif",
-      }}
-    >
-      {/* Newsletter Section */}
-      <div
-        style={{
-          maxWidth: "1200px",
-          margin: "0 auto",
-          textAlign: "center",
-          marginBottom: "40px",
-        }}
-      >
-        <h2 style={{ fontSize: "28px", fontWeight: "600", marginBottom: "10px" }}>
-          Sign Up To Our Newsletter.
-        </h2>
-        <p style={{ fontSize: "16px", marginBottom: "20px" }}>
-          Be the first to hear about the latest offers.
-        </p>
-        <form
-          style={{
-            display: "flex",
-            justifyContent: "center",
-            gap: "10px",
-            flexWrap: "wrap",
-          }}
-        >
-          <input
-            type="email"
-            placeholder="Your Email"
-            style={{
-              padding: "10px 20px",
-              borderRadius: "30px",
-              border: "1px solid #fff",
-              backgroundColor: "#000",
-              color: "white",
-              fontSize: "14px",
-              width: "250px",
-              maxWidth: "100%",
-            }}
-            required
-          />
+  // Handle newsletter subscription
+  const handleSubscribe = (e) => {
+    e.preventDefault();
+    // Add subscription logic here
+    console.log("Subscribing email:", email);
+    setEmail("");
+    // You could add a toast notification here
+  };
+
+  // Render a footer section with collapsible behavior on mobile
+  const FooterSection = ({ title, children }) => {
+    const [isOpen, setIsOpen] = useState(false);
+    const toggleSection = () => setIsOpen(!isOpen);
+
+    return (
+      <div className="mb-4">
+        {/* Section header with toggle button on mobile */}
+        <div className="d-flex justify-content-between align-items-center mb-3">
+          <h5 className="text-white mb-0 fs-6 fw-semibold">{title}</h5>
           <button
-            type="submit"
-            style={{
-              backgroundColor: "#0156FF",
-              color: "white",
-              padding: "10px 25px",
-              borderRadius: "30px",
-              border: "none",
-              fontSize: "14px",
-              fontWeight: "500",
-              cursor: "pointer",
-            }}
+            className="btn btn-link p-0 d-md-none text-white"
+            onClick={toggleSection}
+            aria-label={`Toggle ${title} section`}
           >
-            Subscribe
+            {isOpen ? "−" : "+"}
           </button>
-        </form>
+        </div>
+
+        {/* Section content - always visible on desktop, toggleable on mobile */}
+        <div className={`${isOpen ? "d-block" : "d-none"} d-md-block`}>
+          {children}
+        </div>
+      </div>
+    );
+  };
+
+  return (
+    <footer className="bg-dark text-white pt-4 pb-3">
+      {/* Newsletter Section - Full width on all devices */}
+      <div className="container mb-4">
+        <div className="row justify-content-center text-center">
+          <div className="col-12 col-lg-8">
+            <h2 className="fs-4 fw-semibold mb-2">
+              Sign Up To Our Newsletter.
+            </h2>
+            <p className="mb-3">Be the first to hear about the latest offers.</p>
+
+            <form onSubmit={handleSubscribe} className="newsletter-form">
+              <div className="row g-2 justify-content-center">
+                <div className="col-12 col-sm-8 col-lg-7">
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="Your Email"
+                    className="form-control bg-dark text-white border-white rounded-pill px-3 py-2"
+                    required
+                  />
+                </div>
+                <div className="col-12 col-sm-4 col-lg-5">
+                  <button
+                    type="submit"
+                    className="btn btn-primary w-100 rounded-pill py-2 fw-medium"
+                  >
+                    Subscribe
+                  </button>
+                </div>
+              </div>
+            </form>
+          </div>
+        </div>
       </div>
 
-      {/* Footer Links */}
-      <div
-        style={{
-          maxWidth: "1200px",
-          margin: "0 auto",
-          display: "flex",
-          flexWrap: "wrap",
-          gap: "30px",
-          justifyContent: "space-between",
-          marginBottom: "30px",
-        }}
-      >
-        {Object.entries(footerLinks).map(([groupTitle, links]) => (
-          <div key={groupTitle} style={{ flex: "1", minWidth: "200px" }}>
-            <h3
-              style={{
-                fontSize: "18px",
-                fontWeight: "600",
-                marginBottom: "10px",
-              }}
-            >
-              {groupTitle}
-            </h3>
-            {/* Các mục khác... */}
-            {links.map((item, index) => (
-              <FooterLinkItem key={index} name={item.name} link={item.link} />
-            ))}
+      {/* Main Footer Sections */}
+      <div className="container">
+        <div className="row">
+          {/* Links Sections - Using FooterSection component */}
+          {Object.entries(footerLinks).map(([groupTitle, links]) => (
+            <div className="col-12 col-sm-6 col-lg-3" key={groupTitle}>
+              <FooterSection title={groupTitle}>
+                <ul className="list-unstyled mb-0">
+                  {links.map((item, index) => (
+                    <li key={index} className="mb-2">
+                      <Link
+                        to={item.link}
+                        className="text-white-50 text-decoration-none"
+                        style={{ fontSize: "0.9rem" }}
+                      >
+                        {item.name}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </FooterSection>
+            </div>
+          ))}
+
+          {/* Address Section */}
+          <div className="col-12 col-lg-3 mt-3 mt-lg-0">
+            <FooterSection title="Address">
+              <address
+                className="mb-0 text-white-50"
+                style={{ fontSize: "0.9rem" }}
+              >
+                <p className="mb-1">Address: 1234 Street Address, City Address, 1234</p>
+                <p className="mb-1">
+                  Phones:{" "}
+                  <a
+                    href="tel:0012345678"
+                    className="text-primary text-decoration-none"
+                  >
+                    (00) 1234 5678
+                  </a>
+                </p>
+                <p className="mb-0">
+                  Email:{" "}
+                  <a
+                    href="mailto:shop@email.com"
+                    className="text-primary text-decoration-none"
+                  >
+                    shop@email.com
+                  </a>
+                </p>
+              </address>
+            </FooterSection>
           </div>
-        ))}
-        {/* Address Section */}
-        <div style={{ flex: "1", minWidth: "200px" }}>
-          <h3
-            style={{
-              fontSize: "18px",
-              fontWeight: "600",
-              marginBottom: "10px",
-            }}
-          >
-            Address
-          </h3>
-          <p style={{ fontSize: "14px", lineHeight: "1.8" }}>
-            Address: 1234 Street Address, City Address, 1234 <br />
-            Phones:{" "}
-            <a
-              href="tel:0012345678"
-              style={{ color: "#0156FF", textDecoration: "none" }}
-            >
-              (00) 1234 5678
-            </a>
-            <br />
-            Email:{" "}
-            <a
-              href="mailto:shop@email.com"
-              style={{ color: "#0156FF", textDecoration: "none" }}
-            >
-              shop@email.com
-            </a>
-          </p>
         </div>
       </div>
 
       {/* Footer Bottom */}
-      <div
-        style={{
-          borderTop: "1px solid rgba(255, 255, 255, 0.2)",
-          paddingTop: "20px",
-          textAlign: "center",
-        }}
-      >
-        <p style={{ fontSize: "14px", color: "#888" }}>
-          Copyright © 2025 Solomon Team
-        </p>
+      <div className="container-fluid border-top border-secondary mt-4 pt-3">
+        <div className="row">
+          <div className="col-12 text-center">
+            <p className="text-muted small mb-0">
+              Copyright © 2025 Solomon Team
+            </p>
+          </div>
+        </div>
       </div>
     </footer>
   );

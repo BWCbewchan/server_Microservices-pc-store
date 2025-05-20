@@ -1,0 +1,308 @@
+/* Logo hover effect */
+.navbar-brand:hover {
+  opacity: 0.8;
+  transform: scale(1.05);
+  transition: all 0.3s ease;
+}
+
+/* Navigation category links hover effect */
+.nav-category-link {
+  position: relative;
+  transition: color 0.3s ease;
+}
+
+.nav-category-link:hover {
+  color: #0156ff !important;
+}
+
+.nav-category-link::after {
+  content: "";
+  position: absolute;
+  width: 0;
+  height: 2px;
+  bottom: 0;
+  left: 50%;
+  background-color: #0156ff;
+  transition: all 0.3s ease;
+  transform: translateX(-50%);
+}
+
+.nav-category-link:hover::after {
+  width: 70%;
+}
+
+/* Navigation icons hover effect */
+.nav-icon {
+  color: #212529;
+  transition: all 0.3s ease;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+}
+
+.nav-icon:hover {
+  color: #0156ff;
+  background-color: rgba(1, 86, 255, 0.08);
+  transform: translateY(-2px);
+}
+
+/* Auth buttons hover effect */
+.nav-auth-btn {
+  transition: all 0.3s ease;
+  border-color: #0156ff;
+  color: #0156ff;
+}
+
+.nav-auth-btn:hover {
+  background-color: #0156ff;
+  color: white;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(1, 86, 255, 0.2);
+}
+
+/* Dropdown items hover effect */
+.nav-dropdown-item {
+  transition: all 0.2s ease;
+}
+
+.nav-dropdown-item:hover {
+  background-color: #f0f7ff;
+  color: #0156ff;
+  padding-left: 1.5rem;
+}
+
+/* Navigation toggler hover effect */
+.nav-toggler:hover {
+  opacity: 0.7;
+}
+
+/* Search overlay animation */
+.search-overlay {
+  animation: slideDown 0.3s ease;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Navigation links hover effect */
+.nav-link {
+  position: relative;
+  transition: color 0.3s ease;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.nav-link:hover {
+  color: #0156ff !important;
+}
+
+.nav-link::after {
+  content: "";
+  position: absolute;
+  width: 0;
+  height: 2px;
+  bottom: 0;
+  left: 50%;
+  background-color: #0156ff;
+  transition: all 0.3s ease;
+  transform: translateX(-50%);
+}
+
+.nav-link:hover::after {
+  width: 70%;
+}
+
+/* User dropdown enhancements */
+.dropdown-menu {
+  border-radius: 8px;
+  min-width: 260px;
+  border: none;
+  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+  animation: fadeIn 0.2s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Mobile dropdown positioning */
+@media (max-width: 991.98px) {
+  .dropdown-menu {
+    right: 0;
+    left: auto;
+    width: 280px;
+    max-width: 90vw;
+  }
+}
+
+/* Fix cho mobile dropdown khi navbar đóng */
+.nav-item.position-relative .dropdown-menu {
+  position: absolute;
+  transform: none;
+  top: 100%;
+  right: 0;
+}
+
+/* Mobile navigation enhancements */
+@media (max-width: 991.98px) {
+  .navbar-collapse {
+    max-height: 80vh;
+    overflow-y: auto;
+  }
+
+  /* Menu user styling on mobile */
+  .navbar-collapse .nav-link {
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid #f0f0f0;
+  }
+
+  /* Mobile dropdown styling */
+  .navbar-collapse .dropdown-menu {
+    position: static !important;
+    transform: none !important;
+    width: 100%;
+    border: none;
+    box-shadow: none;
+    background-color: transparent;
+  }
+
+  /* Mobile user menu items */
+  .navbar-collapse .dropdown-item {
+    padding: 0.5rem 1rem;
+    white-space: normal;
+  }
+
+  /* Animate mobile dropdown */
+  @keyframes slideDown {
+    from {
+      max-height: 0;
+      opacity: 0;
+    }
+    to {
+      max-height: 500px;
+      opacity: 1;
+    }
+  }
+
+  .navbar-collapse .show {
+    animation: slideDown 0.3s ease-out forwards;
+  }
+}
+
+/* Ensure dropdown works in mobile collapsed menu */
+.navbar-collapse.show .dropdown-menu.show {
+  display: block;
+}
+
+/* Enhanced search UI styles */
+.nav-icon {
+  width: 40px;
+  height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.nav-icon:hover {
+  background-color: #f0f7ff;
+  color: #0156ff;
+}
+
+/* Search input styling */
+.input-group .form-control:focus {
+  box-shadow: none;
+  border-color: #ced4da;
+}
+
+/* Search button hover effect */
+.input-group .btn-primary {
+  transition: all 0.2s ease;
+}
+
+.input-group .btn-primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 5px rgba(0, 86, 255, 0.3);
+}
+
+/* Responsive adjustments for search bar */
+@media (max-width: 576px) {
+  .input-group .btn-primary {
+    padding-left: 10px;
+    padding-right: 10px;
+  }
+}
+
+/* Animation for search bar appearance */
+.my-3.d-block,
+.container-fluid.bg-white {
+  animation: fadeInSearch 0.3s ease-out;
+}
+
+@keyframes fadeInSearch {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Mobile search results styling */
+.position-absolute.bg-white {
+  z-index: 1050;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  animation: fadeInDown 0.3s ease;
+}
+
+@keyframes fadeInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Search result item hover effect */
+.position-absolute.bg-white .d-flex {
+  transition: background 0.2s ease;
+}
+
+.position-absolute.bg-white .d-flex:hover {
+  background-color: #f5f9ff;
+}
+
+/* View all results button */
+.position-absolute.bg-white .text-center {
+  transition: all 0.2s ease;
+}
+
+.position-absolute.bg-white .text-center:hover {
+  background-color: #f0f7ff;
+}

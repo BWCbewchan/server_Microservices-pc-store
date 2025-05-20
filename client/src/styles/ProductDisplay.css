@@ -1,0 +1,62 @@
+/* Product card hover effects */
+.product-card {
+  transition: all 0.3s ease;
+}
+
+.product-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 15px rgba(0, 0, 0, 0.1) !important;
+}
+
+.product-card .card-img-top {
+  transition: all 0.3s ease;
+}
+
+.product-card:hover .card-img-top {
+  transform: scale(1.05);
+}
+
+/* Series card hover effects */
+.series-card {
+  transition: all 0.3s ease;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.series-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1) !important;
+}
+
+.hover-card {
+  transition: all 0.3s ease;
+}
+
+.hover-card:hover {
+  background-color: #f8f9fa;
+}
+
+/* Section transitions */
+.product-display .container-fluid {
+  position: relative;
+}
+
+.product-display .container-fluid:nth-child(odd) {
+  background-color: #ffffff;
+}
+
+.product-display .container-fluid:nth-child(even) {
+  background-color: #f8f9fa;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .product-display h2 {
+    font-size: 1.5rem;
+  }
+
+  .product-display .btn-outline-primary {
+    font-size: 0.85rem;
+    padding: 0.375rem 0.75rem;
+  }
+}

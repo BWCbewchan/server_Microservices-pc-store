@@ -1,0 +1,67 @@
+/* Skeleton loading animation */
+.skeleton-card {
+  background: linear-gradient(
+    90deg,
+    rgba(240, 240, 240, 0.8) 25%,
+    rgba(245, 245, 245, 0.8) 37%,
+    rgba(240, 240, 240, 0.8) 63%
+  );
+  background-size: 400% 100%;
+  animation: skeleton-loading 1.4s ease infinite;
+}
+
+@keyframes skeleton-loading {
+  0% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0 50%;
+  }
+}
+
+/* Responsive section padding */
+.featured-products,
+.new-arrivals {
+  padding-top: 2rem;
+  padding-bottom: 2rem;
+}
+
+@media (min-width: 768px) {
+  .featured-products,
+  .new-arrivals {
+    padding-top: 3rem;
+    padding-bottom: 3rem;
+  }
+}
+
+@media (min-width: 992px) {
+  .featured-products,
+  .new-arrivals {
+    padding-top: 4rem;
+    padding-bottom: 4rem;
+  }
+}
+
+/* Responsive title sizes */
+.section-title {
+  font-size: 1.5rem;
+}
+
+@media (min-width: 768px) {
+  .section-title {
+    font-size: 1.75rem;
+  }
+}
+
+/* Product grid spacing adjustments */
+.row-cols-2 > .col {
+  padding-left: 0.5rem;
+  padding-right: 0.5rem;
+}
+
+@media (min-width: 768px) {
+  .row-cols-2 > .col {
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+  }
+}
