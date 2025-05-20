@@ -12,6 +12,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Table, TableHeader, TableRow, TableHead, TableCell, TableBody } from "@/components/ui/table";
 import OrderDetailModal from "./OrderDetailModal";
+import OrderEditModal from "./OrderEditModal";
 
 // Đường dẫn API (sửa lại nếu cần)
 const ORDER_API_URL = "http://localhost:3000/api/orders";
@@ -64,7 +65,10 @@ export default function TableOrders() {
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
   const [error, setError] = useState("");
-const [modalOrderId, setModalOrderId] = useState(null);
+  const [modalOrderId, setModalOrderId] = useState(null);
+  // Add state for editing modal
+  const [editingOrderId, setEditingOrderId] = useState(null);
+  
   // Lấy danh sách đơn hàng
   useEffect(() => {
     const fetchOrders = async () => {
@@ -105,9 +109,16 @@ const [modalOrderId, setModalOrderId] = useState(null);
       // Tạo chuỗi JSON chứa dữ liệu update và encode để truyền qua URL
       const updateData = encodeURIComponent(JSON.stringify({ status: newStatus }));
       // Gọi API update với endpoint theo định dạng: /:orderId/:updateData
-      await axios.put(`${ORDER_API_URL}/update/${orderId}/${updateData}`);
-      const response = await axios.get(ORDER_API_URL);
-      setOrders(response.data);
+      const response = await axios.put(`${ORDER_API_URL}/update/${orderId}/${updateData}`);
+      
+      // Update just this order in the state instead of reloading all orders
+      if (response.data) {
+        setOrders(prevOrders => 
+          prevOrders.map(order => 
+            order._id === orderId ? { ...order, status: newStatus } : order
+          )
+        );
+      }
     } catch (err) {
       alert("Lỗi khi cập nhật trạng thái đơn hàng");
       console.error(err);
@@ -118,7 +129,7 @@ const [modalOrderId, setModalOrderId] = useState(null);
 
   // Hàm chỉnh sửa đơn hàng (ví dụ mở modal, chuyển trang,...)
   const handleEdit = (orderId) => {
-    alert(`Chỉnh sửa đơn hàng ${orderId}`);
+    setEditingOrderId(orderId);
   };
 
   // Hàm hủy đơn hàng (Admin)
@@ -130,10 +141,17 @@ const [modalOrderId, setModalOrderId] = useState(null);
     if (window.confirm("Bạn có chắc muốn hủy đơn hàng này không?")) {
       try {
         setActionLoading(true);
-        await axios.post(`${ORDER_API_URL}/admin/cancel/${orderId}`);
-        alert("Đơn hàng đã được hủy bởi Admin");
-        const response = await axios.get(ORDER_API_URL);
-        setOrders(response.data);
+        const response = await axios.post(`${ORDER_API_URL}/admin/cancel/${orderId}`);
+        
+        if (response.data) {
+          alert("Đơn hàng đã được hủy bởi Admin");
+          // Update just this order in the state
+          setOrders(prevOrders => 
+            prevOrders.map(order => 
+              order._id === orderId ? { ...order, status: "cancelled" } : order
+            )
+          );
+        }
       } catch (err) {
         alert("Lỗi khi hủy đơn hàng");
         console.error(err);
@@ -156,8 +174,9 @@ const [modalOrderId, setModalOrderId] = useState(null);
         setActionLoading(true);
         await axios.delete(`${ORDER_API_URL}/admin/delete/${orderId}`);
         alert("Đơn hàng đã được xóa bởi Admin");
-        const response = await axios.get(ORDER_API_URL);
-        setOrders(response.data);
+        
+        // Remove the deleted order from state
+        setOrders(prevOrders => prevOrders.filter(order => order._id !== orderId));
       } catch (err) {
         alert("Lỗi khi xóa đơn hàng");
         console.error(err);
@@ -412,6 +431,23 @@ const [modalOrderId, setModalOrderId] = useState(null);
         <OrderDetailModal
           orderId={modalOrderId}
           onClose={() => setModalOrderId(null)}
+        />
+      )}
+      
+      {/* Add the Edit Modal with improved onSave handler */}
+      {editingOrderId && (
+        <OrderEditModal
+          orderId={editingOrderId}
+          onClose={() => setEditingOrderId(null)}
+          onSave={(updatedOrder) => {
+            // Update the orders list with the edited order without reloading
+            setOrders(prevOrders => 
+              prevOrders.map(order => 
+                order._id === updatedOrder._id ? updatedOrder : order
+              )
+            );
+            setEditingOrderId(null);
+          }}
         />
       )}
     </div>
