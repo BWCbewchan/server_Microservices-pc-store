@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - ci/ci
     paths:
       - 'backend/**'
       - '.github/workflows/backend-deploy.yml'
@@ -11,6 +12,7 @@ on:
   pull_request:
     branches:
       - main
+      - ci/ci
     paths:
       - 'backend/**'
 

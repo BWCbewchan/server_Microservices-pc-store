@@ -7,11 +7,11 @@ import CheckoutPage from "../pages/CheckOut/CheckoutPage";
 import ContactUs from "../pages/ContactUs/ContactUs";
 import ProductDetailsAll from "../pages/Details/ProductDetailsAll";
 import OrderConfirmation from "../pages/OrderConfirmation/OrderConfirmation";
+import Signup from "../pages/Signup/Signup";
 import UserAccount from "../pages/UserAccount/UserAccount";
 import UserOrders from "../pages/UserAccount/UserOrders";
-
 // Use Login component as temporary placeholder for Signup until we can create that component
-const Signup = Login;
+
 
 // Các route công khai (ai cũng có thể truy cập)
 const publicRoutes = [

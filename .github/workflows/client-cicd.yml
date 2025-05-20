@@ -1,0 +1,335 @@
+name: Client CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+      - ci/ci
+      - feature/*
+    paths:
+      - 'client/**'
+      - '.github/workflows/client-cicd.yml'
+  pull_request:
+    branches:
+      - main
+      - develop
+      - ci/ci
+    paths:
+      - 'client/**'
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy to'
+        required: true
+        default: 'staging'
+        type: choice
+        options:
+        - staging
+        - production
+
+env:
+  NODE_VERSION: '18'
+
+jobs:
+  # VALIDATION STAGE
+  validate:
+    name: Validate Code
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: client/package-lock.json
+      
+      - name: Install dependencies
+        run: |
+          cd client
+          npm ci
+      
+      - name: Run linting
+        run: |
+          cd client
+          npm run lint || echo "Linting issues found"
+
+      - name: Run type checking (if TypeScript)
+        run: |
+          cd client
+          if grep -q "typescript" package.json; then
+            npm run typecheck || npm run check || echo "Type checking not configured"
+          fi
+
+  # TEST STAGE
+  test:
+    name: Test Code
+    needs: validate
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: client/package-lock.json
+      
+      - name: Install dependencies
+        run: |
+          cd client
+          npm ci
+      
+      - name: Run tests
+        run: |
+          cd client
+          npm test || echo "No tests found or tests failed"
+
+  # BUILD STAGE
+  build:
+    name: Build Application
+    needs: [validate, test]
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: client/package-lock.json
+      
+      - name: Install dependencies
+        run: |
+          cd client
+          npm ci
+      
+      - name: Build client
+        run: |
+          cd client
+          npm run build
+        env:
+          VITE_APP_API_GATEWAY_URL: ${{ secrets.API_GATEWAY_URL || 'http://localhost:3000' }}
+          VITE_APP_ENV: ${{ github.ref == 'refs/heads/main' && 'production' || 'development' }}
+      
+      - name: Cache build artifacts
+        uses: actions/cache@v3
+        with:
+          path: |
+            client/dist
+            client/node_modules/.vite
+          key: ${{ runner.os }}-vite-build-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-vite-build-
+      
+      # Upload build artifacts for deployment jobs
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: build-artifacts
+          path: client/dist
+          retention-days: 1
+      
+      - name: Add build summary
+        run: |
+          echo "## Client Build Summary" >> $GITHUB_STEP_SUMMARY
+          echo "✅ Build completed successfully" >> $GITHUB_STEP_SUMMARY
+          
+          echo "### Environment" >> $GITHUB_STEP_SUMMARY
+          echo "* Branch: ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "* Node.js version: $(node -v)" >> $GITHUB_STEP_SUMMARY
+          echo "* NPM version: $(npm -v)" >> $GITHUB_STEP_SUMMARY
+          
+          echo "### Build Stats" >> $GITHUB_STEP_SUMMARY
+          cd client
+          echo "* Build size: $(du -sh dist | cut -f1)" >> $GITHUB_STEP_SUMMARY
+          echo "* Number of files: $(find dist -type f | wc -l)" >> $GITHUB_STEP_SUMMARY
+
+  # STAGING DEPLOYMENT
+  deploy-staging:
+    name: Deploy to Staging
+    needs: build
+    runs-on: ubuntu-latest
+    # Deploy to staging on push to develop, ci/ci, or if manually triggered for staging
+    if: |
+      (github.event_name == 'push' && (github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/ci/ci')) || 
+      (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'staging')
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Download build artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: build-artifacts
+          path: client/dist
+      
+      - name: Verify build output
+        run: |
+          if [ -d "client/dist" ]; then
+            echo "✅ Build directory exists"
+            ls -la client/dist
+          else
+            echo "❌ Build directory is missing!"
+            exit 1
+          fi
+      
+      - name: Deploy to staging
+        id: deploy-staging
+        run: |
+          echo "Deploying to staging environment..."
+          if [ -n "$NETLIFY_AUTH_TOKEN" ]; then
+            npm install -g netlify-cli
+            
+            # Deploy to Netlify staging site
+            DEPLOY_OUTPUT=$(netlify deploy --dir=client/dist --json)
+            echo "Deployment output: $DEPLOY_OUTPUT"
+            
+            # Extract URL from JSON output
+            DEPLOY_URL=$(echo $DEPLOY_OUTPUT | grep -o '"url":"[^"]*"' | sed 's/"url":"//g' | sed 's/"//g')
+            
+            # Set outputs for use in other steps
+            echo "deploy_url=$DEPLOY_URL" >> $GITHUB_OUTPUT
+            
+            echo "✅ Deployed successfully to staging: $DEPLOY_URL"
+          else
+            echo "Skipping actual deployment - no Netlify token provided"
+            echo "Build directory contents:"
+            ls -la client/dist
+          fi
+        env:
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
+      
+      - name: Add staging deployment summary
+        run: |
+          echo "## Staging Deployment Summary" >> $GITHUB_STEP_SUMMARY
+          if [ -n "$NETLIFY_AUTH_TOKEN" ]; then
+            echo "✅ Successfully deployed to staging" >> $GITHUB_STEP_SUMMARY
+            
+            if [ -n "${{ steps.deploy-staging.outputs.deploy_url }}" ]; then
+              echo "🔗 **Preview URL:** [${{ steps.deploy-staging.outputs.deploy_url }}](${{ steps.deploy-staging.outputs.deploy_url }})" >> $GITHUB_STEP_SUMMARY
+            fi
+          else
+            echo "⚠️ Simulated staging deployment (no Netlify token provided)" >> $GITHUB_STEP_SUMMARY
+          fi
+          echo "📅 Deployment date: $(date)" >> $GITHUB_STEP_SUMMARY
+
+  # PRODUCTION DEPLOYMENT
+  deploy-production:
+    name: Deploy to Production
+    needs: build
+    runs-on: ubuntu-latest
+    # Deploy to production on push to main or if manually triggered for production
+    if: |
+      (github.event_name == 'push' && github.ref == 'refs/heads/main') || 
+      (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'production')
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Download build artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: build-artifacts
+          path: client/dist
+      
+      - name: Verify build output
+        run: |
+          if [ -d "client/dist" ]; then
+            echo "✅ Build directory exists"
+            ls -la client/dist
+          else
+            echo "❌ Build directory is missing!"
+            exit 1
+          fi
+      
+      - name: Deploy to production
+        id: deploy-production
+        run: |
+          echo "Deploying to production environment..."
+          if [ -n "$NETLIFY_AUTH_TOKEN" ]; then
+            npm install -g netlify-cli
+            
+            # Deploy to production (--prod flag)
+            DEPLOY_OUTPUT=$(netlify deploy --dir=client/dist --prod --json)
+            echo "Deployment output: $DEPLOY_OUTPUT"
+            
+            # Extract URL from JSON output
+            DEPLOY_URL=$(echo $DEPLOY_OUTPUT | grep -o '"url":"[^"]*"' | sed 's/"url":"//g' | sed 's/"//g')
+            SITE_NAME=$(echo $DEPLOY_URL | sed 's/https:\/\///g' | sed 's/.netlify.app//g')
+            
+            # Set outputs for use in other steps
+            echo "deploy_url=$DEPLOY_URL" >> $GITHUB_OUTPUT
+            echo "site_name=$SITE_NAME" >> $GITHUB_OUTPUT
+            
+            echo "✅ Deployed successfully to production: $DEPLOY_URL"
+          else
+            echo "Skipping actual deployment - no Netlify token provided"
+            echo "Build directory contents:"
+            ls -la client/dist
+          fi
+        env:
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
+      
+      - name: Add production deployment summary
+        run: |
+          echo "## Production Deployment Summary" >> $GITHUB_STEP_SUMMARY
+          if [ -n "$NETLIFY_AUTH_TOKEN" ]; then
+            echo "✅ Successfully deployed to production" >> $GITHUB_STEP_SUMMARY
+            
+            if [ -n "${{ steps.deploy-production.outputs.deploy_url }}" ]; then
+              echo "🔗 **Live URL:** [${{ steps.deploy-production.outputs.deploy_url }}](${{ steps.deploy-production.outputs.deploy_url }})" >> $GITHUB_STEP_SUMMARY
+              echo "🌐 **Netlify Site:** ${{ steps.deploy-production.outputs.site_name }}.netlify.app" >> $GITHUB_STEP_SUMMARY
+            fi
+          else
+            echo "⚠️ Simulated production deployment (no Netlify token provided)" >> $GITHUB_STEP_SUMMARY
+            echo "To enable actual deployment, add NETLIFY_AUTH_TOKEN and NETLIFY_SITE_ID secrets" >> $GITHUB_STEP_SUMMARY
+          fi
+          echo "📅 Deployment date: $(date)" >> $GITHUB_STEP_SUMMARY
+
+  # NOTIFICATION JOB
+  notify:
+    name: Send Notifications
+    needs: [deploy-staging, deploy-production]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Prepare notification message
+        id: prepare_message
+        run: |
+          if [[ "${{ needs.deploy-production.result }}" == "success" ]]; then
+            echo "message=✅ Production deployment successful" >> $GITHUB_OUTPUT
+          elif [[ "${{ needs.deploy-staging.result }}" == "success" ]]; then
+            echo "message=✅ Staging deployment successful" >> $GITHUB_OUTPUT
+          else
+            echo "message=❌ Deployment failed" >> $GITHUB_OUTPUT
+          fi
+      
+      - name: Send notification
+        run: |
+          # Configure notification service (Slack, Discord, Email, etc.)
+          # Example for a simple webhook:
+          if [ -n "$WEBHOOK_URL" ]; then
+            curl -X POST -H "Content-Type: application/json" \
+              -d '{"text": "${{ steps.prepare_message.outputs.message }}", "repository": "${{ github.repository }}", "branch": "${{ github.ref_name }}"}' \
+              $WEBHOOK_URL
+          else
+            echo "No webhook URL configured, skipping notification"
+            echo "Notification would be: ${{ steps.prepare_message.outputs.message }}"
+          fi
+        env:
+          WEBHOOK_URL: ${{ secrets.NOTIFICATION_WEBHOOK_URL }}

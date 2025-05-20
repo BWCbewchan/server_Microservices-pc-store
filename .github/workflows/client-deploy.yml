@@ -4,12 +4,14 @@ on:
   push:
     branches:
       - main
+      - ci/ci
     paths:
       - 'client/**'
       - '.github/workflows/client-deploy.yml'
   pull_request:
     branches:
       - main
+      - ci/ci
     paths:
       - 'client/**'
 
