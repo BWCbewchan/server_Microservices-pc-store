@@ -25,6 +25,7 @@ const Catalog = () => {
   const [productsPerPage, setProductsPerPage] = useState(20);
   const [isCollapsed, setIsCollapsed] = useState(window.innerWidth < 992);
   const [isLoading, setIsLoading] = useState(false);
+  const [sortOption, setSortOption] = useState("default");
 
   // Handle window resize to adjust filter visibility
   useEffect(() => {
@@ -71,6 +72,57 @@ const Catalog = () => {
     fetchProducts();
   }, [clearFilter, initialCategory, searchQuery]);
 
+  // Apply sorting to products
+  const sortProducts = (productsToSort) => {
+    if (!productsToSort || productsToSort.length === 0) return [];
+
+    const sortedProducts = [...productsToSort];
+
+    switch (sortOption) {
+      case "price_asc":
+        return sortedProducts.sort((a, b) => {
+          const priceA = a.price - (a.price * a.discount / 100);
+          const priceB = b.price - (b.price * b.discount / 100);
+          return priceA - priceB;
+        });
+
+      case "price_desc":
+        return sortedProducts.sort((a, b) => {
+          const priceA = a.price - (a.price * a.discount / 100);
+          const priceB = b.price - (b.price * b.discount / 100);
+          return priceB - priceA;
+        });
+
+      case "name_asc":
+        return sortedProducts.sort((a, b) => a.name.localeCompare(b.name));
+
+      case "name_desc":
+        return sortedProducts.sort((a, b) => b.name.localeCompare(a.name));
+
+      case "rating_desc":
+        return sortedProducts.sort((a, b) => b.rating - a.rating);
+
+      default:
+        return sortedProducts;
+    }
+  };
+
+  // Apply sorting before slicing for pagination
+  const sortedProducts = sortProducts(products);
+  const indexOfLastProduct = currentPage * productsPerPage;
+  const indexOfFirstProduct = indexOfLastProduct - productsPerPage;
+  const currentProducts = sortedProducts.slice(indexOfFirstProduct, indexOfLastProduct);
+
+  const paginate = (pageNumber) => {
+    setCurrentPage(pageNumber);
+    // Scroll to top when changing pages
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleCollapseFilters = () => {
+    setIsCollapsed(!isCollapsed);
+  };
+
   const handleRemoveFilter = (filter) => {
     setAppliedFilters((prev) => ({
       category: filter === prev.category ? "" : prev.category,
@@ -91,20 +143,6 @@ const Catalog = () => {
       </div>
     ) : null
   );
-
-  const indexOfLastProduct = currentPage * productsPerPage;
-  const indexOfFirstProduct = indexOfLastProduct - productsPerPage;
-  const currentProducts = products.slice(indexOfFirstProduct, indexOfLastProduct);
-
-  const paginate = (pageNumber) => {
-    setCurrentPage(pageNumber);
-    // Scroll to top when changing pages
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
-
-  const handleCollapseFilters = () => {
-    setIsCollapsed(!isCollapsed);
-  };
 
   return (
     <div className="container-fluid px-0 py-3">
@@ -132,37 +170,41 @@ const Catalog = () => {
           </div>
         </div>
 
-        {/* Sorting Controls */}
-        <div className="mb-3">
+        {/* Desktop Filter Toggle Button and Sorting Controls side-by-side */}
+        <div className="mb-3 d-flex flex-wrap align-items-center gap-3">
+          <div className="d-none d-lg-block">
+            <button
+              className="btn btn-outline-primary"
+              onClick={handleCollapseFilters}
+            >
+              <i className="fas fa-filter me-2"></i>
+              {isCollapsed ? "Show Filters" : "Hide Filters"}
+            </button>
+          </div>
+
+          {/* Applied Filters */}
+          {(appliedFilters.category || appliedFilters.price) && (
+            <div className="d-flex flex-wrap align-items-center">
+              <div className="me-2 mb-2 align-self-center">
+                <strong>Applied:</strong>
+              </div>
+              <FilterBadge filter={appliedFilters.category} />
+              <FilterBadge filter={appliedFilters.price} />
+            </div>
+          )}
+        </div>
+
+        {/* Move sorting controls before the row containing filters and products */}
+        <div className="sorting-controls-wrapper position-relative" style={{ zIndex: 1050 }}>
           <SortingControls
             productsPerPage={productsPerPage}
             setProductsPerPage={setProductsPerPage}
             totalProducts={products.length}
             currentPage={currentPage}
+            sortOption={sortOption}
+            setSortOption={setSortOption}
           />
         </div>
-
-        {/* Desktop Filter Toggle Button */}
-        <div className="d-none d-lg-block mb-3">
-          <button
-            className="btn btn-outline-primary"
-            onClick={handleCollapseFilters}
-          >
-            <i className="fas fa-filter me-2"></i>
-            {isCollapsed ? "Show Filters" : "Hide Filters"}
-          </button>
-        </div>
-
-        {/* Applied Filters */}
-        {(appliedFilters.category || appliedFilters.price) && (
-          <div className="d-flex flex-wrap mb-3">
-            <div className="me-2 mb-2 align-self-center">
-              <strong>Applied Filters:</strong>
-            </div>
-            <FilterBadge filter={appliedFilters.category} />
-            <FilterBadge filter={appliedFilters.price} />
-          </div>
-        )}
 
         <div className="row g-4">
           {/* Filters Sidebar */}
@@ -215,6 +257,21 @@ const Catalog = () => {
               </div>
             ) : (
               <>
+                {/* Pagination above products - mobile only */}
+                <div className="pagination-top position-relative d-block d-md-none mb-4" style={{ zIndex: 1040 }}>
+                  <div className="card border-0 shadow-sm">
+                    <div className="card-body py-2">
+                      <Pagination
+                        productsPerPage={productsPerPage}
+                        totalProducts={products.length}
+                        paginate={paginate}
+                        currentPage={currentPage}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Products grid */}
                 <div className="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-xl-4 g-3">
                   {currentProducts.map((product, index) => (
                     <div key={index} className="col">
@@ -223,14 +280,18 @@ const Catalog = () => {
                   ))}
                 </div>
 
-                {/* Pagination */}
-                <div className="mt-4">
-                  <Pagination
-                    productsPerPage={productsPerPage}
-                    totalProducts={products.length}
-                    paginate={paginate}
-                    currentPage={currentPage}
-                  />
+                {/* Pagination below products */}
+                <div className="pagination-bottom position-relative mt-4" style={{ zIndex: 1040 }}>
+                  <div className="card border-0 shadow-sm">
+                    <div className="card-body py-2">
+                      <Pagination
+                        productsPerPage={productsPerPage}
+                        totalProducts={products.length}
+                        paginate={paginate}
+                        currentPage={currentPage}
+                      />
+                    </div>
+                  </div>
                 </div>
               </>
             )}
