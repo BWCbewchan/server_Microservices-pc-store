@@ -83,12 +83,33 @@ jobs:
         with:
           node-version: '18'
       
-      - name: Restore build from cache
-        uses: actions/cache@v3
-        with:
-          path: client/dist
-          key: ${{ runner.os }}-vite-build-${{ github.sha }}
+      # Build directly in the deployment step to ensure we have the dist directory
+      - name: Install dependencies and build
+        run: |
+          cd client
+          npm ci
+          npm run build
+        env:
+          VITE_APP_API_GATEWAY_URL: ${{ secrets.API_GATEWAY_URL || 'http://localhost:3000' }}
       
+      # Verify build output exists
+      - name: Verify build output
+        run: |
+          if [ -d "client/dist" ]; then
+            echo "✅ Build directory exists"
+            ls -la client/dist
+          else
+            echo "❌ Build directory is missing! Troubleshooting info:"
+            echo "Current directory:"
+            pwd
+            echo "Directory contents:"
+            ls -la
+            echo "Client directory contents:"
+            ls -la client
+            exit 1
+          fi
+      
+      # Deploy to static hosting
       - name: Deploy to static hosting
         run: |
           echo "Deploying to static hosting..."
@@ -98,7 +119,8 @@ jobs:
           else
             echo "Skipping actual deployment - no deployment token provided"
             echo "In a real scenario, this would deploy to your hosting service"
-            ls -la client/dist
+            echo "Build directory contents:"
+            ls -la client/dist || echo "⚠️ Warning: client/dist not found"
           fi
         env:
           NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
