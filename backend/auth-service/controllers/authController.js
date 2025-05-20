@@ -141,22 +141,72 @@ exports.getCurrentUser = async (req, res) => {
   }
 };
 
-// Cập nhật thông tin user
+// Cập nhật thông tin user - improved version
 exports.updateUser = async (req, res) => {
   try {
-    const name = req.param('name');
-    const address = req.param('address');
-    const phone = req.param('phone');
+    console.log(`[${new Date().toISOString()}] Update user request received for user ID: ${req.userId}`);
+    console.log('Update request body:', req.body);
+    
+    // Always set CORS headers for this critical endpoint
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Methods', 'PUT, POST, GET, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    
+    // Extract fields with validation
+    const updateData = {};
+    
+    // Basic validation for name
+    if (req.body.name) {
+      if (typeof req.body.name === 'string' && req.body.name.trim().length > 0) {
+        updateData.name = req.body.name.trim();
+      } else {
+        return res.status(400).json({ 
+          message: "Tên không hợp lệ"
+        });
+      }
+    }
+    
+    // Handle phone number
+    if (req.body.phone !== undefined) {
+      updateData.phone = req.body.phone;
+    }
+    
+    // Handle address as an object
+    if (req.body.address) {
+      updateData.address = {};
+      
+      // Process each address field if present
+      if (req.body.address.street !== undefined) updateData.address.street = req.body.address.street;
+      if (req.body.address.city !== undefined) updateData.address.city = req.body.address.city;
+      if (req.body.address.state !== undefined) updateData.address.state = req.body.address.state;
+      if (req.body.address.zipCode !== undefined) updateData.address.zipCode = req.body.address.zipCode;
+      if (req.body.address.country !== undefined) updateData.address.country = req.body.address.country;
+    }
+    
+    // Handle gender
+    if (req.body.gender !== undefined) {
+      updateData.gender = req.body.gender;
+    }
+    
+    // Handle date of birth
+    if (req.body.dateOfBirth !== undefined) {
+      updateData.dateOfBirth = req.body.dateOfBirth;
+    }
+    
+    console.log('Processed update data:', updateData);
     
     const updatedUser = await User.findByIdAndUpdate(
       req.userId,
-      { name, address, phone },
+      { $set: updateData },
       { new: true, runValidators: true }
     ).select("-password");
     
     if (!updatedUser) {
+      console.log(`User not found with ID: ${req.userId}`);
       return res.status(404).json({ message: "Không tìm thấy người dùng" });
     }
+    
+    console.log(`User ${req.userId} updated successfully`);
     
     res.json({
       message: "Cập nhật thông tin thành công",

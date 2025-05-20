@@ -75,32 +75,57 @@ export const AuthProvider = ({ children }) => {
     try {
       setLoading(true);
 
+      // Use object for configuration to ensure headers are properly set
       const config = {
         headers: {
-          Authorization: `Bearer ${token}`
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
         }
       };
 
-      const response = await axios.get(`${API_URL}/me`, config);
+      console.log("Request config:", config);
 
-      if (response.data && response.data.user) {
-        console.log("User data loaded successfully:", response.data.user.email);
+      // Try both API endpoints
+      try {
+        const response = await axios.get(`${import.meta.env.VITE_APP_API_GATEWAY_URL || 'http://localhost:3000'}/api/auth/me`, config);
+        console.log("User data response:", response.data);
+        
+        if (response.data && response.data.user) {
+          setCurrentUser(response.data.user);
+          saveToken(token);
 
-        setCurrentUser(response.data.user);
-        saveToken(token);
+          const userData = JSON.stringify(response.data.user);
+          localStorage.setItem('user', userData);
+          sessionStorage.setItem('user', userData);
 
-        const userData = JSON.stringify(response.data.user);
-        localStorage.setItem('user', userData);
-        sessionStorage.setItem('user', userData);
+          setError(null);
+        } else {
+          throw new Error("Invalid API response format");
+        }
+      } catch (err) {
+        console.error("Primary endpoint failed, trying fallback:", err);
+        
+        // Try direct connection to auth service
+        const directResponse = await axios.get('http://localhost:4006/me', config);
+        console.log("Direct user data response:", directResponse.data);
+        
+        if (directResponse.data && directResponse.data.user) {
+          setCurrentUser(directResponse.data.user);
+          saveToken(token);
 
-        setError(null);
-      } else {
-        console.warn("Unexpected API response format:", response.data);
-        throw new Error("Invalid API response format");
+          const userData = JSON.stringify(directResponse.data.user);
+          localStorage.setItem('user', userData);
+          sessionStorage.setItem('user', userData);
+
+          setError(null);
+        } else {
+          throw new Error("Invalid API response format from fallback");
+        }
       }
     } catch (err) {
       console.error('Failed to load user data:', err);
 
+      // Only clear auth for actual auth errors, not network errors
       if (err.response && (err.response.status === 401 || err.response.status === 403)) {
         console.warn("Authentication error, clearing credentials");
         clearToken();
@@ -331,62 +356,114 @@ export const AuthProvider = ({ children }) => {
 
       console.log("Updating profile with data:", userData);
 
-      const baseUrl = import.meta.env.VITE_APP_API_GATEWAY_URL || 'http://localhost:3000';
-
+      // First, try using axios for simplicity - this should work if CORS is configured correctly
       try {
-        const response = await fetch(`${baseUrl}/api/auth/update`, {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          },
-          body: JSON.stringify(userData)
-        });
-
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.message || `Server responded with status ${response.status}`);
-        }
-
-        const data = await response.json();
-        console.log("Profile update successful:", data);
-
+        console.log("Trying update with axios");
+        const response = await axios.put(
+          `${import.meta.env.VITE_APP_API_GATEWAY_URL || 'http://localhost:3000'}/update`, 
+          userData,
+          {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            },
+            timeout: 10000
+          }
+        );
+        
+        console.log("Profile update successful:", response.data);
+        
         setCurrentUser(prevUser => ({
           ...prevUser,
-          ...data.user
+          ...response.data.user
         }));
-        localStorage.setItem('user', JSON.stringify(data.user));
-        sessionStorage.setItem('user', JSON.stringify(data.user));
-
-        return { success: true, user: data.user };
-      } catch (apiError) {
-        console.warn("API Gateway update failed, trying direct endpoint:", apiError);
-
-        const response = await fetch(`${baseUrl}/auth/update`, {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          },
-          body: JSON.stringify(userData)
-        });
-
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.message || `Server responded with status ${response.status}`);
+        
+        localStorage.setItem('user', JSON.stringify(response.data.user));
+        sessionStorage.setItem('user', JSON.stringify(response.data.user));
+        
+        return { success: true, user: response.data.user };
+      } catch (axiosError) {
+        console.warn("Axios update approach failed:", axiosError);
+        
+        // If axios fails, try fetch with simple mode
+        try {
+          console.log("Trying update with fetch");
+          const fetchResponse = await fetch('http://localhost:3000/update', {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify(userData)
+          });
+          
+          if (!fetchResponse.ok) {
+            const errorData = await fetchResponse.json();
+            throw new Error(errorData.message || `Status code: ${fetchResponse.status}`);
+          }
+          
+          const data = await fetchResponse.json();
+          console.log("Profile update successful with fetch:", data);
+          
+          setCurrentUser(prevUser => ({
+            ...prevUser,
+            ...data.user
+          }));
+          
+          localStorage.setItem('user', JSON.stringify(data.user));
+          sessionStorage.setItem('user', JSON.stringify(data.user));
+          
+          return { success: true, user: data.user };
+        } catch (fetchError) {
+          console.warn("Fetch update approach failed:", fetchError);
+          
+          // Finally, try the direct XMLHttpRequest approach
+          return await new Promise((resolve, reject) => {
+            console.log("Trying update with XMLHttpRequest");
+            const xhr = new XMLHttpRequest();
+            xhr.open('PUT', 'http://localhost:3000/update');
+            xhr.setRequestHeader('Content-Type', 'application/json');
+            xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+            
+            xhr.onload = function() {
+              if (xhr.status >= 200 && xhr.status < 300) {
+                try {
+                  const data = JSON.parse(xhr.responseText);
+                  console.log("Profile update successful with XHR:", data);
+                  
+                  setCurrentUser(prevUser => ({
+                    ...prevUser,
+                    ...data.user
+                  }));
+                  
+                  localStorage.setItem('user', JSON.stringify(data.user));
+                  sessionStorage.setItem('user', JSON.stringify(data.user));
+                  
+                  resolve({ success: true, user: data.user });
+                } catch (e) {
+                  reject(new Error(`Invalid response format: ${e.message}`));
+                }
+              } else {
+                try {
+                  const errorData = JSON.parse(xhr.responseText);
+                  reject(new Error(errorData.message || `Status code: ${xhr.status}`));
+                } catch (e) {
+                  reject(new Error(`Request failed with status ${xhr.status}`));
+                }
+              }
+            };
+            
+            xhr.onerror = function() {
+              reject(new Error("Network error occurred"));
+            };
+            
+            xhr.ontimeout = function() {
+              reject(new Error("Request timed out"));
+            };
+            
+            xhr.send(JSON.stringify(userData));
+          });
         }
-
-        const data = await response.json();
-        console.log("Direct endpoint profile update successful:", data);
-
-        setCurrentUser(prevUser => ({
-          ...prevUser,
-          ...data.user
-        }));
-        localStorage.setItem('user', JSON.stringify(data.user));
-        sessionStorage.setItem('user', JSON.stringify(data.user));
-
-        return { success: true, user: data.user };
       }
     } catch (err) {
       console.error('Update profile error:', err);

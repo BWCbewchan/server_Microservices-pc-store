@@ -8,6 +8,23 @@ const allowedOrigins = ["http://localhost:2000", "http://localhost:5173"];
 const PORT = 3000;
 console.log("Allowed Origins:", allowedOrigins);
 
+// Global CORS middleware to handle preflight requests better - should be at the top
+app.use((req, res, next) => {
+  // Always set basic CORS headers for all responses
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
+  res.header('Access-Control-Max-Age', '86400'); // Cache preflight for 24 hours
+  
+  // Handle OPTIONS method specially and immediately
+  if (req.method === 'OPTIONS') {
+    console.log(`[${new Date().toISOString()}] Handling OPTIONS request for: ${req.url}`);
+    return res.status(200).end();
+  }
+  
+  next();
+});
+
 // Update CORS configuration to handle specific origins
 app.use(cors({
   origin: ["http://localhost:2000", "http://localhost:5173"],
@@ -40,10 +57,11 @@ const services = {
   auth: "http://localhost:4006"
 };
 
-// Replace the existing auth proxy with a much simpler version
+// Replace the existing auth proxy with a more reliable version
 app.use('/api/auth', (req, res) => {
   const startTime = Date.now();
-  console.log(`[${new Date().toISOString()}] Direct handling of ${req.method} ${req.originalUrl}`);
+  console.log(`[${new Date().toISOString()}] Auth request: ${req.method} ${req.originalUrl}`);
+  console.log('Headers:', req.headers);
   
   const http = require('http');
   
@@ -63,6 +81,16 @@ app.use('/api/auth', (req, res) => {
     }
   };
   
+  // Copy Authorization header - this is critical for token-based auth
+  if (req.headers.authorization) {
+    console.log('Forwarding Authorization header:', req.headers.authorization);
+    options.headers['Authorization'] = req.headers.authorization;
+  } else {
+    console.log('No Authorization header found in request');
+  }
+  
+  console.log(`Forwarding to auth service: ${options.method} ${options.path}`);
+  
   const authReq = http.request(options, (authRes) => {
     Object.keys(authRes.headers).forEach(key => {
       res.setHeader(key, authRes.headers[key]);
@@ -72,18 +100,21 @@ app.use('/api/auth', (req, res) => {
     
     res.status(authRes.statusCode);
     
-    authRes.pipe(res);
+    let data = '';
+    authRes.on('data', (chunk) => {
+      data += chunk;
+      res.write(chunk);
+    });
     
     authRes.on('end', () => {
       const duration = Date.now() - startTime;
-      console.log(`[${new Date().toISOString()}] Auth request completed in ${duration}ms with status ${authRes.statusCode}`);
+      console.log(`Auth request completed in ${duration}ms with status ${authRes.statusCode}`);
+      res.end();
     });
   });
   
   authReq.on('error', (error) => {
-    const duration = Date.now() - startTime;
-    console.error(`[${new Date().toISOString()}] Auth request failed after ${duration}ms:`, error.message);
-    
+    console.error(`Auth service error: ${error.message}`);
     res.status(502).json({
       error: 'Bad Gateway',
       message: error.message,
@@ -245,6 +276,245 @@ app.post('/login', async (req, res) => {
     authReq.end();
   } catch (error) {
     console.error('Login endpoint error:', error);
+    res.status(500).json({
+      error: true,
+      message: `Server error: ${error.message}`
+    });
+  }
+});
+
+// Create a dedicated OPTIONS handler specifically for update endpoints 
+app.options('/update', (req, res) => {
+  console.log('[CORS] Special handling for update OPTIONS request');
+  // Explicit CORS headers for update endpoint
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'PUT, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.status(200).end();
+});
+
+app.options('/api/auth/update', (req, res) => {
+  console.log('[CORS] Special handling for api/auth/update OPTIONS request');
+  // Explicit CORS headers for update endpoint
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'PUT, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.status(200).end();
+});
+
+// Simple direct PUT handler for /update that doesn't rely on promises or async features
+app.put('/update', (req, res) => {
+  // Set CORS headers immediately
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'PUT, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  
+  console.log(`[${new Date().toISOString()}] Direct update request received`);
+  
+  const http = require('http');
+  
+  // Get the token
+  const authHeader = req.headers.authorization;
+  if (!authHeader) {
+    return res.status(401).json({ message: 'Authorization header required' });
+  }
+  
+  let token;
+  if (authHeader.startsWith('Bearer ')) {
+    token = authHeader.split(' ')[1];
+  } else {
+    token = authHeader;
+  }
+  
+  if (!token) {
+    return res.status(401).json({ message: 'Bearer token is missing' });
+  }
+  
+  // Prepare the request to auth service
+  const bodyData = JSON.stringify(req.body);
+  
+  const options = {
+    hostname: 'localhost',
+    port: 4006,
+    path: '/update',
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`,
+      'Content-Length': Buffer.byteLength(bodyData)
+    }
+  };
+  
+  const authReq = http.request(options, (authRes) => {
+    let responseData = '';
+    
+    authRes.on('data', (chunk) => {
+      responseData += chunk;
+    });
+    
+    authRes.on('end', () => {
+      // Always set CORS headers in response
+      res.header('Access-Control-Allow-Origin', '*');
+      
+      if (authRes.statusCode >= 400) {
+        // For error responses
+        try {
+          const jsonResponse = JSON.parse(responseData);
+          res.status(authRes.statusCode).json(jsonResponse);
+        } catch (e) {
+          res.status(authRes.statusCode).send(responseData);
+        }
+      } else {
+        // For successful responses
+        try {
+          const jsonResponse = JSON.parse(responseData);
+          res.status(authRes.statusCode).json(jsonResponse);
+        } catch (e) {
+          res.status(500).json({
+            message: 'Error parsing response from auth service'
+          });
+        }
+      }
+    });
+  });
+  
+  authReq.on('error', (error) => {
+    console.error('Auth service error:', error.message);
+    res.status(502).json({
+      message: `Failed to connect to auth service: ${error.message}`
+    });
+  });
+  
+  // Set timeout
+  authReq.setTimeout(10000, () => {
+    authReq.destroy();
+    res.status(504).json({
+      message: 'Request to auth service timed out'
+    });
+  });
+  
+  // Send the request
+  authReq.write(bodyData);
+  authReq.end();
+});
+
+// Modify the existing update handler to improve CORS handling
+app.put(['/api/auth/update', '/auth/update', '/update'], async (req, res) => {
+  // Set CORS headers immediately, before any async operations
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'PUT, POST, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
+  
+  const startTime = Date.now();
+  console.log(`[${new Date().toISOString()}] Profile update request received`);
+  console.log('Request headers:', req.headers);
+  console.log('Request body:', req.body);
+  
+  try {
+    // Extract auth token - handle different authorization header formats
+    const authHeader = req.headers.authorization;
+    if (!authHeader) {
+      return res.status(401).json({
+        error: true,
+        message: 'Authorization header missing'
+      });
+    }
+    
+    let token;
+    if (authHeader.startsWith('Bearer ')) {
+      token = authHeader.split(' ')[1];
+    } else {
+      token = authHeader; // Try using the header value directly as fallback
+    }
+    
+    if (!token) {
+      return res.status(401).json({
+        error: true,
+        message: 'Bearer token required'
+      });
+    }
+    
+    const http = require('http');
+    
+    // Convert request body to JSON string
+    const bodyData = JSON.stringify(req.body);
+    
+    const options = {
+      hostname: 'localhost',
+      port: 4006,
+      path: '/update',
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+        'Content-Length': Buffer.byteLength(bodyData),
+        'Accept': 'application/json'
+      }
+    };
+    
+    console.log(`Forwarding to auth service: ${options.method} ${options.path}`);
+    
+    // Use a Promise to handle the HTTP request for better error handling
+    const authServiceRequest = () => {
+      return new Promise((resolve, reject) => {
+        const authReq = http.request(options, (authRes) => {
+          let responseData = '';
+          
+          authRes.on('data', (chunk) => {
+            responseData += chunk;
+          });
+          
+          authRes.on('end', () => {
+            const duration = Date.now() - startTime;
+            console.log(`Auth request completed in ${duration}ms with status ${authRes.statusCode}`);
+            
+            try {
+              // Always set CORS headers again to ensure they're included in the response
+              res.header('Access-Control-Allow-Origin', '*');
+              
+              if (authRes.statusCode >= 400) {
+                console.warn(`Auth service returned error status: ${authRes.statusCode}`);
+                let errorResponse;
+                try {
+                  errorResponse = JSON.parse(responseData);
+                } catch (parseError) {
+                  errorResponse = { message: responseData || 'Unknown error' };
+                }
+                reject({ status: authRes.statusCode, data: errorResponse });
+              } else {
+                resolve({ status: authRes.statusCode, data: JSON.parse(responseData) });
+              }
+            } catch (error) {
+              reject({ status: 500, data: { message: `Failed to process response: ${error.message}` } });
+            }
+          });
+        });
+        
+        authReq.on('error', (error) => {
+          console.error('Auth service request error:', error.message);
+          reject({ status: 502, data: { error: true, message: `Auth service error: ${error.message}` } });
+        });
+        
+        authReq.setTimeout(10000, () => {
+          authReq.destroy();
+          reject({ status: 504, data: { error: true, message: 'Auth service request timed out' } });
+        });
+        
+        if (bodyData) {
+          authReq.write(bodyData);
+        }
+        authReq.end();
+      });
+    };
+    
+    try {
+      const { status, data } = await authServiceRequest();
+      return res.status(status).json(data);
+    } catch (serviceError) {
+      return res.status(serviceError.status).json(serviceError.data);
+    }
+  } catch (error) {
+    console.error('Profile update error:', error);
     res.status(500).json({
       error: true,
       message: `Server error: ${error.message}`
