@@ -1,56 +1,62 @@
 {
   "openapi": "3.0.0",
   "info": {
-    "title": "PC Store Auth Service API",
-    "description": "Authentication and user management API for PC Store. **Note:** When using the API Gateway, you may experience CORS issues with Swagger UI. For testing, prefer direct access or disable CORS in your browser.",
+    "title": "Auth Service API",
+    "description": "API for user authentication and management in the PC Store microservices architecture",
     "version": "1.0.0",
     "contact": {
-      "name": "PC Store Support",
       "email": "support@pcstore.com"
     }
   },
   "servers": [
     {
       "url": "http://localhost:4006",
-      "description": "Auth Service - direct access (recommended for Swagger UI testing)"
-    },
-    {
-      "url": "/",
-      "description": "Current host (works when accessed directly via auth service)"
+      "description": "Auth Service Direct"
     },
     {
       "url": "http://localhost:3000/api/auth",
-      "description": "API Gateway (may have CORS issues in Swagger UI)"
+      "description": "Auth Service via API Gateway"
     }
   ],
   "tags": [
     {
-      "name": "authentication",
-      "description": "Operations related to user authentication"
+      "name": "Authentication",
+      "description": "User authentication endpoints"
     },
     {
-      "name": "users",
-      "description": "Operations related to user management"
+      "name": "User Management",
+      "description": "User profile management endpoints"
     }
   ],
   "paths": {
     "/register": {
       "post": {
-        "tags": ["authentication"],
+        "tags": ["Authentication"],
         "summary": "Register a new user",
-        "description": "Creates a new user account and returns a JWT token",
-        "operationId": "registerUser",
+        "description": "Creates a new user account with the provided information",
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/UserRegistration"
-              },
-              "example": {
-                "name": "Trần Chí Bảo",
-                "email": "baotran@example.com",
-                "password": "password123"
+                "type": "object",
+                "required": ["name", "email", "password"],
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "example": "Nguyen Van A"
+                  },
+                  "email": {
+                    "type": "string",
+                    "format": "email",
+                    "example": "user@example.com"
+                  },
+                  "password": {
+                    "type": "string",
+                    "format": "password",
+                    "example": "Password123"
+                  }
+                }
               }
             }
           }
@@ -61,31 +67,36 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AuthResponse"
-                },
-                "example": {
-                  "message": "Đăng ký thành công",
-                  "user": {
-                    "id": "60d21b4667d0d8992e610c85",
-                    "name": "Trần Chí Bảo",
-                    "email": "baotran@example.com",
-                    "role": "user",
-                    "avatar": "https://res.cloudinary.com/da5yv576h/image/upload/v1613356035/avatar/default_avatar_pzjqmj.png"
-                  },
-                  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "example": "Đăng ký thành công"
+                    },
+                    "user": {
+                      "$ref": "#/components/schemas/UserResponse"
+                    },
+                    "token": {
+                      "type": "string",
+                      "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                    }
+                  }
                 }
               }
             }
           },
           "400": {
-            "description": "Bad request, email already in use",
+            "description": "Invalid input or email already in use",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Error"
-                },
-                "example": {
-                  "message": "Email đã được sử dụng"
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "example": "Email đã được sử dụng"
+                    }
+                  }
                 }
               }
             }
@@ -95,11 +106,16 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Error"
-                },
-                "example": {
-                  "message": "Lỗi server",
-                  "error": "Internal server error message"
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "example": "Lỗi server"
+                    },
+                    "error": {
+                      "type": "string"
+                    }
+                  }
                 }
               }
             }
@@ -109,42 +125,52 @@
     },
     "/login": {
       "post": {
-        "tags": ["authentication"],
-        "summary": "Login to user account",
-        "description": "Authenticates a user and returns a JWT token",
-        "operationId": "loginUser",
+        "tags": ["Authentication"],
+        "summary": "Login user",
+        "description": "Authenticates a user and provides a JWT token",
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/UserLogin"
-              },
-              "example": {
-                "email": "baotran@example.com",
-                "password": "password123"
+                "type": "object",
+                "required": ["email", "password"],
+                "properties": {
+                  "email": {
+                    "type": "string",
+                    "format": "email",
+                    "example": "user@example.com"
+                  },
+                  "password": {
+                    "type": "string",
+                    "format": "password",
+                    "example": "Password123"
+                  }
+                }
               }
             }
           }
         },
         "responses": {
           "200": {
-            "description": "User logged in successfully",
+            "description": "Login successful",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AuthResponse"
-                },
-                "example": {
-                  "message": "Đăng nhập thành công",
-                  "user": {
-                    "id": "60d21b4667d0d8992e610c85",
-                    "name": "Trần Chí Bảo",
-                    "email": "baotran@example.com",
-                    "role": "user",
-                    "avatar": "https://res.cloudinary.com/da5yv576h/image/upload/v1613356035/avatar/default_avatar_pzjqmj.png"
-                  },
-                  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "example": "Đăng nhập thành công"
+                    },
+                    "user": {
+                      "$ref": "#/components/schemas/UserResponse"
+                    },
+                    "token": {
+                      "type": "string",
+                      "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                    }
+                  }
                 }
               }
             }
@@ -154,10 +180,13 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Error"
-                },
-                "example": {
-                  "message": "Email hoặc mật khẩu không chính xác"
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "example": "Email hoặc mật khẩu không chính xác"
+                    }
+                  }
                 }
               }
             }
@@ -167,7 +196,16 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Error"
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "example": "Lỗi server"
+                    },
+                    "error": {
+                      "type": "string"
+                    }
+                  }
                 }
               }
             }
@@ -177,10 +215,9 @@
     },
     "/me": {
       "get": {
-        "tags": ["users"],
-        "summary": "Get current user information",
-        "description": "Returns information about the currently authenticated user",
-        "operationId": "getCurrentUser",
+        "tags": ["User Management"],
+        "summary": "Get current user profile",
+        "description": "Retrieves the profile of the currently authenticated user",
         "security": [
           {
             "bearerAuth": []
@@ -188,48 +225,32 @@
         ],
         "responses": {
           "200": {
-            "description": "User information retrieved successfully",
+            "description": "User profile",
             "content": {
               "application/json": {
                 "schema": {
                   "type": "object",
                   "properties": {
                     "user": {
-                      "$ref": "#/components/schemas/User"
+                      "$ref": "#/components/schemas/UserResponse"
                     }
-                  }
-                },
-                "example": {
-                  "user": {
-                    "id": "60d21b4667d0d8992e610c85",
-                    "name": "Trần Chí Bảo",
-                    "email": "baotran@example.com",
-                    "role": "user",
-                    "avatar": "https://res.cloudinary.com/da5yv576h/image/upload/v1613356035/avatar/default_avatar_pzjqmj.png",
-                    "address": {
-                      "street": "123 Nguyen Hue",
-                      "city": "Ho Chi Minh",
-                      "state": "HCM",
-                      "zipCode": "70000",
-                      "country": "Vietnam"
-                    },
-                    "phone": "0901234567",
-                    "isVerified": false,
-                    "createdAt": "2023-10-15T07:45:23.000Z"
                   }
                 }
               }
             }
           },
           "401": {
-            "description": "Unauthorized, token is missing or invalid",
+            "description": "Unauthorized",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Error"
-                },
-                "example": {
-                  "message": "Bạn chưa đăng nhập. Vui lòng đăng nhập để truy cập."
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "example": "Không có quyền truy cập"
+                    }
+                  }
                 }
               }
             }
@@ -239,10 +260,13 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Error"
-                },
-                "example": {
-                  "message": "Không tìm thấy người dùng"
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "example": "Không tìm thấy người dùng"
+                    }
+                  }
                 }
               }
             }
@@ -252,7 +276,16 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Error"
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "example": "Lỗi server"
+                    },
+                    "error": {
+                      "type": "string"
+                    }
+                  }
                 }
               }
             }
@@ -262,10 +295,9 @@
     },
     "/update": {
       "put": {
-        "tags": ["users"],
-        "summary": "Update user information",
-        "description": "Updates the current user's information",
-        "operationId": "updateUser",
+        "tags": ["User Management"],
+        "summary": "Update user profile",
+        "description": "Updates the profile of the currently authenticated user",
         "security": [
           {
             "bearerAuth": []
@@ -276,17 +308,51 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/UserUpdate"
-              },
-              "example": {
-                "name": "Trần Chí Bảo Updated",
-                "phone": "0901234567",
-                "address": {
-                  "street": "123 Nguyen Hue",
-                  "city": "Ho Chi Minh",
-                  "state": "HCM",
-                  "zipCode": "70000",
-                  "country": "Vietnam"
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "example": "Nguyen Van A"
+                  },
+                  "phone": {
+                    "type": "string",
+                    "example": "0901234567"
+                  },
+                  "address": {
+                    "type": "object",
+                    "properties": {
+                      "street": {
+                        "type": "string",
+                        "example": "123 Nguyen Hue"
+                      },
+                      "city": {
+                        "type": "string",
+                        "example": "Ho Chi Minh City"
+                      },
+                      "state": {
+                        "type": "string",
+                        "example": "HCMC"
+                      },
+                      "zipCode": {
+                        "type": "string",
+                        "example": "700000"
+                      },
+                      "country": {
+                        "type": "string",
+                        "example": "Vietnam"
+                      }
+                    }
+                  },
+                  "dateOfBirth": {
+                    "type": "string",
+                    "format": "date",
+                    "example": "1990-01-01"
+                  },
+                  "gender": {
+                    "type": "string",
+                    "enum": ["male", "female", "other"],
+                    "example": "male"
+                  }
                 }
               }
             }
@@ -294,49 +360,52 @@
         },
         "responses": {
           "200": {
-            "description": "User information updated successfully",
+            "description": "Profile updated successfully",
             "content": {
               "application/json": {
                 "schema": {
                   "type": "object",
                   "properties": {
                     "message": {
-                      "type": "string"
+                      "type": "string",
+                      "example": "Cập nhật thông tin thành công"
                     },
                     "user": {
-                      "$ref": "#/components/schemas/User"
+                      "$ref": "#/components/schemas/UserResponse"
                     }
                   }
-                },
-                "example": {
-                  "message": "Cập nhật thông tin thành công",
-                  "user": {
-                    "id": "60d21b4667d0d8992e610c85",
-                    "name": "Trần Chí Bảo Updated",
-                    "email": "baotran@example.com",
-                    "role": "user",
-                    "avatar": "https://res.cloudinary.com/da5yv576h/image/upload/v1613356035/avatar/default_avatar_pzjqmj.png",
-                    "address": {
-                      "street": "123 Nguyen Hue",
-                      "city": "Ho Chi Minh",
-                      "state": "HCM",
-                      "zipCode": "70000",
-                      "country": "Vietnam"
-                    },
-                    "phone": "0901234567",
-                    "isVerified": false,
-                    "createdAt": "2023-10-15T07:45:23.000Z"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "example": "Tên không hợp lệ"
+                    }
                   }
                 }
               }
             }
           },
           "401": {
-            "description": "Unauthorized, token is missing or invalid",
+            "description": "Unauthorized",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Error"
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "example": "Không có quyền truy cập"
+                    }
+                  }
                 }
               }
             }
@@ -346,10 +415,13 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Error"
-                },
-                "example": {
-                  "message": "Không tìm thấy người dùng"
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "example": "Không tìm thấy người dùng"
+                    }
+                  }
                 }
               }
             }
@@ -359,7 +431,133 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Error"
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "example": "Lỗi server"
+                    },
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/update-avatar": {
+      "put": {
+        "tags": ["User Management"],
+        "summary": "Update user avatar",
+        "description": "Updates the avatar of the currently authenticated user",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["avatarUrl"],
+                "properties": {
+                  "avatarUrl": {
+                    "type": "string",
+                    "example": "https://res.cloudinary.com/dxm8pqql5/image/upload/v1234567890/avatar.jpg"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Avatar updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "example": "Cập nhật avatar thành công"
+                    },
+                    "user": {
+                      "$ref": "#/components/schemas/UserResponse"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "example": "Avatar URL is required"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "example": "Không có quyền truy cập"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "User not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "example": "Không tìm thấy người dùng"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "example": "Lỗi server"
+                    },
+                    "error": {
+                      "type": "string"
+                    }
+                  }
                 }
               }
             }
@@ -369,10 +567,9 @@
     },
     "/ping": {
       "get": {
-        "tags": ["system"],
-        "summary": "Check service health",
-        "description": "Simple ping endpoint to check if the service is running",
-        "operationId": "pingService",
+        "tags": ["Health"],
+        "summary": "Service health check",
+        "description": "Simple health check endpoint for the service",
         "responses": {
           "200": {
             "description": "Service is running",
@@ -382,72 +579,13 @@
                   "type": "object",
                   "properties": {
                     "message": {
-                      "type": "string"
+                      "type": "string",
+                      "example": "pong"
                     },
                     "timestamp": {
                       "type": "string",
                       "format": "date-time"
-                    },
-                    "service": {
-                      "type": "string"
                     }
-                  }
-                },
-                "example": {
-                  "message": "pong",
-                  "timestamp": "2023-10-15T08:30:45.123Z",
-                  "service": "auth-service"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/health": {
-      "get": {
-        "tags": ["system"],
-        "summary": "Get service health details",
-        "description": "Returns detailed information about the service health including database connection status",
-        "operationId": "healthCheck",
-        "responses": {
-          "200": {
-            "description": "Health check results",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "status": {
-                      "type": "string"
-                    },
-                    "timestamp": {
-                      "type": "string",
-                      "format": "date-time"
-                    },
-                    "service": {
-                      "type": "string"
-                    },
-                    "database": {
-                      "type": "object",
-                      "properties": {
-                        "state": {
-                          "type": "string"
-                        },
-                        "readyState": {
-                          "type": "integer"
-                        }
-                      }
-                    }
-                  }
-                },
-                "example": {
-                  "status": "OK",
-                  "timestamp": "2023-10-15T08:30:45.123Z",
-                  "service": "auth-service",
-                  "database": {
-                    "state": "connected",
-                    "readyState": 1
                   }
                 }
               }
@@ -459,157 +597,68 @@
   },
   "components": {
     "schemas": {
-      "UserRegistration": {
-        "type": "object",
-        "required": ["name", "email", "password"],
-        "properties": {
-          "name": {
-            "type": "string",
-            "description": "User's full name"
-          },
-          "email": {
-            "type": "string",
-            "format": "email",
-            "description": "User's email address"
-          },
-          "password": {
-            "type": "string",
-            "format": "password",
-            "description": "User's password (min 6 characters)"
-          }
-        }
-      },
-      "UserLogin": {
-        "type": "object",
-        "required": ["email", "password"],
-        "properties": {
-          "email": {
-            "type": "string",
-            "format": "email",
-            "description": "User's email address"
-          },
-          "password": {
-            "type": "string",
-            "format": "password",
-            "description": "User's password"
-          }
-        }
-      },
-      "UserUpdate": {
-        "type": "object",
-        "properties": {
-          "name": {
-            "type": "string",
-            "description": "User's full name"
-          },
-          "phone": {
-            "type": "string",
-            "description": "User's phone number"
-          },
-          "address": {
-            "type": "object",
-            "properties": {
-              "street": {
-                "type": "string"
-              },
-              "city": {
-                "type": "string"
-              },
-              "state": {
-                "type": "string"
-              },
-              "zipCode": {
-                "type": "string"
-              },
-              "country": {
-                "type": "string"
-              }
-            }
-          }
-        }
-      },
-      "User": {
+      "UserResponse": {
         "type": "object",
         "properties": {
           "id": {
             "type": "string",
-            "description": "User's unique identifier"
+            "example": "60d21b4667d0d8992e610c85"
           },
           "name": {
             "type": "string",
-            "description": "User's full name"
+            "example": "Nguyen Van A"
           },
           "email": {
             "type": "string",
-            "format": "email",
-            "description": "User's email address"
+            "example": "nguyenvana@example.com"
           },
           "role": {
             "type": "string",
             "enum": ["user", "admin"],
-            "description": "User's role"
+            "example": "user"
           },
           "avatar": {
             "type": "string",
-            "description": "URL to user's avatar image"
+            "example": "https://res.cloudinary.com/dxm8pqql5/image/upload/v1234567890/avatar.jpg"
+          },
+          "phone": {
+            "type": "string",
+            "example": "0901234567"
           },
           "address": {
             "type": "object",
             "properties": {
               "street": {
-                "type": "string"
+                "type": "string",
+                "example": "123 Nguyen Hue"
               },
               "city": {
-                "type": "string"
+                "type": "string",
+                "example": "Ho Chi Minh City"
               },
               "state": {
-                "type": "string"
+                "type": "string",
+                "example": "HCMC"
               },
               "zipCode": {
-                "type": "string"
+                "type": "string",
+                "example": "700000"
               },
               "country": {
-                "type": "string"
+                "type": "string",
+                "example": "Vietnam"
               }
             }
           },
-          "phone": {
-            "type": "string"
-          },
-          "isVerified": {
-            "type": "boolean"
-          },
-          "createdAt": {
+          "dateOfBirth": {
             "type": "string",
-            "format": "date-time"
-          }
-        }
-      },
-      "AuthResponse": {
-        "type": "object",
-        "properties": {
-          "message": {
-            "type": "string"
+            "format": "date",
+            "example": "1990-01-01"
           },
-          "user": {
-            "$ref": "#/components/schemas/User"
-          },
-          "token": {
+          "gender": {
             "type": "string",
-            "description": "JWT token for authentication"
-          }
-        }
-      },
-      "Error": {
-        "type": "object",
-        "properties": {
-          "message": {
-            "type": "string",
-            "description": "Error message"
-          },
-          "error": {
-            "type": "string",
-            "description": "Detailed error information (only in development)"
+            "enum": ["male", "female", "other"],
+            "example": "male"
           }
         }
       }
@@ -618,8 +667,7 @@
       "bearerAuth": {
         "type": "http",
         "scheme": "bearer",
-        "bearerFormat": "JWT",
-        "description": "JWT token obtained from login or register endpoints"
+        "bearerFormat": "JWT"
       }
     }
   }

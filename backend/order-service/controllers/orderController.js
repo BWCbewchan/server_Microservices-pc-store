@@ -8,65 +8,6 @@ const PRODUCT_UPDATE_STOCK_URL = "http://localhost:3000/api/products/update-stoc
 
 // 📌 Tạo đơn hàng
 
-// body
-// exports.createOrder = async (req, res) => {
-//     try {
-//         const { userId, customer, items, shipping, payment, finalTotal, notes } = req.body;
-
-//         if (!userId || !customer || !items || items.length === 0) {
-//             return res.status(400).json({ message: "Dữ liệu không hợp lệ" });
-//         }
-
-//         // Lấy danh sách productId từ items
-//         const productIds = items.map(item => item.productId);
-//         // Chuyển mảng productIds thành chuỗi phân cách bởi dấu phẩy để truyền qua params
-//         const productIdsParam = productIds.join(',');
-
-//         // Gọi API bulk của Inventory theo kiểu GET, truyền productIds qua params
-//         const { data: inventoryData } = await axios.get(`${INVENTORY_API}/bulk/${productIdsParam}`);
-
-//         if (!inventoryData || inventoryData.length === 0) {
-//             return res.status(400).json({ message: "Không tìm thấy sản phẩm trong kho" });
-//         }
-
-//         // Kiểm tra tồn kho của từng mặt hàng
-//         for (let item of items) {
-//             const invItem = inventoryData.find(i => i.productId.toString() === item.productId.toString());
-//             if (!invItem || invItem.stock < item.quantity) {
-//                 return res.status(400).json({ message: `Sản phẩm ${item.name} không đủ hàng` });
-//             }
-//         }
-
-//         // Chuyển mảng items thành chuỗi JSON và encode để truyền qua params
-//         const itemsParam = encodeURIComponent(JSON.stringify(items));
-//         // Gọi API confirm của Inventory qua POST với dữ liệu items truyền qua params
-//         const confirmRes = await axios.post(`${INVENTORY_API}/confirm/${itemsParam}`);
-//         if (!confirmRes.data.success) {
-//             return res.status(400).json({ message: "Xác nhận tồn kho thất bại" });
-//         }
-
-//         // Tạo đơn hàng
-//         const order = new Order({
-//             userId,
-//             customer,
-//             items,
-//             shipping,
-//             payment,
-//             finalTotal,
-//             notes
-//         });
-//         await order.save();
-
-//         // Xóa giỏ hàng của user sau khi đặt hàng thành công
-//         await axios.delete(`${CART_API_URL}/clear/${userId}`);
-
-//         res.json({ message: "Đơn hàng đã được tạo", order });
-//     } catch (error) {
-//         console.error("Lỗi khi tạo đơn hàng:", error);
-//         res.status(500).json({ message: "Lỗi server", error: error.message });
-//     }
-// };
-
 // params
 exports.createOrder = async (req, res) => {
     try {
@@ -133,10 +74,31 @@ exports.createOrder = async (req, res) => {
         });
         await order.save();
 
-        // Xóa giỏ hàng của user sau khi đặt hàng thành công
-        // await axios.delete(`${CART_API_URL}/clear/${userId}`);
-        for (let item of itemsArr) {
-            await axios.delete(`${CART_API_URL}/remove/${userId}/${item.productId}`);
+        // Improved cart clearing process
+        try {
+            console.log(`Attempting to clear cart items for user: ${userId}`);
+            
+            // Try clearing the entire cart first (most reliable approach)
+            try {
+                await axios.delete(`${CART_API_URL}/clear/${userId}`, { timeout: 5000 });
+                console.log(`Successfully cleared entire cart for user: ${userId}`);
+            } catch (clearError) {
+                console.warn(`Failed to clear entire cart: ${clearError.message}, falling back to removing individual items`);
+                
+                // Fallback: try removing individual items
+                for (let item of itemsArr) {
+                    try {
+                        await axios.delete(`${CART_API_URL}/remove/${userId}/${item.productId}`, { timeout: 3000 });
+                        console.log(`Removed item ${item.productId} from cart`);
+                    } catch (removeError) {
+                        // Log but don't fail if individual item removal fails
+                        console.warn(`Failed to remove item ${item.productId} from cart: ${removeError.message}`);
+                    }
+                }
+            }
+        } catch (cartError) {
+            // Don't fail order creation if cart clearing fails
+            console.error(`Error clearing cart: ${cartError.message}`);
         }
 
         res.json({ message: "Đơn hàng đã được tạo", order });
@@ -146,6 +108,112 @@ exports.createOrder = async (req, res) => {
     }
 };
 
+// Add new method for JSON body-based order creation
+exports.createOrderJSON = async (req, res) => {
+    try {
+        console.log("Creating order with request body:", JSON.stringify(req.body));
+
+        // Extract data from request body
+        const { userId, customer, items, shipping, payment, finalTotal, notes } = req.body;
+
+        // Validate required fields with emphasis on userId
+        if (!userId) {
+            console.error("Missing userId in request:", req.body);
+            return res.status(400).json({
+                message: "userId is required"
+            });
+        }
+
+        console.log(`Creating order for user ID: ${userId}`);
+
+        if (!customer || !items || !shipping || !payment) {
+            return res.status(400).json({
+                message: "Missing required order data (customer, items, shipping, or payment information)"
+            });
+        }
+
+        if (!Array.isArray(items) || items.length === 0) {
+            return res.status(400).json({ message: "Không có mặt hàng để đặt hàng" });
+        }
+
+        // Lấy danh sách productId từ items
+        const productIds = items.map(item => item.productId);
+        const productIdsParam = productIds.join(',');
+
+        // Gọi API bulk của Inventory theo kiểu GET, truyền productIds qua params
+        const { data: inventoryData } = await axios.get(`${INVENTORY_API}/bulk/${productIdsParam}`);
+        if (!inventoryData || inventoryData.length === 0) {
+            return res.status(400).json({ message: "Không tìm thấy sản phẩm trong kho" });
+        }
+
+        // Kiểm tra tồn kho của từng mặt hàng
+        for (let item of items) {
+            const invItem = inventoryData.find(i => i.productId.toString() === item.productId.toString());
+            if (!invItem || invItem.stock < item.quantity) {
+                return res.status(400).json({ message: `Sản phẩm ${item.name} không đủ hàng` });
+            }
+        }
+
+        // Chuyển mảng items thành chuỗi JSON và encode để truyền qua params
+        const itemsParam = encodeURIComponent(JSON.stringify(items));
+        const confirmRes = await axios.post(`${INVENTORY_API}/confirm/${itemsParam}`);
+        if (!confirmRes.data.success) {
+            return res.status(400).json({ message: "Xác nhận tồn kho thất bại" });
+        }
+
+        // Create order object - ensure userId is set correctly
+        const order = new Order({
+            userId,
+            customer,
+            items,
+            shipping,
+            payment,
+            finalTotal,
+            notes,
+            status: "pending"
+        });
+
+        // Save the order
+        const savedOrder = await order.save();
+        console.log(`Order saved with ID ${savedOrder._id} for user ${userId}`);
+        
+        // Improved cart clearing process
+        try {
+            console.log(`Attempting to clear cart items for user: ${userId}`);
+            
+            // Try clearing the entire cart first (most reliable approach)
+            try {
+                await axios.delete(`${CART_API_URL}/clear/${userId}`, { timeout: 5000 });
+                console.log(`Successfully cleared entire cart for user: ${userId}`);
+            } catch (clearError) {
+                console.warn(`Failed to clear entire cart: ${clearError.message}, falling back to removing individual items`);
+                
+                // Fallback: try removing individual items
+                for (let item of items) {
+                    try {
+                        await axios.delete(`${CART_API_URL}/remove/${userId}/${item.productId}`, { timeout: 3000 });
+                        console.log(`Removed item ${item.productId} from cart`);
+                    } catch (removeError) {
+                        // Log but don't fail if individual item removal fails
+                        console.warn(`Failed to remove item ${item.productId} from cart: ${removeError.message}`);
+                    }
+                }
+            }
+        } catch (cartError) {
+            // Don't fail order creation if cart clearing fails
+            console.error(`Error clearing cart: ${cartError.message}`);
+        }
+        
+        // Respond with success
+        res.status(201).json({
+            message: "Đơn hàng đã được tạo",
+            order: savedOrder
+        });
+    } catch (error) {
+        console.error("Error creating order:", error);
+        res.status(500).json({ message: "Lỗi server", error: error.message });
+    }
+};
 
 // 📌 Lấy đơn hàng theo ID
 exports.getOrderById = async (req, res) => {
@@ -181,18 +249,6 @@ exports.getAllOrders = async (req, res) => {
 };
 
 // 📌 Cập nhật đơn hàng (Admin)
-// Cho phép cập nhật các trường như status, shipping, payment, sellerNote,...
-// exports.updateOrder = async (req, res) => {
-//     try {
-//         const { orderId } = req.params;
-//         const updateData = req.body; // Ví dụ: { status: "completed", shipping: { ... }, payment: { ... } }
-//         const order = await Order.findByIdAndUpdate(orderId, updateData, { new: true });
-//         if (!order) return res.status(404).json({ message: "Đơn hàng không tồn tại" });
-//         res.json({ message: "Đơn hàng đã được cập nhật", order });
-//     } catch (error) {
-//         res.status(500).json({ message: "Lỗi server", error: error.message });
-//     }
-// };
 exports.updateOrder = async (req, res) => {
     try {
         const { orderId, updateData } = req.params;
@@ -250,45 +306,7 @@ exports.cancelOrder = async (req, res) => {
     }
 };
 
-
 // 📌 Hủy đơn hàng bởi Admin (không ràng buộc trạng thái)
-// exports.adminCancelOrder = async (req, res) => {
-//     try {
-//         const { orderId } = req.params;
-//         const order = await Order.findById(orderId);
-//         if (!order) return res.status(404).json({ message: "Đơn hàng không tồn tại" });
-
-//         // Cập nhật trạng thái đơn hàng thành "cancelled"
-//         order.status = "cancelled";
-//         await order.save();
-
-//         // Duyệt qua từng mặt hàng và restore stock trong Inventory Service
-//         for (const item of order.items) {
-//             try {
-//                 // Gọi API restore để cộng lại số lượng vào tồn kho
-//                 await axios.put(`${INVENTORY_API}/restore`, {
-//                     productId: item.productId.toString(),
-//                     quantity: item.quantity
-//                 });
-//                 // Sau đó, đồng bộ lại stock ở Product Service
-//                 const invRes = await axios.get(`${INVENTORY_API}/product/${item.productId.toString()}`);
-//                 if (invRes.data) {
-//                     await axios.put(`${PRODUCT_SERVICE_URLImport}/${item.productId.toString()}`, {
-//                         stock: invRes.data.quantity
-//                     });
-//                 }
-//             } catch (err) {
-//                 console.error(`Lỗi khi restore stock cho sản phẩm ${item.productId.toString()}:`, err.response?.data || err.message);
-//             }
-//         }
-
-//         res.json({ message: "Đơn hàng đã được hủy bởi Admin và tồn kho đã được khôi phục", order });
-//     } catch (error) {
-//         console.error("Lỗi trong adminCancelOrder:", error.message);
-//         res.status(500).json({ message: "Lỗi server", error: error.message });
-//     }
-// };
-
 exports.adminCancelOrder = async (req, res) => {
     try {
         const { orderId } = req.params;
@@ -309,11 +327,7 @@ exports.adminCancelOrder = async (req, res) => {
                 const invRes = await axios.get(`${INVENTORY_API}/product/${item.productId.toString()}`);
                 if (invRes.data) {
                     // Cập nhật lại stock trong Product Service dựa trên số liệu mới từ Inventory
-                    // await axios.put(`${PRODUCT_SERVICE_URLImport}/${item.productId.toString()}`, {
-                    //     stock: invRes.data.quantity
-                    // });
                     await axios.put(`${PRODUCT_UPDATE_STOCK_URL}/${item.productId}/${invRes.data.quantity}`, null, { timeout: 5000 });
-
                 }
             } catch (err) {
                 console.error(
@@ -329,13 +343,6 @@ exports.adminCancelOrder = async (req, res) => {
         res.status(500).json({ message: "Lỗi server", error: error.message });
     }
 };
-
-
-
-
-
-
-
 
 // 📌 Xóa đơn hàng bởi Admin (AdminDeleteOrder)
 // Lưu ý: Trước khi xóa, nếu đơn hàng chưa bị hủy, bạn có thể gọi API Inventory để hoàn trả hàng về kho.

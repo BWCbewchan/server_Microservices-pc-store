@@ -16,37 +16,55 @@ export const AuthProvider = ({ children }) => {
     console.log("AuthContext initialized - checking authentication");
 
     try {
+      // First check if we have a token
       const token = getToken();
-
-      if (token) {
-        const validation = validateToken(token);
-        console.log("Token validation result:", validation.valid ? "Valid" : "Invalid", validation.message || "");
-
-        if (validation.valid) {
-          const storedUserData = localStorage.getItem('user') || sessionStorage.getItem('user');
-          if (storedUserData) {
-            try {
-              const userData = JSON.parse(storedUserData);
-              setCurrentUser(userData);
-              console.log("User loaded from storage:", userData.email || "unknown");
-            } catch (parseErr) {
-              console.error("Failed to parse stored user data:", parseErr);
+      
+      // Also check if we have user data in storage
+      const storedUserData = localStorage.getItem('user') || sessionStorage.getItem('user');
+      
+      if (storedUserData) {
+        try {
+          // Parse and set the stored user data
+          const userData = JSON.parse(storedUserData);
+          console.log("Found stored user data:", userData.email || "unknown");
+          setCurrentUser(userData);
+          
+          // Even with stored user data, we'll still validate the token if present
+          if (token) {
+            const validation = validateToken(token);
+            console.log("Token validation result:", validation.valid ? "Valid" : "Invalid", validation.message || "");
+            
+            if (validation.valid) {
+              // If token is valid, refresh user data from API to ensure it's up to date
+              loadUser(token);
+            } else {
+              // Clear invalid token but keep user data for now
+              console.warn("Invalid token detected, token cleared but keeping user session");
+              clearToken();
+              setLoading(false);
             }
           } else {
-            console.log("No stored user data found");
+            console.log("No token found, but user data exists - operating in limited mode");
+            setLoading(false);
           }
-
+        } catch (parseErr) {
+          console.error("Failed to parse stored user data:", parseErr);
+          setLoading(false);
+        }
+      } else if (token) {
+        // We have a token but no user data
+        const validation = validateToken(token);
+        if (validation.valid) {
           loadUser(token);
         } else {
           console.warn("Invalid token detected, clearing authentication");
           clearToken();
-          localStorage.removeItem('user');
-          sessionStorage.removeItem('user');
           setCurrentUser(null);
           setLoading(false);
         }
       } else {
-        console.log("No authentication token found");
+        // No token and no user data
+        console.log("No authentication token or user data found");
         setLoading(false);
       }
     } catch (err) {
@@ -482,6 +500,20 @@ export const AuthProvider = ({ children }) => {
     return validation.valid;
   };
 
+  const isAuthenticated = () => {
+    // First check if we have current user in state
+    if (currentUser) return true;
+    
+    // If not in state, check storage
+    try {
+      const storedUserData = localStorage.getItem('user') || sessionStorage.getItem('user');
+      return !!storedUserData; // Return true if user data exists in storage
+    } catch (err) {
+      console.error("Error checking authentication:", err);
+      return false;
+    }
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -492,7 +524,8 @@ export const AuthProvider = ({ children }) => {
         register,
         logout,
         updateProfile,
-        isLoggedIn
+        isLoggedIn,
+        isAuthenticated // Add the new method
       }}
     >
       {children}

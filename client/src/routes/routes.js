@@ -9,6 +9,7 @@ import ContactUs from "../pages/ContactUs/ContactUs";
 import ProductDetailsAll from "../pages/Details/ProductDetailsAll";
 import OrderHistory from "../pages/UserAccount/OrderHistory";
 import UserAccount from "../pages/UserAccount/UserAccount";
+import UserOrders from "../pages/UserAccount/UserOrders";
 
 // Các route công khai (ai cũng có thể truy cập)
 const publicRoutes = [
@@ -27,7 +28,7 @@ const privateRoutes = [
   { path: "/cart", component: Cart },
   { path: "/checkout", component: CheckoutPage },
   { path: "/userAccount", component: UserAccount },
-  { path: "/userAccount/orders", component: OrderHistory },
+  { path: "/userAccount/orders", component: UserOrders },
 ];
 
 export { privateRoutes, publicRoutes };
