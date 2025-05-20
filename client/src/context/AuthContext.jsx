@@ -105,7 +105,7 @@ export const AuthProvider = ({ children }) => {
 
       // Try both API endpoints
       try {
-        const response = await axios.get(`${import.meta.env.VITE_APP_API_GATEWAY_URL || 'http://localhost:3000'}/api/auth/me`, config);
+        const response = await axios.get(`${import.meta.env.VITE_APP_API_GATEWAY_URL || 'http://localhost:3000'}/auth/me`, config);
         console.log("User data response:", response.data);
         
         if (response.data && response.data.user) {
@@ -495,7 +495,7 @@ export const AuthProvider = ({ children }) => {
           return await new Promise((resolve, reject) => {
             console.log("Trying update with XMLHttpRequest");
             const xhr = new XMLHttpRequest();
-            xhr.open('PUT', 'http://localhost:3000/update');
+            xhr.open('PUT', 'http://localhost:3000/api/auth/update');
             xhr.setRequestHeader('Content-Type', 'application/json');
             xhr.setRequestHeader('Authorization', `Bearer ${token}`);
             
