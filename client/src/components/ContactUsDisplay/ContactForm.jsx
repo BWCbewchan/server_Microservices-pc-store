@@ -1,4 +1,3 @@
-
 import FormInput from "./FormInput";
 
 const ContactForm = () => {
@@ -44,7 +43,7 @@ const ContactForm = () => {
 
       <div className="form-group mb-4">
         <label className="form-label fw-semibold">
-          What's on your mind? <span className="text-danger">*</span>
+          What&apos;s on your mind? <span className="text-danger">*</span>
         </label>
         <textarea
           className="form-control"

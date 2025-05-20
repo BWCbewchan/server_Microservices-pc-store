@@ -10,29 +10,21 @@ const ProductCard = ({ _id, stock, image, rating, name, price, discount }) => {
   const CART_API_URL = "http://localhost:3000/api/cart/add";
 
   // UserId giả dùng cho demo
-  // const fakeUserId = "user9999";
   const fakeUserId = "64e65e8d3d5e2b0c8a3e9f12";
 
   // Calculate final price
   const finalPrice = price - (price * discount) / 100;
+
   // Xử lý thêm sản phẩm vào giỏ hàng
   const handleAddToCart = async (productId) => {
     try {
-      // const res = await axios.post(CART_API_URL, {
-      //   userId: fakeUserId,
-      //   productId,
-      //   quantity: 1
-      // });
-      const res = await axios.post(`${CART_API_URL}/${fakeUserId}/${productId}/1`);
-      // console.log("Thêm vào giỏ hàng thành công", res.data);
-      // alert("them vao gio hang thanh cong")
-            toast.success("🛒Thêm vào giỏ hàng thành công");
-      
-      // Có thể hiển thị thông báo thành công cho người dùng tại đây
+      await axios.post(`${CART_API_URL}/${fakeUserId}/${productId}/1`);
+      toast.success("🛒Thêm vào giỏ hàng thành công");
     } catch (error) {
       console.error("Lỗi khi thêm vào giỏ hàng", error.response?.data || error.message);
     }
   };
+
   return (
     <NavLink
       to={`/details/${_id}`}

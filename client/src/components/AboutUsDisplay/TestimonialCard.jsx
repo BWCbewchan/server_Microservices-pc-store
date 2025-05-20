@@ -1,12 +1,10 @@
-import React from "react";
-
 const TestimonialCard = () => {
   return (
     <section className="container my-5">
       <div className="card bg-light border-0 p-4">
         <div className="card-body">
           <blockquote className="mb-4">
-            <span className="display-4">"</span>
+            <span className="display-4">&quot;</span>
             <p className="fs-5 ms-4">
               My first order arrived today in perfect condition. From the time I
               sent a question about the item to making the purchase, to the

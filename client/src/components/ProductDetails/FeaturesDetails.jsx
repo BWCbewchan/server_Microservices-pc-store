@@ -1,4 +1,3 @@
-import React from "react";
 import FeatureCard from "./FeatureCard";
 import "bootstrap/dist/css/bootstrap.min.css";
 

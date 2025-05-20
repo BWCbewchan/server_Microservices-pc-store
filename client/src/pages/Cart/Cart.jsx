@@ -20,7 +20,7 @@ const Cart = () => {
     // Load giỏ hàng khi component mount
     React.useEffect(() => {
         fetchCart();
-    }, []);
+    }, [fetchCart]);
 
     // Hàm lấy giỏ hàng theo userId
     const fetchCart = async () => {

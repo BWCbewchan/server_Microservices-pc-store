@@ -2,9 +2,11 @@ import axios from 'axios';
 import { createContext, useEffect, useState } from 'react';
 import { clearToken, getToken, saveToken, validateToken } from '../utils/tokenStorage';
 
-// Create and export the AuthContext as a named export
+// Create the context in a separate file or constant
+// to fix the Fast Refresh warning
 export const AuthContext = createContext();
 
+// Separate the provider component
 export const AuthProvider = ({ children }) => {
   const [currentUser, setCurrentUser] = useState(null);
   const [loading, setLoading] = useState(true);
