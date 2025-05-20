@@ -55,23 +55,10 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-vite-build-
       
-      - name: Create deployment artifacts
-        run: |
-          cd client
-          tar -czf ../client-dist.tar.gz dist
-      
-      - name: Upload build artifact
-        uses: actions/upload-artifact@v2
-        with:
-          name: client-dist
-          path: client-dist.tar.gz
-          retention-days: 5
-      
       - name: Add build summary
         run: |
           echo "## Client Build Summary" >> $GITHUB_STEP_SUMMARY
           echo "✅ Build completed successfully" >> $GITHUB_STEP_SUMMARY
-          echo "📦 Deployment package created: client-dist.tar.gz" >> $GITHUB_STEP_SUMMARY
           
           echo "### Environment" >> $GITHUB_STEP_SUMMARY
           echo "* Node.js version: $(node -v)" >> $GITHUB_STEP_SUMMARY
@@ -88,26 +75,30 @@ jobs:
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     
     steps:
-      - name: Download build artifact
-        uses: actions/download-artifact@v2
+      - name: Checkout code again
+        uses: actions/checkout@v3
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
         with:
-          name: client-dist
+          node-version: '18'
       
-      - name: Extract build files
-        run: |
-          mkdir -p deploy
-          tar -xzf client-dist.tar.gz -C deploy
+      - name: Restore build from cache
+        uses: actions/cache@v3
+        with:
+          path: client/dist
+          key: ${{ runner.os }}-vite-build-${{ github.sha }}
       
-      # Example deployment to static hosting like Netlify
-      - name: Deploy to static hosting (example)
+      - name: Deploy to static hosting
         run: |
           echo "Deploying to static hosting..."
           if [ -n "$NETLIFY_AUTH_TOKEN" ]; then
-            npx netlify-cli deploy --dir=deploy/dist --prod
+            npm install -g netlify-cli
+            netlify deploy --dir=client/dist --prod
           else
             echo "Skipping actual deployment - no deployment token provided"
             echo "In a real scenario, this would deploy to your hosting service"
-            ls -la deploy/dist
+            ls -la client/dist
           fi
         env:
           NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
