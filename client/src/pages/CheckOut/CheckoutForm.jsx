@@ -1,7 +1,8 @@
 import axios from "axios";
-import React, { useState, useEffect } from "react";
+import { useContext, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
+import { AuthContext } from "../../context/AuthContext";
 
 // Define API endpoints with fallbacks
 const API_GATEWAY_URL = import.meta.env.VITE_APP_API_GATEWAY_URL || "http://localhost:3000";
@@ -11,9 +12,10 @@ const INVENTORY_API = `${API_GATEWAY_URL}/api/inventory`;
 const DIRECT_INVENTORY_API = "http://localhost:4000";
 const CART_API_URL = `${API_GATEWAY_URL}/api/cart`;
 
-const CheckoutForm = ({ selectedItems, shippingMethod, setShippingMethod, subtotal, finalTotal, currentUser }) => {
+const CheckoutForm = ({ selectedItems, shippingMethod, setShippingMethod, subtotal, finalTotal }) => {
   const navigate = useNavigate();
-
+  const { currentUser, isAuthenticated } = useContext(AuthContext);
+  
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
@@ -23,6 +25,7 @@ const CheckoutForm = ({ selectedItems, shippingMethod, setShippingMethod, subtot
     paymentMethod: "cod",
     customerNote: ""
   });
+  
   const [loading, setLoading] = useState(false);
   const [validated, setValidated] = useState(false);
   const [serviceStatus, setServiceStatus] = useState({
@@ -30,36 +33,76 @@ const CheckoutForm = ({ selectedItems, shippingMethod, setShippingMethod, subtot
     orderService: false
   });
 
-  // Check services status on component mount
+  // Load user data when component mounts
   useEffect(() => {
-    const checkServices = async () => {
+    // Get user from context or localStorage
+    let user = currentUser;
+    
+    if (!user) {
       try {
-        // Check API gateway
-        try {
-          await axios.get(`${API_GATEWAY_URL}/api-status`, { timeout: 2000 });
-          setServiceStatus(prev => ({ ...prev, apiGateway: true }));
-          console.log("API Gateway is accessible");
-        } catch (err) {
-          console.warn("API Gateway check failed:", err.message);
-          setServiceStatus(prev => ({ ...prev, apiGateway: false }));
+        const storedUserData = localStorage.getItem('user') || sessionStorage.getItem('user');
+        if (storedUserData) {
+          user = JSON.parse(storedUserData);
+          console.log("Using user data from localStorage:", user.email);
         }
-
-        // Check order service directly
-        try {
-          await axios.get(`${DIRECT_ORDER_API_URL}/ping`, { timeout: 2000 });
-          setServiceStatus(prev => ({ ...prev, orderService: true }));
-          console.log("Order service is accessible directly");
-        } catch (err) {
-          console.warn("Order service direct check failed:", err.message);
-          setServiceStatus(prev => ({ ...prev, orderService: false }));
-        }
-      } catch (error) {
-        console.error("Service check error:", error);
+      } catch (err) {
+        console.error("Error parsing stored user data:", err);
       }
-    };
-
+    }
+    
+    if (user) {
+      // Pre-fill the form with user data
+      let firstName = "", lastName = "";
+      
+      // Extract first and last name if user.name exists
+      if (user.name) {
+        const nameParts = user.name.split(' ');
+        if (nameParts.length > 1) {
+          firstName = nameParts[0];
+          lastName = nameParts.slice(1).join(' ');
+        } else {
+          firstName = user.name;
+        }
+      }
+      
+      setFormData(prevData => ({
+        ...prevData,
+        firstName,
+        lastName,
+        email: user.email || "",
+        phone: user.phone || "",
+        address: user.address?.street || user.address?.full || "",
+      }));
+      
+      console.log("Pre-filled checkout form with user data");
+    }
+    
+    // Check services status 
     checkServices();
-  }, []);
+  }, [currentUser]);
+
+  // Check services status
+  const checkServices = async () => {
+    try {
+      // Check API gateway
+      try {
+        await axios.get(`${API_GATEWAY_URL}/api-status`, { timeout: 2000 });
+        setServiceStatus(prev => ({ ...prev, apiGateway: true }));
+      } catch (err) {
+        console.warn("API Gateway check failed:", err.message);
+      }
+
+      // Check order service directly
+      try {
+        await axios.get(`${DIRECT_ORDER_API_URL}/ping`, { timeout: 2000 });
+        setServiceStatus(prev => ({ ...prev, orderService: true }));
+      } catch (err) {
+        console.warn("Order service direct check failed:", err.message);
+      }
+    } catch (error) {
+      console.error("Service check error:", error);
+    }
+  };
 
   const handleInputChange = (e) => {
     const { id, value } = e.target;
@@ -266,33 +309,93 @@ const CheckoutForm = ({ selectedItems, shippingMethod, setShippingMethod, subtot
         // ...existing code...
       }
 
-      // 4) Complete checkout process
+      // 4) Improved cart clearing - moved before navigation and made more robust
       toast.success("Đặt hàng thành công!");
       
-      // Clear cart (improved with better error handling)
-      try {
-        console.log("Attempting to clear cart after order creation");
-        // First try clearing the entire cart
-        await axios.delete(`${CART_API_URL}/clear/${userId}`, { timeout: 5000 });
-      } catch (clearError) {
-        console.warn("Failed to clear entire cart:", clearError.message);
+      // Store the new order in localStorage before clearing cart
+      localStorage.setItem('lastOrder', JSON.stringify(orderResp.data.order));
         
-        // Fallback: Try removing individual items
+      // Enhanced cart clearing mechanism with multiple fallbacks
+      console.log("Beginning cart clearing process for userId:", userId);
+      let cartCleared = false;
+      
+      // Method 1: Clear entire cart through API Gateway
+      try {
+        console.log("Attempting to clear cart via API Gateway");
+        await axios.delete(`${CART_API_URL}/clear/${userId}`, { timeout: 8000 });
+        console.log("Cart successfully cleared via API Gateway");
+        cartCleared = true;
+      } catch (clearError) {
+        console.warn("Failed to clear cart via API Gateway:", clearError.message);
+        
+        // Method 2: Try direct connection to cart service
         try {
-          for (let item of items) {
+          console.log("Attempting to clear cart via direct connection");
+          await axios.delete(`http://localhost:4005/clear/${userId}`, { timeout: 8000 });
+          console.log("Cart successfully cleared via direct connection");
+          cartCleared = true;
+        } catch (directError) {
+          console.warn("Failed to clear cart via direct connection:", directError.message);
+          
+          // Method 3: Try removing individual items one by one
+          try {
+            console.log("Attempting to remove cart items individually");
+            const removePromises = items.map(item => 
+              axios.delete(`${CART_API_URL}/remove/${userId}/${item.productId}`, { timeout: 3000 })
+                .catch(e => console.warn(`Failed to remove item ${item.productId}:`, e.message))
+            );
+            
+            await Promise.allSettled(removePromises);
+            console.log("Completed individual item removal attempts");
+            
+            // Method 4: Try an alternative API endpoint format if available
             try {
-              await axios.delete(`${CART_API_URL}/remove/${userId}/${item.productId}`, { timeout: 3000 });
-            } catch (removeError) {
-              console.warn(`Failed to remove item ${item.productId}:`, removeError.message);
+              console.log("Attempting alternative cart clear format");
+              await axios.post(`${CART_API_URL}/empty`, { userId }, { timeout: 5000 });
+              console.log("Cart cleared via alternative endpoint");
+              cartCleared = true;
+            } catch (altError) {
+              console.warn("Alternative cart clear failed:", altError.message);
             }
+          } catch (itemError) {
+            console.warn("Error during individual item removal:", itemError.message);
           }
-        } catch (itemError) {
-          console.warn("Error during individual item removal:", itemError.message);
         }
       }
       
-      // Still navigate to home even if cart clearing failed
-      navigate("/home", { state: { order: orderResp.data.order } });
+      // Method 5: Client-side cart reset (use context if available)
+      if (!cartCleared) {
+        console.log("All API cart clearing methods failed, attempting client-side reset");
+        
+        // Try to find cart reset functions in window/global scope
+        if (window.resetCart) {
+          window.resetCart();
+          console.log("Called global resetCart function");
+        }
+        
+        // Clear cart data from localStorage as last resort
+        try {
+          localStorage.removeItem('cart');
+          localStorage.removeItem('cartItems');
+          sessionStorage.removeItem('cart');
+          sessionStorage.removeItem('cartItems');
+          console.log("Removed cart data from local/session storage");
+        } catch (storageError) {
+          console.error("Failed to clear cart from storage:", storageError);
+        }
+      }
+      
+      // Introduce a small delay to ensure cart clearing operations complete
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      // Navigate to order confirmation page instead of home
+      navigate("/order-confirmation", { 
+        state: { 
+          order: orderResp.data.order,
+          cartCleared: cartCleared 
+        },
+        replace: true // Use replace to prevent back navigation to checkout
+      });
     } catch (err) {
       console.error("Order creation error:", err);
       const msg = err.response?.data?.message || err.message;
@@ -303,267 +406,510 @@ const CheckoutForm = ({ selectedItems, shippingMethod, setShippingMethod, subtot
   };
 
   return (
-    <form
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        width: "100%",
-        maxWidth: "565px",
-        gap: "26px",
-        color: "#C94D3F",
-        fontWeight: "600",
-        fontSize: "13px",
-        fontFamily: "Poppins, sans-serif",
-      }}
-    >
-      <h2 style={{ color: "#000", fontSize: "18px" }}>Shipping Address</h2>
-
-      {/* Email */}
-      <div>
-        <label htmlFor="email" style={{ lineHeight: "2.1" }}>
-          Email Address <span style={{ color: "#C94D3F" }}>*</span>
-        </label>
-        <input
-          type="email"
-          id="email"
-          required
-          value={formData.email}
-          onChange={handleInputChange}
-          style={{
-            borderRadius: "4px",
-            border: "1px solid #A2A6B0",
-            backgroundColor: "#FFF",
-            width: "100%",
-            height: "50px",
-          }}
-          aria-label="Email Address"
-        />
-      </div>
-
-      {/* First Name */}
-      <div>
-        <label htmlFor="firstName" style={{ lineHeight: "2.1" }}>
-          First Name <span style={{ color: "#C94D3F" }}>*</span>
-        </label>
-        <input
-          type="text"
-          id="firstName"
-          required
-          value={formData.firstName}
-          onChange={handleInputChange}
-          style={{
-            borderRadius: "4px",
-            border: "1px solid #A2A6B0",
-            backgroundColor: "#FFF",
-            width: "100%",
-            height: "50px",
-          }}
-          aria-label="First Name"
-        />
-      </div>
-
-      {/* Last Name */}
-      <div>
-        <label htmlFor="lastName" style={{ lineHeight: "2.1" }}>
-          Last Name <span style={{ color: "#C94D3F" }}>*</span>
-        </label>
-        <input
-          type="text"
-          id="lastName"
-          required
-          value={formData.lastName}
-          onChange={handleInputChange}
-          style={{
-            borderRadius: "4px",
-            border: "1px solid #A2A6B0",
-            backgroundColor: "#FFF",
-            width: "100%",
-            height: "50px",
-          }}
-          aria-label="Last Name"
-        />
-      </div>
-
-      {/* Street Address */}
-      <div>
-        <label htmlFor="address" style={{ lineHeight: "2.1" }}>
-          Street Address <span style={{ color: "#C94D3F" }}>*</span>
-        </label>
-        <input
-          type="text"
-          id="address"
-          required
-          value={formData.address}
-          onChange={handleInputChange}
-          style={{
-            borderRadius: "4px",
-            border: "1px solid #A2A6B0",
-            backgroundColor: "#FFF",
-            width: "100%",
-            height: "50px",
-          }}
-          aria-label="Street Address"
-        />
-        <input
-          type="text"
-          style={{
-            borderRadius: "4px",
-            border: "1px solid #A2A6B0",
-            backgroundColor: "#FFF",
-            width: "100%",
-            height: "50px",
-            marginTop: "11px",
-          }}
-          placeholder="Additional Street Address"
-          aria-label="Additional Street Address"
-        />
-      </div>
-
-      {/* Phone Number */}
-      <div>
-        <label htmlFor="phone" style={{ lineHeight: "2.1" }}>
-          Phone Number <span style={{ color: "#C94D3F" }}>*</span>
-        </label>
-        <input
-          type="tel"
-          id="phone"
-          required
-          value={formData.phone}
-          onChange={handleInputChange}
-          style={{
-            borderRadius: "4px",
-            border: "1px solid #A2A6B0",
-            backgroundColor: "#FFF",
-            width: "100%",
-            height: "50px",
-          }}
-          aria-label="Phone Number"
-        />
-      </div>
-
-      <h2 style={{ color: "#000", fontSize: "18px" }}>Shipping & Payment</h2>
-
-      {/* Shipping Method */}
-      <div style={{ marginBottom: "11px" }}>
-        <label style={{ display: "block", marginBottom: "5px" }}>
-          Shipping Method <span style={{ color: "#C94D3F" }}>*</span>
-        </label>
-        <select
-          value={shippingMethod}
-          onChange={(e) => setShippingMethod(e.target.value)}
-          style={{
-            borderRadius: "4px",
-            border: "1px solid #A2A6B0",
-            backgroundColor: "#FFF",
-            width: "100%",
-            height: "50px",
-          }}
-        >
-          <option value="standard">Standard (30,000 VND)</option>
-          <option value="express">Express (50,000 VND)</option>
-        </select>
-      </div>
-
-      {/* Payment Method */}
-      <div style={{ marginBottom: "11px" }}>
-        <label style={{ display: "block", marginBottom: "5px" }}>
-          Payment Method <span style={{ color: "#C94D3F" }}>*</span>
-        </label>
-        <select
-          id="paymentMethod"
-          value={formData.paymentMethod}
-          onChange={handleInputChange}
-          style={{
-            borderRadius: "4px",
-            border: "1px solid #A2A6B0",
-            backgroundColor: "#FFF",
-            width: "100%",
-            height: "50px",
-          }}
-        >
-          <option value="cod">Cash on Delivery</option>
-          <option value="bank">Bank Transfer</option>
-        </select>
-      </div>
-
-      {/* Order Note */}
-      <div>
-        <label style={{ display: "block", marginBottom: "5px" }}>
-          Order Note (optional)
-        </label>
-        <textarea
-          id="customerNote"
-          value={formData.customerNote}
-          onChange={handleInputChange}
-          placeholder="Your note..."
-          style={{
-            borderRadius: "4px",
-            border: "1px solid #A2A6B0",
-            width: "100%",
-            height: "80px",
-          }}
-        ></textarea>
-      </div>
-
-      {/* Service status warning if services are down */}
-      {(!serviceStatus.apiGateway && !serviceStatus.orderService) && (
-        <div style={{ 
-          backgroundColor: "#FFF3CD", 
-          padding: "10px 15px", 
-          borderRadius: "4px", 
-          color: "#856404", 
-          fontSize: "14px"
-        }}>
-          <p style={{ margin: 0 }}>
-            <strong>Warning:</strong> Order services appear to be offline. 
-            We'll still try to process your order, but there might be delays.
-          </p>
-        </div>
-      )}
-
-      {/* Confirm Order Button */}
-      <button
-        type="button"
-        onClick={handleOrderSubmit}
-        disabled={loading}
+    <div className="checkout-form-container">
+      <form
+        className="checkout-form"
         style={{
-          backgroundColor: loading ? "#D9A191" : "#C94D3F",
-          color: "#FFF",
-          borderRadius: "4px",
-          border: "none",
-          height: "50px",
-          fontWeight: "600",
-          fontSize: "14px",
-          cursor: loading ? "not-allowed" : "pointer",
-          position: "relative",
+          display: "flex",
+          flexDirection: "column",
+          width: "100%",
+          maxWidth: "600px",
+          gap: "20px",
+          margin: "0 auto",
+          padding: "30px",
+          backgroundColor: "#FFFFFF",
+          boxShadow: "0 4px 20px rgba(0, 0, 0, 0.08)",
+          borderRadius: "12px",
+          color: "#333333",
+          fontFamily: "'Poppins', sans-serif",
         }}
       >
-        {loading ? (
-          <>
-            <span style={{ 
-              display: "inline-block", 
-              width: "20px", 
-              height: "20px", 
-              border: "3px solid rgba(255,255,255,.3)", 
-              borderRadius: "50%", 
-              borderTopColor: "#fff", 
-              animation: "spin 1s ease-in-out infinite", 
-              marginRight: "8px",
-              verticalAlign: "middle" 
-            }}></span>
-            Đang xử lý...
-          </>
-        ) : "Confirm Order"}
-      </button>
+        <h2 className="form-section-title" style={{ 
+          color: "#0F172A", 
+          fontSize: "22px", 
+          fontWeight: "600",
+          marginBottom: "10px",
+          position: "relative",
+          paddingBottom: "10px"
+        }}>
+          Thông tin người nhận
+          <div style={{
+            position: "absolute",
+            bottom: 0,
+            left: 0,
+            width: "60px",
+            height: "3px",
+            backgroundColor: "#C94D3F",
+            borderRadius: "2px"
+          }}></div>
+        </h2>
 
-      <style>
-        {`
-          @keyframes spin {
-            to { transform: rotate(360deg); }
-          }
-        `}
-      </style>
-    </form>
+        <div className="form-row" style={{ display: "flex", gap: "15px" }}>
+          <div className="form-group" style={{ flex: 1 }}>
+            <label htmlFor="firstName" style={{ 
+              display: "block", 
+              marginBottom: "8px", 
+              fontWeight: "500", 
+              fontSize: "14px",
+              color: "#4B5563" 
+            }}>
+              Họ <span style={{ color: "#C94D3F" }}>*</span>
+            </label>
+            <input
+              type="text"
+              className="form-control"
+              id="firstName"
+              value={formData.firstName}
+              onChange={handleInputChange}
+              required
+              style={{
+                borderRadius: "8px",
+                border: "1px solid #E5E7EB",
+                backgroundColor: "#FFF",
+                width: "100%",
+                height: "45px",
+                padding: "0 15px",
+                fontSize: "14px",
+                transition: "border-color 0.2s",
+                outline: "none",
+              }}
+            />
+          </div>
+          <div className="form-group" style={{ flex: 1 }}>
+            <label htmlFor="lastName" style={{ 
+              display: "block", 
+              marginBottom: "8px", 
+              fontWeight: "500", 
+              fontSize: "14px",
+              color: "#4B5563" 
+            }}>
+              Tên <span style={{ color: "#C94D3F" }}>*</span>
+            </label>
+            <input
+              type="text"
+              className="form-control"
+              id="lastName"
+              value={formData.lastName}
+              onChange={handleInputChange}
+              required
+              style={{
+                borderRadius: "8px",
+                border: "1px solid #E5E7EB",
+                backgroundColor: "#FFF",
+                width: "100%",
+                height: "45px",
+                padding: "0 15px",
+                fontSize: "14px",
+                transition: "border-color 0.2s",
+                outline: "none",
+              }}
+            />
+          </div>
+        </div>
+
+        <div className="form-group">
+          <label htmlFor="email" style={{ 
+            display: "block", 
+            marginBottom: "8px", 
+            fontWeight: "500", 
+            fontSize: "14px",
+            color: "#4B5563" 
+          }}>
+            Email <span style={{ color: "#C94D3F" }}>*</span>
+          </label>
+          <input
+            type="email"
+            className="form-control"
+            id="email"
+            value={formData.email}
+            onChange={handleInputChange}
+            required
+            style={{
+              borderRadius: "8px",
+              border: "1px solid #E5E7EB",
+              backgroundColor: "#FFF",
+              width: "100%",
+              height: "45px",
+              padding: "0 15px",
+              fontSize: "14px",
+              transition: "border-color 0.2s",
+              outline: "none",
+            }}
+          />
+        </div>
+
+        <div className="form-group">
+          <label htmlFor="phone" style={{ 
+            display: "block", 
+            marginBottom: "8px", 
+            fontWeight: "500", 
+            fontSize: "14px",
+            color: "#4B5563" 
+          }}>
+            Số điện thoại <span style={{ color: "#C94D3F" }}>*</span>
+          </label>
+          <input
+            type="tel"
+            className="form-control"
+            id="phone"
+            value={formData.phone}
+            onChange={handleInputChange}
+            required
+            style={{
+              borderRadius: "8px",
+              border: "1px solid #E5E7EB",
+              backgroundColor: "#FFF",
+              width: "100%",
+              height: "45px",
+              padding: "0 15px",
+              fontSize: "14px",
+              transition: "border-color 0.2s",
+              outline: "none",
+            }}
+          />
+        </div>
+
+        <div className="form-group">
+          <label htmlFor="address" style={{ 
+            display: "block", 
+            marginBottom: "8px", 
+            fontWeight: "500", 
+            fontSize: "14px",
+            color: "#4B5563" 
+          }}>
+            Địa chỉ nhận hàng <span style={{ color: "#C94D3F" }}>*</span>
+          </label>
+          <input
+            type="text"
+            className="form-control"
+            id="address"
+            value={formData.address}
+            onChange={handleInputChange}
+            required
+            style={{
+              borderRadius: "8px",
+              border: "1px solid #E5E7EB",
+              backgroundColor: "#FFF",
+              width: "100%",
+              height: "45px",
+              padding: "0 15px",
+              fontSize: "14px",
+              transition: "border-color 0.2s",
+              outline: "none",
+            }}
+          />
+        </div>
+
+        <h2 className="form-section-title" style={{ 
+          color: "#0F172A", 
+          fontSize: "22px", 
+          fontWeight: "600",
+          marginTop: "10px",
+          marginBottom: "10px",
+          position: "relative",
+          paddingBottom: "10px"
+        }}>
+          Phương thức vận chuyển & Thanh toán
+          <div style={{
+            position: "absolute",
+            bottom: 0,
+            left: 0,
+            width: "60px",
+            height: "3px",
+            backgroundColor: "#C94D3F",
+            borderRadius: "2px"
+          }}></div>
+        </h2>
+
+        <div className="form-group">
+          <label style={{ 
+            display: "block", 
+            marginBottom: "8px", 
+            fontWeight: "500", 
+            fontSize: "14px",
+            color: "#4B5563" 
+          }}>
+            Phương thức vận chuyển <span style={{ color: "#C94D3F" }}>*</span>
+          </label>
+          <div className="shipping-methods" style={{ display: "flex", gap: "15px" }}>
+            <div 
+              className={`shipping-option ${shippingMethod === "standard" ? "selected" : ""}`}
+              onClick={() => setShippingMethod("standard")}
+              style={{
+                flex: 1,
+                padding: "15px",
+                border: `2px solid ${shippingMethod === "standard" ? "#C94D3F" : "#E5E7EB"}`,
+                borderRadius: "8px",
+                cursor: "pointer",
+                transition: "all 0.2s",
+                backgroundColor: shippingMethod === "standard" ? "#FFF6F5" : "#FFF",
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                <div>
+                  <div style={{ fontWeight: "600", marginBottom: "5px" }}>Tiêu chuẩn</div>
+                  <div style={{ fontSize: "13px", color: "#6B7280" }}>2-3 ngày</div>
+                </div>
+                <div style={{ fontWeight: "600", color: "#C94D3F" }}>30.000đ</div>
+              </div>
+            </div>
+            <div 
+              className={`shipping-option ${shippingMethod === "express" ? "selected" : ""}`}
+              onClick={() => setShippingMethod("express")}
+              style={{
+                flex: 1,
+                padding: "15px",
+                border: `2px solid ${shippingMethod === "express" ? "#C94D3F" : "#E5E7EB"}`,
+                borderRadius: "8px",
+                cursor: "pointer",
+                transition: "all 0.2s",
+                backgroundColor: shippingMethod === "express" ? "#FFF6F5" : "#FFF",
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                <div>
+                  <div style={{ fontWeight: "600", marginBottom: "5px" }}>Hỏa tốc</div>
+                  <div style={{ fontSize: "13px", color: "#6B7280" }}>1-2 ngày</div>
+                </div>
+                <div style={{ fontWeight: "600", color: "#C94D3F" }}>50.000đ</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="form-group">
+          <label htmlFor="paymentMethod" style={{ 
+            display: "block", 
+            marginBottom: "8px", 
+            fontWeight: "500", 
+            fontSize: "14px",
+            color: "#4B5563" 
+          }}>
+            Phương thức thanh toán <span style={{ color: "#C94D3F" }}>*</span>
+          </label>
+          <div className="payment-methods" style={{ display: "flex", gap: "15px", flexDirection: "column" }}>
+            <div 
+              className={`payment-option ${formData.paymentMethod === "cod" ? "selected" : ""}`}
+              onClick={() => setFormData(prev => ({ ...prev, paymentMethod: "cod" }))}
+              style={{
+                padding: "15px",
+                border: `2px solid ${formData.paymentMethod === "cod" ? "#C94D3F" : "#E5E7EB"}`,
+                borderRadius: "8px",
+                cursor: "pointer",
+                transition: "all 0.2s",
+                backgroundColor: formData.paymentMethod === "cod" ? "#FFF6F5" : "#FFF",
+                display: "flex",
+                alignItems: "center",
+              }}
+            >
+              <div style={{ 
+                width: "20px", 
+                height: "20px", 
+                borderRadius: "50%", 
+                border: `2px solid ${formData.paymentMethod === "cod" ? "#C94D3F" : "#E5E7EB"}`,
+                marginRight: "15px",
+                position: "relative"
+              }}>
+                {formData.paymentMethod === "cod" && (
+                  <div style={{ 
+                    position: "absolute",
+                    top: "3px",
+                    left: "3px",
+                    width: "10px",
+                    height: "10px",
+                    borderRadius: "50%",
+                    backgroundColor: "#C94D3F"
+                  }}></div>
+                )}
+              </div>
+              <div>
+                <div style={{ fontWeight: "600" }}>Thanh toán khi nhận hàng (COD)</div>
+                <div style={{ fontSize: "13px", color: "#6B7280" }}>Thanh toán bằng tiền mặt khi nhận hàng</div>
+              </div>
+            </div>
+            <div 
+              className={`payment-option ${formData.paymentMethod === "bank" ? "selected" : ""}`}
+              onClick={() => setFormData(prev => ({ ...prev, paymentMethod: "bank" }))}
+              style={{
+                padding: "15px",
+                border: `2px solid ${formData.paymentMethod === "bank" ? "#C94D3F" : "#E5E7EB"}`,
+                borderRadius: "8px",
+                cursor: "pointer",
+                transition: "all 0.2s",
+                backgroundColor: formData.paymentMethod === "bank" ? "#FFF6F5" : "#FFF",
+                display: "flex",
+                alignItems: "center",
+              }}
+            >
+              <div style={{ 
+                width: "20px", 
+                height: "20px", 
+                borderRadius: "50%", 
+                border: `2px solid ${formData.paymentMethod === "bank" ? "#C94D3F" : "#E5E7EB"}`,
+                marginRight: "15px",
+                position: "relative"
+              }}>
+                {formData.paymentMethod === "bank" && (
+                  <div style={{ 
+                    position: "absolute",
+                    top: "3px",
+                    left: "3px",
+                    width: "10px",
+                    height: "10px",
+                    borderRadius: "50%",
+                    backgroundColor: "#C94D3F"
+                  }}></div>
+                )}
+              </div>
+              <div>
+                <div style={{ fontWeight: "600" }}>Thanh toán qua ngân hàng</div>
+                <div style={{ fontSize: "13px", color: "#6B7280" }}>Chuyển khoản qua ví MoMo, QR code</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="form-group">
+          <label htmlFor="customerNote" style={{ 
+            display: "block", 
+            marginBottom: "8px", 
+            fontWeight: "500", 
+            fontSize: "14px",
+            color: "#4B5563" 
+          }}>
+            Ghi chú đơn hàng
+          </label>
+          <textarea
+            id="customerNote"
+            className="form-control"
+            value={formData.customerNote}
+            onChange={handleInputChange}
+            placeholder="Ghi chú về đơn hàng, ví dụ: thời gian hay địa điểm giao hàng chi tiết hơn..."
+            style={{
+              borderRadius: "8px",
+              border: "1px solid #E5E7EB",
+              backgroundColor: "#FFF",
+              width: "100%",
+              minHeight: "100px",
+              padding: "15px",
+              fontSize: "14px",
+              resize: "vertical",
+              fontFamily: "inherit",
+              outline: "none",
+            }}
+          ></textarea>
+        </div>
+
+        {/* Order summary */}
+        <div className="order-summary" style={{
+          marginTop: "10px",
+          padding: "20px",
+          backgroundColor: "#F9FAFB",
+          borderRadius: "8px",
+        }}>
+          <h3 style={{ 
+            fontSize: "16px", 
+            marginBottom: "15px", 
+            fontWeight: "600",
+            color: "#0F172A"
+          }}>Tóm tắt đơn hàng</h3>
+          
+          <div style={{ marginBottom: "10px", display: "flex", justifyContent: "space-between" }}>
+            <span style={{ color: "#4B5563" }}>Tạm tính:</span>
+            <span style={{ fontWeight: "500" }}>{new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(subtotal)}</span>
+          </div>
+          
+          <div style={{ marginBottom: "10px", display: "flex", justifyContent: "space-between" }}>
+            <span style={{ color: "#4B5563" }}>Phí vận chuyển:</span>
+            <span style={{ fontWeight: "500" }}>{new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(shippingMethod === "standard" ? 30000 : 50000)}</span>
+          </div>
+          
+          <div style={{ 
+            marginTop: "15px", 
+            paddingTop: "15px", 
+            borderTop: "1px solid #E5E7EB",
+            display: "flex", 
+            justifyContent: "space-between",
+            fontSize: "16px",
+            fontWeight: "600"
+          }}>
+            <span>Tổng cộng:</span>
+            <span style={{ color: "#C94D3F" }}>{new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(finalTotal)}</span>
+          </div>
+        </div>
+
+        {/* Service status warning if services are down */}
+        {(!serviceStatus.apiGateway && !serviceStatus.orderService) && (
+          <div style={{ 
+            backgroundColor: "#FEF3C7", 
+            padding: "15px", 
+            borderRadius: "8px", 
+            color: "#92400E", 
+            fontSize: "14px",
+            marginTop: "15px"
+          }}>
+            <p style={{ margin: 0, fontWeight: "500" }}>
+              <span style={{ marginRight: "8px" }}>⚠️</span>
+              Dịch vụ đặt hàng có thể không truy cập được. Vẫn có thể tiếp tục, nhưng có thể xảy ra lỗi.
+            </p>
+          </div>
+        )}
+
+        {/* Submit button */}
+        <button
+          type="button"
+          onClick={handleOrderSubmit}
+          disabled={loading}
+          style={{
+            backgroundColor: loading ? "#E5856F" : "#C94D3F",
+            color: "#FFF",
+            borderRadius: "8px",
+            border: "none",
+            height: "50px",
+            marginTop: "15px",
+            fontWeight: "600",
+            fontSize: "16px",
+            cursor: loading ? "not-allowed" : "pointer",
+            position: "relative",
+            transition: "background-color 0.2s",
+          }}
+        >
+          {loading ? (
+            <>
+              <span style={{ 
+                display: "inline-block", 
+                width: "20px", 
+                height: "20px", 
+                border: "3px solid rgba(255,255,255,.3)", 
+                borderRadius: "50%", 
+                borderTopColor: "#fff", 
+                animation: "spin 1s ease-in-out infinite", 
+                marginRight: "8px",
+                verticalAlign: "middle" 
+              }}></span>
+              Đang xử lý...
+            </>
+          ) : "Xác nhận đặt hàng"}
+        </button>
+
+        <style>
+          {`
+            @keyframes spin {
+              to { transform: rotate(360deg); }
+            }
+            
+            input:focus, textarea:focus {
+              border-color: #C94D3F;
+              box-shadow: 0 0 0 3px rgba(201, 77, 63, 0.1);
+            }
+            
+            .shipping-option:hover, .payment-option:hover {
+              border-color: #E5856F;
+            }
+          `}
+        </style>
+      </form>
+    </div>
   );
 };
 

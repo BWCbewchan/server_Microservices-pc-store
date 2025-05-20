@@ -7,7 +7,7 @@ import Catalog from "../pages/Catalog/Catalog";
 import CheckoutPage from "../pages/CheckOut/CheckoutPage";
 import ContactUs from "../pages/ContactUs/ContactUs";
 import ProductDetailsAll from "../pages/Details/ProductDetailsAll";
-import OrderHistory from "../pages/UserAccount/OrderHistory";
+import OrderConfirmation from "../pages/OrderConfirmation/OrderConfirmation";
 import UserAccount from "../pages/UserAccount/UserAccount";
 import UserOrders from "../pages/UserAccount/UserOrders";
 
@@ -21,6 +21,7 @@ const publicRoutes = [
   { path: "/catalog", component: Catalog },
   { path: "/contactUs", component: ContactUs },
   { path: "/aboutUs", component: AboutUs },
+  { path: "/order-confirmation", component: OrderConfirmation },
 ];
 
 // Đăng nhập mới xem được (Login Required)
