@@ -39,6 +39,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  width: 40px;
+  height: 40px;
 }
 
 .nav-icon:hover {
@@ -209,4 +211,98 @@
 /* Ensure dropdown works in mobile collapsed menu */
 .navbar-collapse.show .dropdown-menu.show {
   display: block;
+}
+
+/* Enhanced search UI styles */
+.nav-icon {
+  width: 40px;
+  height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.nav-icon:hover {
+  background-color: #f0f7ff;
+  color: #0156ff;
+}
+
+/* Search input styling */
+.input-group .form-control:focus {
+  box-shadow: none;
+  border-color: #ced4da;
+}
+
+/* Search button hover effect */
+.input-group .btn-primary {
+  transition: all 0.2s ease;
+}
+
+.input-group .btn-primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 5px rgba(0, 86, 255, 0.3);
+}
+
+/* Responsive adjustments for search bar */
+@media (max-width: 576px) {
+  .input-group .btn-primary {
+    padding-left: 10px;
+    padding-right: 10px;
+  }
+}
+
+/* Animation for search bar appearance */
+.my-3.d-block,
+.container-fluid.bg-white {
+  animation: fadeInSearch 0.3s ease-out;
+}
+
+@keyframes fadeInSearch {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Mobile search results styling */
+.position-absolute.bg-white {
+  z-index: 1050;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  animation: fadeInDown 0.3s ease;
+}
+
+@keyframes fadeInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Search result item hover effect */
+.position-absolute.bg-white .d-flex {
+  transition: background 0.2s ease;
+}
+
+.position-absolute.bg-white .d-flex:hover {
+  background-color: #f5f9ff;
+}
+
+/* View all results button */
+.position-absolute.bg-white .text-center {
+  transition: all 0.2s ease;
+}
+
+.position-absolute.bg-white .text-center:hover {
+  background-color: #f0f7ff;
 }

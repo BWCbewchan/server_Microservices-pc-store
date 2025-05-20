@@ -1,5 +1,5 @@
 import "bootstrap/dist/css/bootstrap.min.css";
-import { useContext, useState, useEffect, useRef } from "react";
+import { useContext, useState, useEffect, useRef, useCallback } from "react";
 import { AiOutlineClose } from "react-icons/ai";
 import { CiSearch } from "react-icons/ci";
 import { FiShoppingCart } from "react-icons/fi";
@@ -8,17 +8,24 @@ import { Link, useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import Logo from "../../assets/images/logo.png";
 import { AuthContext } from "../../context/AuthContext";
+import axios from "axios";
 
 const Navigation = () => {
     const [showSearch, setShowSearch] = useState(false);
     const [expanded, setExpanded] = useState(false);
     const [showUserDropdown, setShowUserDropdown] = useState(false);
     const [isMobile, setIsMobile] = useState(window.innerWidth < 992);
+    const [searchTerm, setSearchTerm] = useState("");
+    const [searchResults, setSearchResults] = useState([]);
+    const [isSearching, setIsSearching] = useState(false);
+    
     const navigate = useNavigate();
     const { currentUser, logout } = useContext(AuthContext);
     const dropdownRef = useRef(null);
     const mobileDropdownRef = useRef(null);
     const desktopDropdownRef = useRef(null);
+    const searchResultsRef = useRef(null);
+    const searchDebounceRef = useRef(null);
 
     // Đóng dropdown khi click bên ngoài - tách biệt xử lý cho mobile và desktop
     useEffect(() => {
@@ -72,6 +79,128 @@ const Navigation = () => {
         setShowUserDropdown(!showUserDropdown);
     };
 
+    // Đóng kết quả tìm kiếm khi click ra ngoài
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (searchResultsRef.current && !searchResultsRef.current.contains(event.target)) {
+                setSearchResults([]);
+            }
+        };
+
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => {
+            document.removeEventListener("mousedown", handleClickOutside);
+        };
+    }, []);
+
+    // Hàm xử lý debounce để tránh gọi API quá nhiều khi nhập
+    const debounce = (func, delay) => {
+        return function (...args) {
+            if (searchDebounceRef.current) {
+                clearTimeout(searchDebounceRef.current);
+            }
+            searchDebounceRef.current = setTimeout(() => {
+                func.apply(null, args);
+            }, delay);
+        };
+    };
+
+    // Hàm tìm kiếm sản phẩm
+    const searchProducts = useCallback(async (term) => {
+        if (!term || term.length < 2) {
+            setSearchResults([]);
+            setIsSearching(false);
+            return;
+        }
+
+        setIsSearching(true);
+        try {
+            console.log("Đang tìm kiếm sản phẩm với từ khóa:", term);
+            
+            const apiUrl = `${import.meta.env.VITE_APP_API_GATEWAY_URL}/products/products-search`;
+            console.log("API URL:", apiUrl);
+            
+            const response = await axios.get(apiUrl, {
+                params: { name: term, limit: 5 },
+                withCredentials: true
+            });
+            
+            console.log("Kết quả tìm kiếm:", response.data);
+            
+            if (response?.data?.data) {
+                setSearchResults(response.data.data);
+            } else {
+                console.error("Cấu trúc response không đúng:", response.data);
+                setSearchResults([]);
+            }
+        } catch (error) {
+            console.error("Lỗi khi tìm kiếm sản phẩm:", error);
+            // Chi tiết lỗi để debug
+            if (error.response) {
+                console.error("Response error data:", error.response.data);
+                console.error("Response error status:", error.response.status);
+            } else if (error.request) {
+                console.error("No response received:", error.request);
+            } else {
+                console.error("Error message:", error.message);
+            }
+            setSearchResults([]);
+        } finally {
+            setIsSearching(false);
+        }
+    }, []);
+
+    // Tạo phiên bản debounce của hàm tìm kiếm
+    const debouncedSearch = useCallback(
+        debounce((term) => {
+            searchProducts(term);
+        }, 300),
+        [searchProducts]
+    );
+
+    // Gọi hàm tìm kiếm khi searchTerm thay đổi
+    useEffect(() => {
+        if (searchTerm) {
+            debouncedSearch(searchTerm);
+        } else {
+            setSearchResults([]);
+        }
+    }, [searchTerm, debouncedSearch]);
+
+    // Xử lý khi người dùng nhập từ khóa tìm kiếm
+    const handleSearchChange = (e) => {
+        setSearchTerm(e.target.value);
+    };
+
+    // Xử lý khi người dùng chọn một sản phẩm từ kết quả
+    const handleSelectProduct = (productId) => {
+        navigate(`/details/${productId}`);
+        setSearchTerm("");
+        setSearchResults([]);
+        setShowSearch(false);
+        setExpanded(false);
+    };
+
+    // Xử lý khi người dùng muốn xem tất cả kết quả tìm kiếm
+    const handleViewAllResults = () => {
+        if (searchTerm.trim()) {
+            navigate(`/catalog?name=${encodeURIComponent(searchTerm.trim())}`);
+            setSearchTerm("");
+            setSearchResults([]);
+            setShowSearch(false);
+            setExpanded(false);
+        }
+    };
+
+    // Format giá tiền
+    const formatPrice = (price) => {
+        return new Intl.NumberFormat('vi-VN', {
+            style: 'currency',
+            currency: 'VND',
+            maximumFractionDigits: 0
+        }).format(price);
+    };
+
     const categories = [
         "Laptops",
         "Desktop PCs",
@@ -99,23 +228,17 @@ const Navigation = () => {
                 {/* Mobile Actions: Search, Cart, User Icon */}
                 <div className="d-flex align-items-center order-lg-last ms-auto me-2">
                     <div className="nav-item mx-2">
-                        {showSearch ? (
-                            <button
-                                className="btn btn-link p-0 border-0"
-                                onClick={() => setShowSearch(false)}
-                                aria-label="Close search"
-                            >
-                                <AiOutlineClose size={22} color="#007bff" />
-                            </button>
-                        ) : (
-                            <button
-                                className="btn btn-link p-0 border-0"
-                                onClick={() => setShowSearch(true)}
-                                aria-label="Open search"
-                            >
-                                <CiSearch size={22} />
-                            </button>
-                        )}
+                        <button
+                            className="search-toggle-btn"
+                            onClick={() => setShowSearch(!showSearch)}
+                            aria-label={showSearch ? "Close search" : "Open search"}
+                        >
+                            {showSearch ? (
+                                <AiOutlineClose size={22} className="search-close-icon" />
+                            ) : (
+                                <CiSearch size={24} />
+                            )}
+                        </button>
                     </div>
 
                     <div className="nav-item mx-2">
@@ -222,16 +345,73 @@ const Navigation = () => {
                     {/* Search bar for mobile */}
                     {showSearch && (
                         <div className="my-3 d-block d-lg-none">
-                            <div className="input-group">
-                                <span className="input-group-text bg-light border-0">
-                                    <CiSearch size={18} />
-                                </span>
-                                <input
-                                    type="text"
-                                    className="form-control bg-light border-0"
-                                    placeholder="Tìm kiếm sản phẩm..."
-                                    autoFocus
-                                />
+                            <div className="search-container" ref={searchResultsRef}>
+                                <div className="search-input-wrapper">
+                                    <CiSearch className="search-icon" size={20} />
+                                    <input
+                                        type="text"
+                                        className="search-input"
+                                        placeholder="Tìm kiếm sản phẩm..."
+                                        value={searchTerm}
+                                        onChange={handleSearchChange}
+                                        autoFocus
+                                    />
+                                    {searchTerm && (
+                                        <button
+                                            className="search-clear-btn"
+                                            onClick={() => setSearchTerm("")}
+                                            aria-label="Clear search"
+                                        >
+                                            <AiOutlineClose size={16} />
+                                        </button>
+                                    )}
+                                </div>
+                                
+                                {/* Kết quả tìm kiếm trên mobile */}
+                                {searchResults.length > 0 && (
+                                    <div className="search-results-dropdown">
+                                        <div className="search-results-header">
+                                            <small>Gợi ý sản phẩm</small>
+                                        </div>
+                                        <div className="search-results-list">
+                                            {searchResults.map((product) => (
+                                                <div
+                                                    key={product._id}
+                                                    className="search-result-item"
+                                                    onClick={() => handleSelectProduct(product._id)}
+                                                >
+                                                    <img
+                                                        src={product.image}
+                                                        alt={product.name}
+                                                        className="search-result-image"
+                                                    />
+                                                    <div className="search-result-info">
+                                                        <div className="search-result-name">{product.name}</div>
+                                                        <div className="search-result-price">
+                                                            {formatPrice(product.price)}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                        <div 
+                                            className="search-results-footer"
+                                            onClick={handleViewAllResults}
+                                        >
+                                            Xem tất cả kết quả
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Hiển thị đang tìm kiếm */}
+                                {isSearching && searchTerm && (
+                                    <div className="search-loading">
+                                        <div className="spinner-border spinner-border-sm text-primary" role="status">
+                                            <span className="visually-hidden">Đang tìm kiếm...</span>
+                                        </div>
+                                        <span>Đang tìm kiếm...</span>
+                                    </div>
+                                )}
                             </div>
                         </div>
                     )}
@@ -354,23 +534,89 @@ const Navigation = () => {
                 </div>
             </div>
 
-            {/* Desktop search bar - outside of collapsible area */}
+            {/* Desktop search overlay - full width */}
             {showSearch && (
-                <div className="container-fluid bg-light py-3 border-top d-none d-lg-block">
+                <div className="search-overlay">
                     <div className="container">
-                        <div className="input-group">
-                            <span className="input-group-text bg-white border-0">
-                                <CiSearch size={20} />
-                            </span>
-                            <input
-                                type="text"
-                                className="form-control border-0"
-                                placeholder="Tìm kiếm trong cửa hàng..."
-                                autoFocus
-                            />
-                            <button className="btn btn-primary" type="button">
-                                Tìm kiếm
-                            </button>
+                        <div className="search-container-desktop" ref={searchResultsRef}>
+                            <div className="search-input-wrapper">
+                                <CiSearch className="search-icon" size={24} />
+                                <input
+                                    type="text"
+                                    className="search-input"
+                                    placeholder="Nhập từ khóa tìm kiếm..."
+                                    value={searchTerm}
+                                    onChange={handleSearchChange}
+                                    autoFocus
+                                />
+                                {searchTerm && (
+                                    <button
+                                        className="search-clear-btn"
+                                        onClick={() => setSearchTerm("")}
+                                        aria-label="Clear search"
+                                    >
+                                        <AiOutlineClose size={20} />
+                                    </button>
+                                )}
+                                <button
+                                    className="search-button"
+                                    onClick={handleViewAllResults}
+                                    disabled={!searchTerm.trim()}
+                                >
+                                    Tìm kiếm
+                                </button>
+                            </div>
+                            
+                            {/* Kết quả tìm kiếm trên desktop */}
+                            {searchResults.length > 0 && (
+                                <div className="search-results-dropdown search-results-desktop">
+                                    <div className="search-results-header">
+                                        <small>Tìm thấy {searchResults.length} sản phẩm</small>
+                                    </div>
+                                    <div className="search-results-list">
+                                        {searchResults.map((product) => (
+                                            <div
+                                                key={product._id}
+                                                className="search-result-item"
+                                                onClick={() => handleSelectProduct(product._id)}
+                                            >
+                                                <img
+                                                    src={product.image}
+                                                    alt={product.name}
+                                                    className="search-result-image search-result-image-lg"
+                                                />
+                                                <div className="search-result-info">
+                                                    <div className="search-result-name">{product.name}</div>
+                                                    <div className="search-result-price">
+                                                        {formatPrice(product.price)}
+                                                    </div>
+                                                </div>
+                                                <div className="search-result-stock">
+                                                    <span className={`search-result-badge ${product.stock > 0 ? 'in-stock' : 'out-of-stock'}`}>
+                                                        {product.stock > 0 ? 'Còn hàng' : 'Hết hàng'}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                    <div 
+                                        className="search-results-footer"
+                                        onClick={handleViewAllResults}
+                                    >
+                                        Xem tất cả kết quả
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Hiển thị đang tìm kiếm */}
+                            {isSearching && searchTerm && (
+                                <div className="search-loading">
+                                    <div className="spinner-border spinner-border-sm text-primary" role="status">
+                                        <span className="visually-hidden">Đang tìm kiếm...</span>
+                                    </div>
+                                    <span>Đang tìm kiếm...</span>
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>
