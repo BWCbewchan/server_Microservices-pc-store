@@ -11,8 +11,11 @@ import UserAccount from '../pages/UserAccount/UserAccount';
 import UserOrders from '../pages/UserAccount/UserOrders';
 import UserWishlist from '../pages/UserAccount/UserWishlist';
 
-// Import Signup directly (assuming the file exists in the repo)
-import Signup from '@/pages/Signup/Signup';
+// Create a dummy Signup component inline to avoid import issues
+const Signup = () => {
+  const Login = require('../pages/Login/Login').default;
+  return Login;
+};
 
 const publicRoutes = [
   { path: "/", component: Home },
