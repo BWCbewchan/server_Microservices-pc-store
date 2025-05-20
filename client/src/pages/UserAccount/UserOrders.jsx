@@ -6,7 +6,7 @@ import { AuthContext } from "../../context/AuthContext";
 
 // API endpoints with fallbacks
 const API_GATEWAY_URL = import.meta.env.VITE_APP_API_GATEWAY_URL || "http://localhost:3000";
-const ORDER_API_URL = `${API_GATEWAY_URL}/api/orders`;
+const ORDER_API_URL = `${API_GATEWAY_URL}/orders`;
 const DIRECT_ORDER_API_URL = "http://localhost:4009";
 
 const UserOrders = () => {
