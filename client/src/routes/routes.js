@@ -11,25 +11,8 @@ import UserAccount from '../pages/UserAccount/UserAccount';
 import UserOrders from '../pages/UserAccount/UserOrders';
 import UserWishlist from '../pages/UserAccount/UserWishlist';
 
-// Define a fallback component for Signup to prevent build errors
-const SignupFallback = () => {
-  return (
-    <div className="container py-5 text-center">
-      <h2>Signup Page</h2>
-      <p>This is a placeholder component.</p>
-    </div>
-  );
-};
-
-// Try to import the actual Signup component, but use the fallback if it fails
-let Signup;
-try {
-  // Dynamic import to be handled at build time
-  Signup = require('../pages/Signup/Signup').default;
-} catch (error) {
-  console.warn('Could not load Signup component, using fallback');
-  Signup = SignupFallback;
-}
+// Import Signup directly (assuming the file exists in the repo)
+import Signup from '../pages/Signup/Signup';
 
 const publicRoutes = [
   { path: "/", component: Home },
