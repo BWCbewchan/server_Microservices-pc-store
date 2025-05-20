@@ -1,43 +1,44 @@
 import { useEffect, useState } from "react";
+import { useParams } from "react-router-dom"; // Use useParams instead of useLocation for cleaner route params
+import axios from "axios";
 import ProductDetailsHead from "./ProductDetailsHead";
-import ProductDetails from "./ProductDetails";
-import ProductSpecs from "./ProductSpecs";
 import OutplayCompetition from "./OutplayCompetition";
 import ImageDisplay from "./ImageDisplay";
-import Features from "../../pages/Home/Features";
 import FeaturesDetails from "./FeaturesDetails";
-import { useLocation, useParams } from "react-router-dom";
-import axios from "axios";
+import Features from "../../pages/Home/Features";
 
 const ProductDetailsAll = () => {
   const [activeTab, setActiveTab] = useState("about");
-  // const id = useLocation().pathname.split("/")[2];
-  const { id } = useParams();
+  const { id } = useParams(); // Use useParams hook for cleaner route parameter extraction
   const [product, setProduct] = useState({});
-  
+  const [selectedColor, setSelectedColor] = useState("");
+
   useEffect(() => {
-    const fetchNewProducts = async () => {
+    const fetchProductDetails = async () => {
       try {
         const URL = `${import.meta.env.VITE_APP_API_GATEWAY_URL}/products/product/${id}`;
-        const response = await axios.get(URL, { withCredentials: true });
-
+        const response = await axios.get(URL);
         setProduct(response?.data?.data);
-        console.log(product._id);
-        
+
+        // Initialize selected color if product has colors
+        if (
+          response?.data?.data?.color &&
+          Array.isArray(response.data.data.color) &&
+          response.data.data.color.length > 0
+        ) {
+          setSelectedColor(response.data.data.color[0]);
+        }
       } catch (error) {
-        console.log("Error fetching new products: ", error);
+        console.error("Error fetching product details:", error);
       }
     };
-    fetchNewProducts();
-    console.log("Extracted id:", id);
+
+    fetchProductDetails();
   }, [id]);
 
   return (
     <>
-      {/* Truyền activeTab và setActiveTab xuống ProductDetailsHead */}
       <ProductDetailsHead activeTab={activeTab} setActiveTab={setActiveTab} price={product.price} />
-      
-     
 
       {/* Breadcrumb */}
       <div className="container">
@@ -120,31 +121,8 @@ const ProductDetailsAll = () => {
 
             {/* Cột phải: Ảnh sản phẩm */}
             <div className="col-md-6 text-center position-relative">
-              {/* Chấm tròn chọn ảnh */}
-              {/* <div
-                   className="d-flex flex-column gap-2 position-absolute"
-                   style={{ top: "50%", right: "10px", transform: "translateY(-50%)" }}
-               >
-                   <button
-                       className="btn btn-outline-secondary rounded-circle"
-                       style={{ width: "12px", height: "12px" }}
-                   ></button>
-                   <button
-                       className="btn btn-primary rounded-circle"
-                       style={{ width: "12px", height: "12px" }}
-                   ></button>
-                   <button
-                       className="btn btn-outline-secondary rounded-circle"
-                       style={{ width: "12px", height: "12px" }}
-                   ></button>
-               </div> */}
-
               {/* Ảnh sản phẩm */}
-              <img
-                src={product?.image}
-                alt="MSI MPG Trident 3"
-                className="img-fluid mb-3"
-              />
+              <img src={product?.image} alt="MSI MPG Trident 3" className="img-fluid mb-3" />
             </div>
           </div>
         </div>
