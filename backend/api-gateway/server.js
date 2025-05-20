@@ -15,13 +15,13 @@ app.use((req, res, next) => {
   res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
   res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
   res.header('Access-Control-Max-Age', '86400'); // Cache preflight for 24 hours
-  
+
   // Handle OPTIONS method specially and immediately
   if (req.method === 'OPTIONS') {
     console.log(`[${new Date().toISOString()}] Handling OPTIONS request for: ${req.url}`);
     return res.status(200).end();
   }
-  
+
   next();
 });
 
@@ -37,7 +37,7 @@ app.use(express.json());
 
 // Add the param function to the request object for the API Gateway
 app.use((req, res, next) => {
-  req.param = function(name) {
+  req.param = function (name) {
     if (this.params && this.params[name] !== undefined) return this.params[name];
     if (this.body && this.body[name] !== undefined) return this.body[name];
     if (this.query && this.query[name] !== undefined) return this.query[name];
@@ -67,14 +67,14 @@ app.use('/api/auth', (req, res) => {
   const startTime = Date.now();
   console.log(`[${new Date().toISOString()}] Auth request: ${req.method} ${req.originalUrl}`);
   console.log('Headers:', req.headers);
-  
+
   const http = require('http');
-  
+
   let bodyData = '';
   if (req.method === 'POST' || req.method === 'PUT') {
     bodyData = JSON.stringify(req.body);
   }
-  
+
   const options = {
     hostname: authServiceHostname,
     port: authServicePort,
@@ -85,7 +85,7 @@ app.use('/api/auth', (req, res) => {
       'Content-Length': Buffer.byteLength(bodyData)
     }
   };
-  
+
   // Copy Authorization header - this is critical for token-based auth
   if (req.headers.authorization) {
     console.log('Forwarding Authorization header:', req.headers.authorization);
@@ -93,31 +93,31 @@ app.use('/api/auth', (req, res) => {
   } else {
     console.log('No Authorization header found in request');
   }
-  
+
   console.log(`Forwarding to auth service: ${options.method} ${options.path}`);
-  
+
   const authReq = http.request(options, (authRes) => {
     Object.keys(authRes.headers).forEach(key => {
       res.setHeader(key, authRes.headers[key]);
     });
-    
+
     res.setHeader('Access-Control-Allow-Origin', '*');
-    
+
     res.status(authRes.statusCode);
-    
+
     let data = '';
     authRes.on('data', (chunk) => {
       data += chunk;
       res.write(chunk);
     });
-    
+
     authRes.on('end', () => {
       const duration = Date.now() - startTime;
       console.log(`Auth request completed in ${duration}ms with status ${authRes.statusCode}`);
       res.end();
     });
   });
-  
+
   authReq.on('error', (error) => {
     console.error(`Auth service error: ${error.message}`);
     res.status(502).json({
@@ -126,7 +126,7 @@ app.use('/api/auth', (req, res) => {
       timestamp: new Date().toISOString()
     });
   });
-  
+
   authReq.setTimeout(10000, () => {
     authReq.destroy();
     res.status(504).json({
@@ -135,7 +135,7 @@ app.use('/api/auth', (req, res) => {
       timestamp: new Date().toISOString()
     });
   });
-  
+
   if (bodyData) {
     authReq.write(bodyData);
   }
@@ -147,17 +147,17 @@ app.post('/register', async (req, res) => {
   res.header('Access-Control-Allow-Origin', '*');
   res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
   res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-  
+
   try {
     console.log('Direct register endpoint called with data:', JSON.stringify(req.body));
-    
+
     const http = require('http');
     const postData = JSON.stringify({
       name: req.body.name,
       email: req.body.email,
       password: req.body.password
     });
-    
+
     const options = {
       hostname: authServiceHostname,
       port: authServicePort,
@@ -168,14 +168,14 @@ app.post('/register', async (req, res) => {
         'Content-Length': Buffer.byteLength(postData)
       }
     };
-    
+
     const authReq = http.request(options, (authRes) => {
       let responseData = '';
-      
+
       authRes.on('data', (chunk) => {
         responseData += chunk;
       });
-      
+
       authRes.on('end', () => {
         try {
           const jsonResponse = JSON.parse(responseData);
@@ -189,7 +189,7 @@ app.post('/register', async (req, res) => {
         }
       });
     });
-    
+
     authReq.on('error', (error) => {
       console.error('Auth service request error:', error.message);
       res.status(500).json({
@@ -197,7 +197,7 @@ app.post('/register', async (req, res) => {
         message: `Failed to connect to auth service: ${error.message}`
       });
     });
-    
+
     authReq.setTimeout(10000, () => {
       authReq.destroy();
       res.status(504).json({
@@ -205,7 +205,7 @@ app.post('/register', async (req, res) => {
         message: 'Request to auth service timed out (10s)'
       });
     });
-    
+
     authReq.write(postData);
     authReq.end();
   } catch (error) {
@@ -220,16 +220,16 @@ app.post('/register', async (req, res) => {
 // Similar standalone login endpoint for better reliability
 app.post('/login', async (req, res) => {
   res.header('Access-Control-Allow-Origin', '*');
-  
+
   try {
     console.log('Direct login endpoint called');
-    
+
     const http = require('http');
     const postData = JSON.stringify({
       email: req.body.email,
       password: req.body.password
     });
-    
+
     const options = {
       hostname: authServiceHostname,
       port: authServicePort,
@@ -240,14 +240,14 @@ app.post('/login', async (req, res) => {
         'Content-Length': Buffer.byteLength(postData)
       }
     };
-    
+
     const authReq = http.request(options, (authRes) => {
       let responseData = '';
-      
+
       authRes.on('data', (chunk) => {
         responseData += chunk;
       });
-      
+
       authRes.on('end', () => {
         try {
           const jsonResponse = JSON.parse(responseData);
@@ -260,7 +260,7 @@ app.post('/login', async (req, res) => {
         }
       });
     });
-    
+
     authReq.on('error', (error) => {
       console.error('Auth service request error:', error.message);
       res.status(500).json({
@@ -268,7 +268,7 @@ app.post('/login', async (req, res) => {
         message: `Failed to connect to auth service: ${error.message}`
       });
     });
-    
+
     authReq.setTimeout(10000, () => {
       authReq.destroy();
       res.status(504).json({
@@ -276,7 +276,7 @@ app.post('/login', async (req, res) => {
         message: 'Request to auth service timed out'
       });
     });
-    
+
     authReq.write(postData);
     authReq.end();
   } catch (error) {
@@ -313,31 +313,31 @@ app.put('/update', (req, res) => {
   res.header('Access-Control-Allow-Origin', '*');
   res.header('Access-Control-Allow-Methods', 'PUT, OPTIONS');
   res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-  
+
   console.log(`[${new Date().toISOString()}] Direct update request received`);
-  
+
   const http = require('http');
-  
+
   // Get the token
   const authHeader = req.headers.authorization;
   if (!authHeader) {
     return res.status(401).json({ message: 'Authorization header required' });
   }
-  
+
   let token;
   if (authHeader.startsWith('Bearer ')) {
     token = authHeader.split(' ')[1];
   } else {
     token = authHeader;
   }
-  
+
   if (!token) {
     return res.status(401).json({ message: 'Bearer token is missing' });
   }
-  
+
   // Prepare the request to auth service
   const bodyData = JSON.stringify(req.body);
-  
+
   const options = {
     hostname: authServiceHostname,
     port: authServicePort,
@@ -349,18 +349,18 @@ app.put('/update', (req, res) => {
       'Content-Length': Buffer.byteLength(bodyData)
     }
   };
-  
+
   const authReq = http.request(options, (authRes) => {
     let responseData = '';
-    
+
     authRes.on('data', (chunk) => {
       responseData += chunk;
     });
-    
+
     authRes.on('end', () => {
       // Always set CORS headers in response
       res.header('Access-Control-Allow-Origin', '*');
-      
+
       if (authRes.statusCode >= 400) {
         // For error responses
         try {
@@ -382,14 +382,14 @@ app.put('/update', (req, res) => {
       }
     });
   });
-  
+
   authReq.on('error', (error) => {
     console.error('Auth service error:', error.message);
     res.status(502).json({
       message: `Failed to connect to auth service: ${error.message}`
     });
   });
-  
+
   // Set timeout
   authReq.setTimeout(10000, () => {
     authReq.destroy();
@@ -397,7 +397,7 @@ app.put('/update', (req, res) => {
       message: 'Request to auth service timed out'
     });
   });
-  
+
   // Send the request
   authReq.write(bodyData);
   authReq.end();
@@ -409,12 +409,12 @@ app.put(['/api/auth/update', '/auth/update', '/update'], async (req, res) => {
   res.header('Access-Control-Allow-Origin', '*');
   res.header('Access-Control-Allow-Methods', 'PUT, POST, OPTIONS');
   res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
-  
+
   const startTime = Date.now();
   console.log(`[${new Date().toISOString()}] Profile update request received`);
   console.log('Request headers:', req.headers);
   console.log('Request body:', req.body);
-  
+
   try {
     // Extract auth token - handle different authorization header formats
     const authHeader = req.headers.authorization;
@@ -424,26 +424,26 @@ app.put(['/api/auth/update', '/auth/update', '/update'], async (req, res) => {
         message: 'Authorization header missing'
       });
     }
-    
+
     let token;
     if (authHeader.startsWith('Bearer ')) {
       token = authHeader.split(' ')[1];
     } else {
       token = authHeader; // Try using the header value directly as fallback
     }
-    
+
     if (!token) {
       return res.status(401).json({
         error: true,
         message: 'Bearer token required'
       });
     }
-    
+
     const http = require('http');
-    
+
     // Convert request body to JSON string
     const bodyData = JSON.stringify(req.body);
-    
+
     const options = {
       hostname: authServiceHostname,
       port: authServicePort,
@@ -456,27 +456,27 @@ app.put(['/api/auth/update', '/auth/update', '/update'], async (req, res) => {
         'Accept': 'application/json'
       }
     };
-    
+
     console.log(`Forwarding to auth service: ${options.method} ${options.path}`);
-    
+
     // Use a Promise to handle the HTTP request for better error handling
     const authServiceRequest = () => {
       return new Promise((resolve, reject) => {
         const authReq = http.request(options, (authRes) => {
           let responseData = '';
-          
+
           authRes.on('data', (chunk) => {
             responseData += chunk;
           });
-          
+
           authRes.on('end', () => {
             const duration = Date.now() - startTime;
             console.log(`Auth request completed in ${duration}ms with status ${authRes.statusCode}`);
-            
+
             try {
               // Always set CORS headers again to ensure they're included in the response
               res.header('Access-Control-Allow-Origin', '*');
-              
+
               if (authRes.statusCode >= 400) {
                 console.warn(`Auth service returned error status: ${authRes.statusCode}`);
                 let errorResponse;
@@ -494,24 +494,24 @@ app.put(['/api/auth/update', '/auth/update', '/update'], async (req, res) => {
             }
           });
         });
-        
+
         authReq.on('error', (error) => {
           console.error('Auth service request error:', error.message);
           reject({ status: 502, data: { error: true, message: `Auth service error: ${error.message}` } });
         });
-        
+
         authReq.setTimeout(10000, () => {
           authReq.destroy();
           reject({ status: 504, data: { error: true, message: 'Auth service request timed out' } });
         });
-        
+
         if (bodyData) {
           authReq.write(bodyData);
         }
         authReq.end();
       });
     };
-    
+
     try {
       const { status, data } = await authServiceRequest();
       return res.status(status).json(data);
@@ -531,14 +531,14 @@ app.put(['/api/auth/update', '/auth/update', '/update'], async (req, res) => {
 app.use('/products', (req, res) => {
   const startTime = Date.now();
   console.log(`[${new Date().toISOString()}] Product request: ${req.method} ${req.originalUrl}`);
-  
+
   const http = require('http');
-  
+
   let bodyData = '';
   if (req.method === 'POST' || req.method === 'PUT') {
     bodyData = JSON.stringify(req.body);
   }
-  
+
   const options = {
     hostname: 'localhost',
     port: 4004,
@@ -549,32 +549,32 @@ app.use('/products', (req, res) => {
       'Content-Length': Buffer.byteLength(bodyData)
     }
   };
-  
+
   console.log(`Forwarding to: ${options.hostname}:${options.port}${options.path}`);
-  
+
   const productReq = http.request(options, (productRes) => {
     Object.keys(productRes.headers).forEach(key => {
       res.setHeader(key, productRes.headers[key]);
     });
-    
+
     res.setHeader('Access-Control-Allow-Origin', req.headers.origin || 'http://localhost:2000');
     res.setHeader('Access-Control-Allow-Credentials', 'true');
-    
+
     res.status(productRes.statusCode);
-    
+
     let data = '';
     productRes.on('data', (chunk) => {
       data += chunk;
       res.write(chunk);
     });
-    
+
     productRes.on('end', () => {
       const duration = Date.now() - startTime;
       console.log(`[${new Date().toISOString()}] Product request completed in ${duration}ms with status ${productRes.statusCode}`);
       res.end();
     });
   });
-  
+
   productReq.on('error', (error) => {
     console.error(`Product service error: ${error.message}`);
     res.status(502).json({
@@ -582,7 +582,7 @@ app.use('/products', (req, res) => {
       message: `Failed to connect to product service: ${error.message}`
     });
   });
-  
+
   productReq.setTimeout(10000, () => {
     productReq.destroy();
     res.status(504).json({
@@ -590,7 +590,7 @@ app.use('/products', (req, res) => {
       message: 'Request to product service timed out'
     });
   });
-  
+
   if (bodyData) {
     productReq.write(bodyData);
   }
@@ -601,14 +601,14 @@ app.use('/products', (req, res) => {
 app.use('/notification', (req, res) => {
   const startTime = Date.now();
   console.log(`[${new Date().toISOString()}] Notification request: ${req.method} ${req.originalUrl}`);
-  
+
   const http = require('http');
-  
+
   let bodyData = '';
   if (req.method === 'POST' || req.method === 'PUT') {
     bodyData = JSON.stringify(req.body);
   }
-  
+
   const options = {
     hostname: 'localhost',
     port: 4001,
@@ -619,32 +619,32 @@ app.use('/notification', (req, res) => {
       'Content-Length': Buffer.byteLength(bodyData)
     }
   };
-  
+
   console.log(`Forwarding to: ${options.hostname}:${options.port}${options.path}`);
-  
+
   const notificationReq = http.request(options, (notificationRes) => {
     Object.keys(notificationRes.headers).forEach(key => {
       res.setHeader(key, notificationRes.headers[key]);
     });
-    
+
     res.setHeader('Access-Control-Allow-Origin', req.headers.origin || 'http://localhost:2000');
     res.setHeader('Access-Control-Allow-Credentials', 'true');
-    
+
     res.status(notificationRes.statusCode);
-    
+
     let data = '';
     notificationRes.on('data', (chunk) => {
       data += chunk;
       res.write(chunk);
     });
-    
+
     notificationRes.on('end', () => {
       const duration = Date.now() - startTime;
       console.log(`[${new Date().toISOString()}] Notification request completed in ${duration}ms with status ${notificationRes.statusCode}`);
       res.end();
     });
   });
-  
+
   notificationReq.on('error', (error) => {
     console.error(`Notification service error: ${error.message}`);
     res.status(502).json({
@@ -652,7 +652,7 @@ app.use('/notification', (req, res) => {
       message: `Failed to connect to notification service: ${error.message}`
     });
   });
-  
+
   notificationReq.setTimeout(10000, () => {
     notificationReq.destroy();
     res.status(504).json({
@@ -660,7 +660,7 @@ app.use('/notification', (req, res) => {
       message: 'Request to notification service timed out'
     });
   });
-  
+
   if (bodyData) {
     notificationReq.write(bodyData);
   }
@@ -753,7 +753,7 @@ process.on('unhandledRejection', (reason, promise) => {
 // Add startup check to verify services
 app.get('/startup-check', (req, res) => {
   const results = [];
-  
+
   Object.entries(services).forEach(([name, url]) => {
     try {
       results.push({
@@ -770,7 +770,7 @@ app.get('/startup-check', (req, res) => {
       });
     }
   });
-  
+
   res.json({
     gateway: {
       status: 'running',
@@ -788,7 +788,7 @@ const startServer = () => {
       console.log(`Services configured: ${Object.keys(services).join(', ')}`);
       console.log(`Test endpoint: http://localhost:${PORT}/startup-check`);
     });
-    
+
     server.on('error', (error) => {
       if (error.code === 'EADDRINUSE') {
         console.error(`Port ${PORT} is already in use. Try using a different port.`);
@@ -801,7 +801,7 @@ const startServer = () => {
         console.error('Server error:', error);
       }
     });
-    
+
     return server;
   } catch (error) {
     console.error('Failed to start server:', error);
