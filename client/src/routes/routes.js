@@ -1,13 +1,13 @@
+import ProductDetailsAll from '../components/ProductDetails/ProductDetailsAll'; // Make sure correct path
+import AboutUs from '../pages/AboutUs/AboutUs';
+import Cart from '../pages/Cart/Cart';
+import Catalog from '../pages/Catalog/Catalog';
+import CheckoutPage from '../pages/CheckOut/CheckoutPage';
+import ContactUs from '../pages/ContactUs/ContactUs';
 import Home from '../pages/Home/Home';
 import Login from '../pages/Login/Login';
-import Signup from '../pages/Signup/Signup'; // Remove .jsx extension
-import ProductDetailsAll from '../components/ProductDetails/ProductDetailsAll'; // Make sure correct path
-import Catalog from '../pages/Catalog/Catalog';
-import ContactUs from '../pages/ContactUs/ContactUs';
-import AboutUs from '../pages/AboutUs/AboutUs';
 import OrderConfirmation from '../pages/OrderConfirmation/OrderConfirmation';
-import Cart from '../pages/Cart/Cart';
-import CheckoutPage from '../pages/CheckOut/CheckoutPage';
+import Signup from '../pages/Signup/Signup'; // Remove .jsx extension
 import UserAccount from '../pages/UserAccount/UserAccount';
 import UserOrders from '../pages/UserAccount/UserOrders';
 import UserWishlist from '../pages/UserAccount/UserWishlist'; // Add the import for UserWishlist

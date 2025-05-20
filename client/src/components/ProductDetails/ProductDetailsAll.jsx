@@ -1,11 +1,11 @@
+import axios from "axios";
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom"; // Use useParams instead of useLocation for cleaner route params
-import axios from "axios";
-import ProductDetailsHead from "./ProductDetailsHead";
-import OutplayCompetition from "./OutplayCompetition";
-import ImageDisplay from "./ImageDisplay";
-import FeaturesDetails from "./FeaturesDetails";
 import Features from "../../pages/Home/Features";
+import FeaturesDetails from "./FeaturesDetails";
+import ImageDisplay from "./ImageDisplay";
+import OutplayCompetition from "./OutplayCompetition";
+import ProductDetailsHead from "./ProductDetailsHead";
 
 const ProductDetailsAll = () => {
   const [activeTab, setActiveTab] = useState("about");
