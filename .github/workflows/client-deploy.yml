@@ -1,17 +1,32 @@
-name: Build and Deploy Client
+name: Build and Deploy Client to GitHub Pages
 
 on:
   push:
     branches:
       - main
+      - ci/ci
     paths:
       - 'client/**'
       - '.github/workflows/client-deploy.yml'
   pull_request:
     branches:
       - main
+      - ci/ci
     paths:
       - 'client/**'
+  # Allow manual trigger
+  workflow_dispatch:
+
+# Set permissions for GitHub Pages deployment
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Allow only one concurrent deployment
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
 
 jobs:
   build:
@@ -19,7 +34,7 @@ jobs:
     
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       
       - name: Setup Node.js
         uses: actions/setup-node@v3
@@ -45,15 +60,13 @@ jobs:
           cd client
           npm run lint || echo "Linting issues found, but continuing build"
       
-      - name: Cache build artifacts
-        uses: actions/cache@v3
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+      
+      - name: Upload GitHub Pages artifact
+        uses: actions/upload-pages-artifact@v3
         with:
-          path: |
-            client/dist
-            client/node_modules/.vite
-          key: ${{ runner.os }}-vite-build-${{ github.sha }}
-          restore-keys: |
-            ${{ runner.os }}-vite-build-
+          path: 'client/dist'
       
       - name: Add build summary
         run: |
@@ -70,90 +83,22 @@ jobs:
           echo "* Number of files: $(find dist -type f | wc -l)" >> $GITHUB_STEP_SUMMARY
 
   deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     needs: build
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    # Modified condition to be more permissive - allow CI branch and PRs for testing
+    if: (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/ci/ci' || github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch')
     
     steps:
-      - name: Checkout code again
-        uses: actions/checkout@v3
-      
-      - name: Setup Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: '18'
-      
-      # Build directly in the deployment step to ensure we have the dist directory
-      - name: Install dependencies and build
-        run: |
-          cd client
-          npm ci
-          npm run build
-        env:
-          VITE_APP_API_GATEWAY_URL: ${{ secrets.API_GATEWAY_URL || 'http://localhost:3000' }}
-      
-      # Verify build output exists
-      - name: Verify build output
-        run: |
-          if [ -d "client/dist" ]; then
-            echo "✅ Build directory exists"
-            ls -la client/dist
-          else
-            echo "❌ Build directory is missing! Troubleshooting info:"
-            echo "Current directory:"
-            pwd
-            echo "Directory contents:"
-            ls -la
-            echo "Client directory contents:"
-            ls -la client
-            exit 1
-          fi
-      
-      # Deploy to static hosting and capture the domain URL
-      - name: Deploy to static hosting
-        id: deploy
-        run: |
-          echo "Deploying to static hosting..."
-          if [ -n "$NETLIFY_AUTH_TOKEN" ]; then
-            npm install -g netlify-cli
-            
-            # Deploy and capture output
-            DEPLOY_OUTPUT=$(netlify deploy --dir=client/dist --prod --json)
-            echo "Deployment output: $DEPLOY_OUTPUT"
-            
-            # Extract URL from JSON output
-            DEPLOY_URL=$(echo $DEPLOY_OUTPUT | grep -o '"url":"[^"]*"' | sed 's/"url":"//g' | sed 's/"//g')
-            SITE_NAME=$(echo $DEPLOY_URL | sed 's/https:\/\///g' | sed 's/.netlify.app//g')
-            
-            # Set outputs for use in other steps
-            echo "deploy_url=$DEPLOY_URL" >> $GITHUB_OUTPUT
-            echo "site_name=$SITE_NAME" >> $GITHUB_OUTPUT
-            
-            echo "✅ Deployed successfully to: $DEPLOY_URL"
-            echo "✅ Your Netlify site name is: $SITE_NAME"
-          else
-            echo "Skipping actual deployment - no deployment token provided"
-            echo "In a real scenario, this would deploy to your hosting service"
-            echo "Build directory contents:"
-            ls -la client/dist || echo "⚠️ Warning: client/dist not found"
-          fi
-        env:
-          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
-          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
       
       - name: Add deployment summary
         run: |
           echo "## Deployment Summary" >> $GITHUB_STEP_SUMMARY
-          if [ -n "$NETLIFY_AUTH_TOKEN" ]; then
-            echo "✅ Successfully deployed to production" >> $GITHUB_STEP_SUMMARY
-            
-            # Display deployment URLs if available
-            if [ -n "${{ steps.deploy.outputs.deploy_url }}" ]; then
-              echo "🔗 **Deployment URL:** [${{ steps.deploy.outputs.deploy_url }}](${{ steps.deploy.outputs.deploy_url }})" >> $GITHUB_STEP_SUMMARY
-              echo "🌐 **Netlify Site Name:** ${{ steps.deploy.outputs.site_name }}.netlify.app" >> $GITHUB_STEP_SUMMARY
-            fi
-          else
-            echo "⚠️ Simulated deployment only (no deployment tokens provided)" >> $GITHUB_STEP_SUMMARY
-            echo "To enable actual deployment, add NETLIFY_AUTH_TOKEN and NETLIFY_SITE_ID secrets" >> $GITHUB_STEP_SUMMARY
-          fi
-          echo "📅 Deployment date: $(date)" >> $GITHUB_STEP_SUMMARY
+          echo "✅ Successfully deployed to GitHub Pages" >> $GITHUB_STEP_SUMMARY
+          echo "🔗 Deployment URL: ${{ steps.deployment.outputs.page_url }}" >> $GITHUB_STEP_SUMMARY
+          echo "📅 Deployment completed: $(date)" >> $GITHUB_STEP_SUMMARY
