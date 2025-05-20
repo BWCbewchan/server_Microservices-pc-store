@@ -3,6 +3,7 @@ import Navigation from "./Navigation";
 import { FiPhone, FiClock } from "react-icons/fi";
 import { FaMapMarkerAlt } from "react-icons/fa";
 import { AiFillFacebook, AiFillInstagram } from "react-icons/ai";
+import "../../styles/Navigation.css";
 
 const Header = () => {
   const [isSticky, setIsSticky] = useState(false);
@@ -25,7 +26,7 @@ const Header = () => {
   return (
     <div>
       {/* Top Header Bar */}
-      <header className="bg-dark text-white py-2">
+      <header className="bg-dark text-white py-2 d-none d-md-block">
         <div className="container">
           {/* Large screen layout - shows all elements */}
           <div className="d-none d-lg-flex justify-content-between align-items-center">

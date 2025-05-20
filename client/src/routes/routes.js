@@ -11,7 +11,7 @@ import UserAccount from "../pages/UserAccount/UserAccount";
 import UserOrders from "../pages/UserAccount/UserOrders";
 
 // Use Login component as temporary placeholder for Signup until we can create that component
-const Signup = Login;
+import Signup from "../pages/Signup/Signup";
 
 // Các route công khai (ai cũng có thể truy cập)
 const publicRoutes = [

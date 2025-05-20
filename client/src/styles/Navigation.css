@@ -1,5 +1,5 @@
 /* Logo hover effect */
-.nav-logo:hover {
+.navbar-brand:hover {
   opacity: 0.8;
   transform: scale(1.05);
   transition: all 0.3s ease;
@@ -92,4 +92,121 @@
     opacity: 1;
     transform: translateY(0);
   }
+}
+
+/* Navigation links hover effect */
+.nav-link {
+  position: relative;
+  transition: color 0.3s ease;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.nav-link:hover {
+  color: #0156ff !important;
+}
+
+.nav-link::after {
+  content: "";
+  position: absolute;
+  width: 0;
+  height: 2px;
+  bottom: 0;
+  left: 50%;
+  background-color: #0156ff;
+  transition: all 0.3s ease;
+  transform: translateX(-50%);
+}
+
+.nav-link:hover::after {
+  width: 70%;
+}
+
+/* User dropdown enhancements */
+.dropdown-menu {
+  border-radius: 8px;
+  min-width: 260px;
+  border: none;
+  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+  animation: fadeIn 0.2s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Mobile dropdown positioning */
+@media (max-width: 991.98px) {
+  .dropdown-menu {
+    right: 0;
+    left: auto;
+    width: 280px;
+    max-width: 90vw;
+  }
+}
+
+/* Fix cho mobile dropdown khi navbar đóng */
+.nav-item.position-relative .dropdown-menu {
+  position: absolute;
+  transform: none;
+  top: 100%;
+  right: 0;
+}
+
+/* Mobile navigation enhancements */
+@media (max-width: 991.98px) {
+  .navbar-collapse {
+    max-height: 80vh;
+    overflow-y: auto;
+  }
+
+  /* Menu user styling on mobile */
+  .navbar-collapse .nav-link {
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid #f0f0f0;
+  }
+
+  /* Mobile dropdown styling */
+  .navbar-collapse .dropdown-menu {
+    position: static !important;
+    transform: none !important;
+    width: 100%;
+    border: none;
+    box-shadow: none;
+    background-color: transparent;
+  }
+
+  /* Mobile user menu items */
+  .navbar-collapse .dropdown-item {
+    padding: 0.5rem 1rem;
+    white-space: normal;
+  }
+
+  /* Animate mobile dropdown */
+  @keyframes slideDown {
+    from {
+      max-height: 0;
+      opacity: 0;
+    }
+    to {
+      max-height: 500px;
+      opacity: 1;
+    }
+  }
+
+  .navbar-collapse .show {
+    animation: slideDown 0.3s ease-out forwards;
+  }
+}
+
+/* Ensure dropdown works in mobile collapsed menu */
+.navbar-collapse.show .dropdown-menu.show {
+  display: block;
 }
