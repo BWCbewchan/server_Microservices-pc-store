@@ -4,12 +4,9 @@
   "description": "Authentication service for PC Store microservices",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js",
+    "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "nodemon server.js",
-    "s": "nodemon server.js",
-    "debug": "nodemon --inspect server.js",
-    "test-conn": "node ./scripts/test-connection.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node server.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

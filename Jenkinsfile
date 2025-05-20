@@ -79,6 +79,20 @@ pipeline {
                     }
                 }
 
+                stage('Payment Service') {
+                    when {
+                        anyOf {
+                            changeset "backend/payment-service/**"
+                            expression { return params.FORCE_BUILD_ALL }
+                        }
+                    }
+                    steps {
+                        dir('backend/payment-service') {
+                            bat 'npm install'
+                            bat 'npm test || exit 0'
+                        }
+                    }
+                }
                 stage('Notification Service') {
                     when {
                         anyOf {
@@ -161,7 +175,7 @@ pipeline {
                         error "Failed to log in to Docker Hub after ${loginAttempts} attempts. Skipping build and push."
                     }
 
-                    def services = ["product-catalog-service", "inventory-service", "cart-service", "notification-service", "order-service", "api-gateway", "auth-service"]
+                    def services = ["product-catalog-service", "inventory-service", "cart-service", "notification-service", "order-service", "api-gateway", "auth-service", "payment-service"]
 
                     // Trước khi build, xóa tất cả images cũ để tránh lặp
                     echo "Removing old Docker images for all services..."
@@ -267,7 +281,9 @@ pipeline {
                             "kt-tkpm-project-cart-service",
                             "kt-tkpm-project-notification-service",
                             "kt-tkpm-project-order-service",
-                            "kt-tkpm-project-api-gateway"
+                            "kt-tkpm-project-api-gateway",
+                            "kt-tkpm-project-payment-service", // Added payment service
+                            "kt-tkpm-project-auth-service"     // Also added auth service for completeness
                         ]
 
                         services.each { service ->

@@ -4,8 +4,8 @@ const cors = require("cors");
 require("dotenv").config();
 
 const app = express();
-const allowedOrigins = ["http://localhost:2000", "http://localhost:5173"];
-const PORT = 3000;
+const allowedOrigins = process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(',') : ["http://localhost:2000", "http://localhost:5173"];
+const PORT = process.env.PORT || 3000;
 console.log("Allowed Origins:", allowedOrigins);
 
 // Global CORS middleware to handle preflight requests better - should be at the top
@@ -27,7 +27,7 @@ app.use((req, res, next) => {
 
 // Update CORS configuration to handle specific origins
 app.use(cors({
-  origin: ["http://localhost:2000", "http://localhost:5173"],
+  origin: allowedOrigins,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
   credentials: true
@@ -48,14 +48,19 @@ app.use((req, res, next) => {
 
 // Cấu hình các service
 const services = {
-  products: "http://localhost:4004",
-  inventory: "http://localhost:4000",
-  cart: "http://localhost:4005",
-  notification: "http://localhost:4001",
-  orders: "http://localhost:4009",
-  payment: "http://localhost:4545",
-  auth: "http://localhost:4006"
+  products: process.env.PRODUCTS_SERVICE_URL || "http://localhost:4004",
+  inventory: process.env.INVENTORY_SERVICE_URL || "http://localhost:4000",
+  cart: process.env.CART_SERVICE_URL || "http://localhost:4005",
+  notification: process.env.NOTIFICATION_SERVICE_URL || "http://localhost:4001",
+  orders: process.env.ORDERS_SERVICE_URL || "http://localhost:4009",
+  payment: process.env.PAYMENT_SERVICE_URL || "http://localhost:4545",
+  auth: process.env.AUTH_SERVICE_URL || "http://localhost:4006"
 };
+
+// Extract hostname and port from AUTH_SERVICE_URL
+const authServiceUrl = new URL(process.env.AUTH_SERVICE_URL || "http://localhost:4006");
+const authServiceHostname = authServiceUrl.hostname;
+const authServicePort = authServiceUrl.port;
 
 // Replace the existing auth proxy with a more reliable version
 app.use('/api/auth', (req, res) => {
@@ -71,8 +76,8 @@ app.use('/api/auth', (req, res) => {
   }
   
   const options = {
-    hostname: 'localhost',
-    port: 4006,
+    hostname: authServiceHostname,
+    port: authServicePort,
     path: req.url.replace('/api/auth', ''),
     method: req.method,
     headers: {
@@ -154,8 +159,8 @@ app.post('/register', async (req, res) => {
     });
     
     const options = {
-      hostname: 'localhost',
-      port: 4006,
+      hostname: authServiceHostname,
+      port: authServicePort,
       path: '/register',
       method: 'POST',
       headers: {
@@ -226,8 +231,8 @@ app.post('/login', async (req, res) => {
     });
     
     const options = {
-      hostname: 'localhost',
-      port: 4006,
+      hostname: authServiceHostname,
+      port: authServicePort,
       path: '/login',
       method: 'POST',
       headers: {
@@ -334,8 +339,8 @@ app.put('/update', (req, res) => {
   const bodyData = JSON.stringify(req.body);
   
   const options = {
-    hostname: 'localhost',
-    port: 4006,
+    hostname: authServiceHostname,
+    port: authServicePort,
     path: '/update',
     method: 'PUT',
     headers: {
@@ -440,8 +445,8 @@ app.put(['/api/auth/update', '/auth/update', '/update'], async (req, res) => {
     const bodyData = JSON.stringify(req.body);
     
     const options = {
-      hostname: 'localhost',
-      port: 4006,
+      hostname: authServiceHostname,
+      port: authServicePort,
       path: '/update',
       method: 'PUT',
       headers: {
