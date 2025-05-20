@@ -1,6 +1,6 @@
 import axios from "axios";
 import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom"; // Use useParams instead of useLocation for cleaner route params
+import { useParams } from "react-router-dom";
 import Features from "../../pages/Home/Features";
 import FeaturesDetails from "./FeaturesDetails";
 import ImageDisplay from "./ImageDisplay";
@@ -9,9 +9,8 @@ import ProductDetailsHead from "./ProductDetailsHead";
 
 const ProductDetailsAll = () => {
   const [activeTab, setActiveTab] = useState("about");
-  const { id } = useParams(); // Use useParams hook for cleaner route parameter extraction
+  const { id } = useParams();
   const [product, setProduct] = useState({});
-  const [selectedColor, setSelectedColor] = useState("");
 
   useEffect(() => {
     const fetchProductDetails = async () => {
@@ -19,15 +18,6 @@ const ProductDetailsAll = () => {
         const URL = `${import.meta.env.VITE_APP_API_GATEWAY_URL}/products/product/${id}`;
         const response = await axios.get(URL);
         setProduct(response?.data?.data);
-
-        // Initialize selected color if product has colors
-        if (
-          response?.data?.data?.color &&
-          Array.isArray(response.data.data.color) &&
-          response.data.data.color.length > 0
-        ) {
-          setSelectedColor(response.data.data.color[0]);
-        }
       } catch (error) {
         console.error("Error fetching product details:", error);
       }

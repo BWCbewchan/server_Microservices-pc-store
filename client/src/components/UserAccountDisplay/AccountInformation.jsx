@@ -1,4 +1,3 @@
-import React from "react";
 import AddressBook from "./AddressBook";
 
 const AccountInformation = () => {
@@ -37,7 +36,7 @@ const AccountInformation = () => {
           <div className="mb-4">
             <h3 className="h6 fw-bold mb-3">Newsletters</h3>
             <p className="text-secondary mb-3">
-              You don't subscribe to our newsletter.
+              You don&apos;t subscribe to our newsletter.
             </p>
             <a
               href="#"

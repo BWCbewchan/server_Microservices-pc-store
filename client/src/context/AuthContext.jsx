@@ -2,45 +2,34 @@ import axios from 'axios';
 import { createContext, useEffect, useState } from 'react';
 import { clearToken, getToken, saveToken, validateToken } from '../utils/tokenStorage';
 
-// Create the context in a separate file or constant
-// to fix the Fast Refresh warning
+// Create the context
 export const AuthContext = createContext();
 
-// Separate the provider component
 export const AuthProvider = ({ children }) => {
   const [currentUser, setCurrentUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  const API_URL = `${import.meta.env.VITE_APP_API_GATEWAY_URL}/auth`;
-
   useEffect(() => {
     console.log("AuthContext initialized - checking authentication");
 
     try {
-      // First check if we have a token
       const token = getToken();
-      
-      // Also check if we have user data in storage
       const storedUserData = localStorage.getItem('user') || sessionStorage.getItem('user');
-      
+
       if (storedUserData) {
         try {
-          // Parse and set the stored user data
           const userData = JSON.parse(storedUserData);
           console.log("Found stored user data:", userData.email || "unknown");
           setCurrentUser(userData);
-          
-          // Even with stored user data, we'll still validate the token if present
+
           if (token) {
             const validation = validateToken(token);
             console.log("Token validation result:", validation.valid ? "Valid" : "Invalid", validation.message || "");
-            
+
             if (validation.valid) {
-              // If token is valid, refresh user data from API to ensure it's up to date
               loadUser(token);
             } else {
-              // Clear invalid token but keep user data for now
               console.warn("Invalid token detected, token cleared but keeping user session");
               clearToken();
               setLoading(false);
@@ -49,12 +38,11 @@ export const AuthProvider = ({ children }) => {
             console.log("No token found, but user data exists - operating in limited mode");
             setLoading(false);
           }
-        } catch (parseErr) {
-          console.error("Failed to parse stored user data:", parseErr);
+        } catch (error) {
+          console.error("Failed to parse stored user data:", error.message);
           setLoading(false);
         }
       } else if (token) {
-        // We have a token but no user data
         const validation = validateToken(token);
         if (validation.valid) {
           loadUser(token);
@@ -65,12 +53,11 @@ export const AuthProvider = ({ children }) => {
           setLoading(false);
         }
       } else {
-        // No token and no user data
         console.log("No authentication token or user data found");
         setLoading(false);
       }
-    } catch (err) {
-      console.error("Error during authentication check:", err);
+    } catch (error) {
+      console.error("Error during authentication check:", error.message);
       setLoading(false);
     }
 
@@ -95,7 +82,6 @@ export const AuthProvider = ({ children }) => {
     try {
       setLoading(true);
 
-      // Use object for configuration to ensure headers are properly set
       const config = {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -105,11 +91,10 @@ export const AuthProvider = ({ children }) => {
 
       console.log("Request config:", config);
 
-      // Try both API endpoints
       try {
         const response = await axios.get(`${import.meta.env.VITE_APP_API_GATEWAY_URL || 'http://localhost:3000'}/api/auth/me`, config);
         console.log("User data response:", response.data);
-        
+
         if (response.data && response.data.user) {
           setCurrentUser(response.data.user);
           saveToken(token);
@@ -122,13 +107,12 @@ export const AuthProvider = ({ children }) => {
         } else {
           throw new Error("Invalid API response format");
         }
-      } catch (err) {
-        console.error("Primary endpoint failed, trying fallback:", err);
-        
-        // Try direct connection to auth service
+      } catch (error) {
+        console.error("Primary endpoint failed, trying fallback:", error.message);
+
         const directResponse = await axios.get('http://localhost:4006/me', config);
         console.log("Direct user data response:", directResponse.data);
-        
+
         if (directResponse.data && directResponse.data.user) {
           setCurrentUser(directResponse.data.user);
           saveToken(token);
@@ -142,11 +126,10 @@ export const AuthProvider = ({ children }) => {
           throw new Error("Invalid API response format from fallback");
         }
       }
-    } catch (err) {
-      console.error('Failed to load user data:', err);
+    } catch (error) {
+      console.error('Failed to load user data:', error.message);
 
-      // Only clear auth for actual auth errors, not network errors
-      if (err.response && (err.response.status === 401 || err.response.status === 403)) {
+      if (error.response && (error.response.status === 401 || error.response.status === 403)) {
         console.warn("Authentication error, clearing credentials");
         clearToken();
         localStorage.removeItem('user');
@@ -154,7 +137,7 @@ export const AuthProvider = ({ children }) => {
         setCurrentUser(null);
       }
 
-      setError(err.response?.data?.message || 'Could not load user data');
+      setError(error.response?.data?.message || 'Could not load user data');
     } finally {
       setLoading(false);
     }
@@ -196,10 +179,10 @@ export const AuthProvider = ({ children }) => {
       console.log("Authentication data stored successfully");
 
       return { success: true, user };
-    } catch (err) {
-      console.error('Login error:', err);
-      setError(err.response?.data?.message || "Login failed");
-      return { success: false, message: err.response?.data?.message || "Login failed" };
+    } catch (error) {
+      console.error('Login error:', error.message);
+      setError(error.response?.data?.message || "Login failed");
+      return { success: false, message: error.response?.data?.message || "Login failed" };
     } finally {
       setLoading(false);
     }
@@ -224,8 +207,8 @@ export const AuthProvider = ({ children }) => {
         } else {
           console.warn("API Gateway status check failed");
         }
-      } catch (statusError) {
-        console.error("API Gateway seems to be unavailable:", statusError);
+      } catch (error) {
+        console.error("API Gateway seems to be unavailable:", error.message);
       }
 
       const registrationMethods = [
@@ -280,14 +263,14 @@ export const AuthProvider = ({ children }) => {
               if (xhr.status >= 200 && xhr.status < 300) {
                 try {
                   resolve(JSON.parse(xhr.responseText));
-                } catch (e) {
+                } catch (error) {
                   reject(new Error("Invalid response format"));
                 }
               } else {
                 try {
                   const errorData = JSON.parse(xhr.responseText);
                   reject(new Error(errorData.message || `Status: ${xhr.status}`));
-                } catch (e) {
+                } catch (error) {
                   reject(new Error(`Request failed with status ${xhr.status}`));
                 }
               }
@@ -322,17 +305,17 @@ export const AuthProvider = ({ children }) => {
           setError(null);
 
           return { success: true, user: data.user };
-        } catch (err) {
-          console.warn("Registration method failed:", err.message);
-          lastError = err;
+        } catch (error) {
+          console.warn("Registration method failed:", error.message);
+          lastError = error;
         }
       }
 
       throw lastError || new Error("All registration methods failed");
-    } catch (err) {
-      console.error("Registration failed:", err.message);
-      setError(err.message || "Registration failed");
-      return { success: false, message: err.message || "Registration failed" };
+    } catch (error) {
+      console.error("Registration failed:", error.message);
+      setError(error.message || "Registration failed");
+      return { success: false, message: error.message || "Registration failed" };
     } finally {
       setLoading(false);
     }
@@ -341,56 +324,45 @@ export const AuthProvider = ({ children }) => {
   const logout = () => {
     try {
       console.log("Starting COMPLETE logout process - aggressive clearing of ALL storage");
-      
-      // 1. First, update state immediately
+
       setCurrentUser(null);
-      
-      // 2. Directly access window storage objects (most reliable)
+
       window.localStorage.clear();
       window.sessionStorage.clear();
-      
-      // 3. Explicitly remove common auth-related items one by one
+
       const storageTypes = [window.localStorage, window.sessionStorage];
       const itemsToRemove = [
         'token', 'user', 'tokenData', 'authExpiration', 'refreshToken', 
         'userData', 'auth', 'session', 'currentUser', 'userInfo'
       ];
-      
+
       storageTypes.forEach(storage => {
-        // First try the whole list
         itemsToRemove.forEach(item => {
           storage.removeItem(item);
         });
-        
-        // Then try to clear everything again
+
         storage.clear();
       });
-      
-      // 4. Use our helper for token-specific cleanup
+
       clearToken();
-      
-      // 5. Verify localStorage is completely empty
+
       if (window.localStorage.length > 0) {
         console.warn("localStorage still has items after clearing:", window.localStorage.length);
-        
-        // Get all remaining keys
+
         const remainingKeys = [];
         for (let i = 0; i < window.localStorage.length; i++) {
           const key = window.localStorage.key(i);
           remainingKeys.push(key);
         }
         console.warn("Remaining localStorage keys:", remainingKeys);
-        
-        // Try to remove each remaining key
+
         remainingKeys.forEach(key => {
           window.localStorage.removeItem(key);
         });
-        
-        // Clear all one more time
+
         window.localStorage.clear();
       }
-      
-      // 6. Final verification
+
       if (window.localStorage.length === 0 && window.sessionStorage.length === 0) {
         console.log("Logout SUCCESS: All storage is completely empty");
       } else {
@@ -399,23 +371,21 @@ export const AuthProvider = ({ children }) => {
           sessionStorageLength: window.sessionStorage.length
         });
       }
-      
-      // 7. Return success but also inform caller if storage wasn't cleared
+
       return { 
         success: true, 
         storageCleared: window.localStorage.length === 0 && window.sessionStorage.length === 0 
       };
     } catch (error) {
-      console.error("Critical error during logout:", error);
-      
-      // Last resort - try one more time with direct method
+      console.error("Critical error during logout:", error.message);
+
       try {
         window.localStorage.clear();
         window.sessionStorage.clear();
-      } catch (e) {
-        console.error("Final attempt to clear storage failed:", e);
+      } catch (error) {
+        console.error("Final attempt to clear storage failed:", error.message);
       }
-      
+
       return { success: false, error: error.message };
     }
   };
@@ -432,7 +402,6 @@ export const AuthProvider = ({ children }) => {
 
       console.log("Updating profile with data:", userData);
 
-      // First, try using axios for simplicity - this should work if CORS is configured correctly
       try {
         console.log("Trying update with axios");
         const response = await axios.put(
@@ -446,22 +415,21 @@ export const AuthProvider = ({ children }) => {
             timeout: 10000
           }
         );
-        
+
         console.log("Profile update successful:", response.data);
-        
+
         setCurrentUser(prevUser => ({
           ...prevUser,
           ...response.data.user
         }));
-        
+
         localStorage.setItem('user', JSON.stringify(response.data.user));
         sessionStorage.setItem('user', JSON.stringify(response.data.user));
-        
+
         return { success: true, user: response.data.user };
-      } catch (axiosError) {
-        console.warn("Axios update approach failed:", axiosError);
-        
-        // If axios fails, try fetch with simple mode
+      } catch (error) {
+        console.warn("Axios update approach failed:", error.message);
+
         try {
           console.log("Trying update with fetch");
           const fetchResponse = await fetch('http://localhost:3000/update', {
@@ -472,79 +440,78 @@ export const AuthProvider = ({ children }) => {
             },
             body: JSON.stringify(userData)
           });
-          
+
           if (!fetchResponse.ok) {
             const errorData = await fetchResponse.json();
             throw new Error(errorData.message || `Status code: ${fetchResponse.status}`);
           }
-          
+
           const data = await fetchResponse.json();
           console.log("Profile update successful with fetch:", data);
-          
+
           setCurrentUser(prevUser => ({
             ...prevUser,
             ...data.user
           }));
-          
+
           localStorage.setItem('user', JSON.stringify(data.user));
           sessionStorage.setItem('user', JSON.stringify(data.user));
-          
+
           return { success: true, user: data.user };
-        } catch (fetchError) {
-          console.warn("Fetch update approach failed:", fetchError);
-          
-          // Finally, try the direct XMLHttpRequest approach
+        } catch (error) {
+          console.warn("Fetch update approach failed:", error.message);
+
           return await new Promise((resolve, reject) => {
             console.log("Trying update with XMLHttpRequest");
             const xhr = new XMLHttpRequest();
             xhr.open('PUT', 'http://localhost:3000/update');
             xhr.setRequestHeader('Content-Type', 'application/json');
             xhr.setRequestHeader('Authorization', `Bearer ${token}`);
-            
+
             xhr.onload = function() {
               if (xhr.status >= 200 && xhr.status < 300) {
                 try {
                   const data = JSON.parse(xhr.responseText);
                   console.log("Profile update successful with XHR:", data);
-                  
+
                   setCurrentUser(prevUser => ({
                     ...prevUser,
                     ...data.user
                   }));
-                  
+
                   localStorage.setItem('user', JSON.stringify(data.user));
                   sessionStorage.setItem('user', JSON.stringify(data.user));
-                  
+
                   resolve({ success: true, user: data.user });
-                } catch (e) {
-                  reject(new Error(`Invalid response format: ${e.message}`));
+                } catch (error) {
+                  reject(new Error(`Invalid response format: ${error.message}`));
                 }
               } else {
                 try {
                   const errorData = JSON.parse(xhr.responseText);
                   reject(new Error(errorData.message || `Status code: ${xhr.status}`));
-                } catch (e) {
+                } catch (error) {
                   reject(new Error(`Request failed with status ${xhr.status}`));
                 }
               }
             };
-            
+
             xhr.onerror = function() {
               reject(new Error("Network error occurred"));
             };
-            
+
             xhr.ontimeout = function() {
               reject(new Error("Request timed out"));
             };
-            
+
             xhr.send(JSON.stringify(userData));
           });
         }
       }
-    } catch (err) {
-      console.error('Update profile error:', err);
-      setError(err.message || 'Cập nhật thông tin không thành công');
-      return { success: false, message: err.message || 'Cập nhật thông tin không thành công' };
+    } catch (error) {
+      console.error('Update profile error:', error.message);
+      setError(error.message || 'Cập nhật thông tin không thành công');
+      return { success: false, message: error.message || 'Cập nhật thông tin không thành công' };
     } finally {
       setLoading(false);
     }
@@ -559,15 +526,13 @@ export const AuthProvider = ({ children }) => {
   };
 
   const isAuthenticated = () => {
-    // First check if we have current user in state
     if (currentUser) return true;
-    
-    // If not in state, check storage
+
     try {
       const storedUserData = localStorage.getItem('user') || sessionStorage.getItem('user');
-      return !!storedUserData; // Return true if user data exists in storage
-    } catch (err) {
-      console.error("Error checking authentication:", err);
+      return !!storedUserData;
+    } catch (error) {
+      console.error("Error checking authentication:", error.message);
       return false;
     }
   };
@@ -583,7 +548,7 @@ export const AuthProvider = ({ children }) => {
         logout,
         updateProfile,
         isLoggedIn,
-        isAuthenticated // Add the new method
+        isAuthenticated
       }}
     >
       {children}

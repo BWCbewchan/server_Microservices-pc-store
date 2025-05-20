@@ -1,7 +1,6 @@
-import React from "react";
 import "bootstrap/dist/css/bootstrap.min.css";
 
-function ProductSpecs() {
+const ProductSpecs = () => {
     return (
         <div className="container my-4">
             {/* Breadcrumb */}
@@ -102,6 +101,6 @@ function ProductSpecs() {
             </div>
         </div>
     );
-}
+};
 
 export default ProductSpecs;

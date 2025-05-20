@@ -2,6 +2,7 @@ import { useContext, useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import { AuthContext } from "../../context/AuthContext";
+import CheckoutForm from './CheckoutForm';
 
 const Checkout = () => {
   const navigate = useNavigate();
@@ -9,8 +10,6 @@ const Checkout = () => {
   const { currentUser } = useContext(AuthContext);
   const [selectedItems, setSelectedItems] = useState([]);
   const [shippingMethod, setShippingMethod] = useState("standard");
-  const [loading, setLoading] = useState(true);
-  const [storedUser, setStoredUser] = useState(null);
   const [subtotal, setSubtotal] = useState(0);
   const [finalTotal, setFinalTotal] = useState(0);
 
@@ -32,7 +31,6 @@ const Checkout = () => {
               const userData = JSON.parse(storedUserData);
               userId = userData.id || userData._id;
               user = userData;
-              setStoredUser(userData);
               console.log("Using user data from localStorage:", userData);
             } catch (parseErr) {
               console.error("Failed to parse stored user data:", parseErr);

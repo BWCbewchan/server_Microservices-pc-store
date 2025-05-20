@@ -10,7 +10,6 @@ const PRODUCT_API_URLGetInfo = "http://localhost:3000/api/products/product"; // 
 // const fakeUserId = "user9999";
 const fakeUserId = "64e65e8d3d5e2b0c8a3e9f12";
 
-
 const Cart = () => {
     const [cart, setCart] = React.useState(null);
     const [products, setProducts] = React.useState({});
@@ -19,32 +18,31 @@ const Cart = () => {
 
     // Load giỏ hàng khi component mount
     React.useEffect(() => {
-        fetchCart();
-    }, [fetchCart]);
+        const fetchCart = async () => {
+            try {
+                setError("");
+                const res = await axios.get(`${CART_API_URL}/${fakeUserId}`);
+                const cartData = res.data;
+                setCart(cartData);
 
-    // Hàm lấy giỏ hàng theo userId
-    const fetchCart = async () => {
-        try {
-            setError("");
-            const res = await axios.get(`${CART_API_URL}/${fakeUserId}`);
-            const cartData = res.data;
-            setCart(cartData);
+                // Khởi tạo trạng thái selectedItems (false cho mỗi productId)
+                const initialSelected = {};
+                cartData.items.forEach(item => {
+                    initialSelected[item.productId] = false;
+                });
+                setSelectedItems(initialSelected);
 
-            // Khởi tạo trạng thái selectedItems (false cho mỗi productId)
-            const initialSelected = {};
-            cartData.items.forEach(item => {
-                initialSelected[item.productId] = false;
-            });
-            setSelectedItems(initialSelected);
-
-            if (cartData.items.length > 0) {
-                await fetchProductDetails(cartData.items.map(item => item.productId));
+                if (cartData.items.length > 0) {
+                    await fetchProductDetails(cartData.items.map(item => item.productId));
+                }
+            } catch (err) {
+                setError(err.response?.data?.message || err.message);
+                console.error("Lỗi khi tải giỏ hàng:", err.message);
             }
-        } catch (err) {
-            setError(err.response?.data?.message || err.message);
-            console.error("Lỗi khi tải giỏ hàng:", err.message);
-        }
-    };
+        };
+
+        fetchCart();
+    }, []);
 
     // Hàm lấy thông tin chi tiết sản phẩm theo danh sách productIds
     const fetchProductDetails = async (productIds) => {
@@ -155,8 +153,7 @@ const Cart = () => {
     // const shipping = selectedCartItems.length > 0 ? 21.0 : 0;
     // const tax = subtotal * 0.1;
     // const total = subtotal + shipping + tax;
-    const total = subtotal  ;
-
+    const total = subtotal;
 
     return (
         <div className="bg-white d-flex flex-column overflow-hidden">
@@ -200,7 +197,7 @@ const Cart = () => {
 
                     <div className="col-lg-4">
                         {/* <CartSummary subtotal={subtotal} shipping={shipping} tax={tax} total={total} selectedCartItems={selectedCartItems} /> */}
-                        <CartSummary subtotal={subtotal}  total={total} selectedCartItems={selectedCartItems} />
+                        <CartSummary subtotal={subtotal} total={total} selectedCartItems={selectedCartItems} />
 
                     </div>
                 </div>
