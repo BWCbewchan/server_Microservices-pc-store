@@ -12,6 +12,11 @@ import {
 import { Button } from "@/components/ui/button";
 import { Table, TableHeader, TableRow, TableHead, TableCell, TableBody } from "@/components/ui/table";
 import OrderDetailModal from "./OrderDetailModal";
+import OrderEditModal from "./OrderEditModal";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { format } from "date-fns";
+import { Calendar as CalendarIcon } from "lucide-react";
 
 // Đường dẫn API (sửa lại nếu cần)
 const ORDER_API_URL = "http://localhost:3000/api/orders";
@@ -61,20 +66,27 @@ const sampleData = [
 
 export default function TableOrders() {
   const [orders, setOrders] = useState([]);
+  const [filteredOrders, setFilteredOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
   const [error, setError] = useState("");
-const [modalOrderId, setModalOrderId] = useState(null);
+  const [modalOrderId, setModalOrderId] = useState(null);
+  const [editingOrderId, setEditingOrderId] = useState(null);
+  
+  // Add date filtering state
+  const [startDate, setStartDate] = useState(null);
+  const [endDate, setEndDate] = useState(null);
+  const [isStartDateOpen, setIsStartDateOpen] = useState(false);
+  const [isEndDateOpen, setIsEndDateOpen] = useState(false);
+  
   // Lấy danh sách đơn hàng
   useEffect(() => {
     const fetchOrders = async () => {
       try {
-        // Nếu API hoạt động, sử dụng axios.get:
+        setLoading(true);
         const response = await axios.get(ORDER_API_URL);
         setOrders(response.data);
-        // Tạm thời dùng sampleData để debug:
-        // setOrders(sampleData);
-        // console.log("Orders:", sampleData);
+        setFilteredOrders(response.data);
       } catch (err) {
         setError("Lỗi khi lấy danh sách đơn hàng");
         console.error(err);
@@ -84,6 +96,44 @@ const [modalOrderId, setModalOrderId] = useState(null);
     };
     fetchOrders();
   }, []);
+
+  // Apply date filters when date range changes
+  useEffect(() => {
+    if (!orders.length) return;
+    
+    let filtered = [...orders];
+    
+    if (startDate) {
+      // Set time to beginning of day
+      const start = new Date(startDate);
+      start.setHours(0, 0, 0, 0);
+      
+      filtered = filtered.filter(order => {
+        const orderDate = new Date(order.createdAt);
+        return orderDate >= start;
+      });
+    }
+    
+    if (endDate) {
+      // Set time to end of day
+      const end = new Date(endDate);
+      end.setHours(23, 59, 59, 999);
+      
+      filtered = filtered.filter(order => {
+        const orderDate = new Date(order.createdAt);
+        return orderDate <= end;
+      });
+    }
+    
+    setFilteredOrders(filtered);
+  }, [startDate, endDate, orders]);
+
+  // Reset date filters
+  const handleResetDateFilters = () => {
+    setStartDate(null);
+    setEndDate(null);
+    setFilteredOrders(orders);
+  };
 
   // Hàm cập nhật trạng thái đơn hàng (Admin)
   // const handleChangeStatus = async (orderId, newStatus) => {
@@ -105,9 +155,16 @@ const [modalOrderId, setModalOrderId] = useState(null);
       // Tạo chuỗi JSON chứa dữ liệu update và encode để truyền qua URL
       const updateData = encodeURIComponent(JSON.stringify({ status: newStatus }));
       // Gọi API update với endpoint theo định dạng: /:orderId/:updateData
-      await axios.put(`${ORDER_API_URL}/update/${orderId}/${updateData}`);
-      const response = await axios.get(ORDER_API_URL);
-      setOrders(response.data);
+      const response = await axios.put(`${ORDER_API_URL}/update/${orderId}/${updateData}`);
+      
+      // Update just this order in the state instead of reloading all orders
+      if (response.data) {
+        setOrders(prevOrders => 
+          prevOrders.map(order => 
+            order._id === orderId ? { ...order, status: newStatus } : order
+          )
+        );
+      }
     } catch (err) {
       alert("Lỗi khi cập nhật trạng thái đơn hàng");
       console.error(err);
@@ -118,7 +175,7 @@ const [modalOrderId, setModalOrderId] = useState(null);
 
   // Hàm chỉnh sửa đơn hàng (ví dụ mở modal, chuyển trang,...)
   const handleEdit = (orderId) => {
-    alert(`Chỉnh sửa đơn hàng ${orderId}`);
+    setEditingOrderId(orderId);
   };
 
   // Hàm hủy đơn hàng (Admin)
@@ -130,10 +187,17 @@ const [modalOrderId, setModalOrderId] = useState(null);
     if (window.confirm("Bạn có chắc muốn hủy đơn hàng này không?")) {
       try {
         setActionLoading(true);
-        await axios.post(`${ORDER_API_URL}/admin/cancel/${orderId}`);
-        alert("Đơn hàng đã được hủy bởi Admin");
-        const response = await axios.get(ORDER_API_URL);
-        setOrders(response.data);
+        const response = await axios.post(`${ORDER_API_URL}/admin/cancel/${orderId}`);
+        
+        if (response.data) {
+          alert("Đơn hàng đã được hủy bởi Admin");
+          // Update just this order in the state
+          setOrders(prevOrders => 
+            prevOrders.map(order => 
+              order._id === orderId ? { ...order, status: "cancelled" } : order
+            )
+          );
+        }
       } catch (err) {
         alert("Lỗi khi hủy đơn hàng");
         console.error(err);
@@ -156,8 +220,9 @@ const [modalOrderId, setModalOrderId] = useState(null);
         setActionLoading(true);
         await axios.delete(`${ORDER_API_URL}/admin/delete/${orderId}`);
         alert("Đơn hàng đã được xóa bởi Admin");
-        const response = await axios.get(ORDER_API_URL);
-        setOrders(response.data);
+        
+        // Remove the deleted order from state
+        setOrders(prevOrders => prevOrders.filter(order => order._id !== orderId));
       } catch (err) {
         alert("Lỗi khi xóa đơn hàng");
         console.error(err);
@@ -309,7 +374,7 @@ const [modalOrderId, setModalOrderId] = useState(null);
   ];
 
   const table = useReactTable({
-    data: orders,
+    data: filteredOrders, // Use filtered orders instead of all orders
     columns,
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
@@ -335,25 +400,96 @@ const [modalOrderId, setModalOrderId] = useState(null);
   return (
     <div className="p-4">
       <h2 className="mb-4 text-xl font-bold">Quản lý đơn hàng (Admin)</h2>
-      <div className="flex justify-end gap-2 mb-4">
-        <Button
-          variant="outline"
-          onClick={() => {
-            const sorted = [...orders].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-            setOrders(sorted);
-          }}
-        >
-          Mới nhất
-        </Button>
-        <Button
-          variant="outline"
-          onClick={() => {
-            const sorted = [...orders].sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
-            setOrders(sorted);
-          }}
-        >
-          Cũ nhất
-        </Button>
+      
+      {/* Date filtering controls */}
+      <div className="mb-6 flex flex-wrap items-center gap-4">
+        <div>
+          <label className="block text-sm font-medium mb-1">Từ ngày:</label>
+          <Popover open={isStartDateOpen} onOpenChange={setIsStartDateOpen}>
+            <PopoverTrigger asChild>
+              <Button 
+                variant="outline" 
+                className={`w-[200px] justify-start text-left font-normal ${!startDate && 'text-gray-400'}`}
+              >
+                <CalendarIcon className="mr-2 h-4 w-4" />
+                {startDate ? format(startDate, 'dd/MM/yyyy') : 'Chọn ngày bắt đầu'}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <Calendar
+                mode="single"
+                selected={startDate}
+                onSelect={(date) => {
+                  setStartDate(date);
+                  setIsStartDateOpen(false);
+                }}
+                initialFocus
+              />
+            </PopoverContent>
+          </Popover>
+        </div>
+        
+        <div>
+          <label className="block text-sm font-medium mb-1">Đến ngày:</label>
+          <Popover open={isEndDateOpen} onOpenChange={setIsEndDateOpen}>
+            <PopoverTrigger asChild>
+              <Button 
+                variant="outline" 
+                className={`w-[200px] justify-start text-left font-normal ${!endDate && 'text-gray-400'}`}
+              >
+                <CalendarIcon className="mr-2 h-4 w-4" />
+                {endDate ? format(endDate, 'dd/MM/yyyy') : 'Chọn ngày kết thúc'}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <Calendar
+                mode="single"
+                selected={endDate}
+                onSelect={(date) => {
+                  setEndDate(date);
+                  setIsEndDateOpen(false);
+                }}
+                initialFocus
+              />
+            </PopoverContent>
+          </Popover>
+        </div>
+        
+        <div className="flex items-end">
+          <Button 
+            variant="ghost" 
+            onClick={handleResetDateFilters}
+            className="mb-0.5"
+          >
+            Xóa bộ lọc
+          </Button>
+        </div>
+        
+        <div className="ml-auto flex items-end gap-2">
+          <Button
+            variant="outline"
+            onClick={() => {
+              const sorted = [...filteredOrders].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+              setFilteredOrders(sorted);
+            }}
+          >
+            Mới nhất
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => {
+              const sorted = [...filteredOrders].sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+              setFilteredOrders(sorted);
+            }}
+          >
+            Cũ nhất
+          </Button>
+        </div>
+      </div>
+
+      {/* Display filter results count */}
+      <div className="mb-4 text-sm">
+        <p>Hiển thị {filteredOrders.length} trong tổng số {orders.length} đơn hàng</p>
       </div>
 
       <Table>
@@ -408,10 +544,28 @@ const [modalOrderId, setModalOrderId] = useState(null);
           Next
         </Button>
       </div>
+      
       {modalOrderId && (
         <OrderDetailModal
           orderId={modalOrderId}
           onClose={() => setModalOrderId(null)}
+        />
+      )}
+      
+      {/* Add the Edit Modal with improved onSave handler */}
+      {editingOrderId && (
+        <OrderEditModal
+          orderId={editingOrderId}
+          onClose={() => setEditingOrderId(null)}
+          onSave={(updatedOrder) => {
+            // Update the orders list with the edited order without reloading
+            setOrders(prevOrders => 
+              prevOrders.map(order => 
+                order._id === updatedOrder._id ? updatedOrder : order
+              )
+            );
+            setEditingOrderId(null);
+          }}
         />
       )}
     </div>
