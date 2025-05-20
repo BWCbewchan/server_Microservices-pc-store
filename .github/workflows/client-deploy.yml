@@ -38,28 +38,7 @@ jobs:
       - name: Build client
         run: |
           cd client
-          # Show file structure for debugging
-          echo "Checking for important component files:"
-          echo "ProductDetails directory structure:"
-          find src -path "*/ProductDetails*" -type d
-          echo "ProductDetails files:"
-          find src -path "*/ProductDetails*" -type f
-          
-          # Check for specific components that have caused issues
-          echo "Looking for ProductDetailsAll component:"
-          find src -name "ProductDetailsAll*"
-          
-          # Try to build with better error reporting
-          npm run build || {
-            echo "Build failed. Checking for common issues:"
-            echo "1. Missing files or incorrect imports:"
-            grep -r "import.*ProductDetailsAll" src --include="*.js" --include="*.jsx"
-            echo "2. Directory structure:"
-            find src/pages -type d | sort
-            echo "3. Available product detail components:"
-            find src -name "*ProductDetail*"
-            exit 1
-          }
+          npm run build
         env:
           VITE_APP_API_GATEWAY_URL: ${{ secrets.API_GATEWAY_URL || 'http://localhost:3000' }}
       
@@ -68,22 +47,12 @@ jobs:
           cd client
           npm run lint || echo "Linting issues found, but continuing build"
       
-      - name: Cache build artifacts
-        uses: actions/cache@v3
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v3
         with:
-          path: |
-            client/dist
-            client/node_modules/.vite
-          key: ${{ runner.os }}-vite-build-${{ github.sha }}
-          restore-keys: |
-            ${{ runner.os }}-vite-build-
-      
-      - name: Prepare artifacts for deployment
-        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-        run: |
-          mkdir -p /tmp/build-output
-          cp -r client/dist/* /tmp/build-output/
-          echo "Build artifacts prepared for deployment"
+          name: build-artifacts
+          path: client/dist
+          retention-days: 1
       
       - name: Add build summary
         run: |
@@ -105,85 +74,63 @@ jobs:
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     
     steps:
-      - name: Checkout code again
+      - name: Checkout code
         uses: actions/checkout@v3
       
-      - name: Setup Node.js
+      - name: Download build artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: build-artifacts
+          path: client/dist
+      
+      - name: Verify build artifacts
+        run: |
+          if [ -d "client/dist" ]; then
+            echo "✅ Build artifacts downloaded successfully"
+            ls -la client/dist
+          else
+            echo "❌ Build artifacts missing"
+            exit 1
+          fi
+      
+      - name: Setup Node.js for deployment
         uses: actions/setup-node@v3
         with:
           node-version: '18'
       
-      # Build directly in the deployment step to ensure we have the dist directory
-      - name: Install dependencies and build
+      - name: Deploy to Netlify
+        id: netlify-deploy
+        if: env.NETLIFY_AUTH_TOKEN != ''
         run: |
-          cd client
-          npm ci
-          npm run build
-        env:
-          VITE_APP_API_GATEWAY_URL: ${{ secrets.API_GATEWAY_URL || 'http://localhost:3000' }}
-      
-      # Verify build output exists
-      - name: Verify build output
-        run: |
-          if [ -d "client/dist" ]; then
-            echo "✅ Build directory exists"
-            ls -la client/dist
-          else
-            echo "❌ Build directory is missing! Troubleshooting info:"
-            echo "Current directory:"
-            pwd
-            echo "Directory contents:"
-            ls -la
-            echo "Client directory contents:"
-            ls -la client
-            exit 1
-          fi
-      
-      # Deploy to static hosting and capture the domain URL
-      - name: Deploy to static hosting
-        id: deploy
-        run: |
-          echo "Deploying to static hosting..."
-          if [ -n "$NETLIFY_AUTH_TOKEN" ]; then
-            npm install -g netlify-cli
-            
-            # Deploy and capture output
-            DEPLOY_OUTPUT=$(netlify deploy --dir=client/dist --prod --json)
-            echo "Deployment output: $DEPLOY_OUTPUT"
-            
-            # Extract URL from JSON output
-            DEPLOY_URL=$(echo $DEPLOY_OUTPUT | grep -o '"url":"[^"]*"' | sed 's/"url":"//g' | sed 's/"//g')
-            SITE_NAME=$(echo $DEPLOY_URL | sed 's/https:\/\///g' | sed 's/.netlify.app//g')
-            
-            # Set outputs for use in other steps
-            echo "deploy_url=$DEPLOY_URL" >> $GITHUB_OUTPUT
-            echo "site_name=$SITE_NAME" >> $GITHUB_OUTPUT
-            
-            echo "✅ Deployed successfully to: $DEPLOY_URL"
-            echo "✅ Your Netlify site name is: $SITE_NAME"
-          else
-            echo "Skipping actual deployment - no deployment token provided"
-            echo "In a real scenario, this would deploy to your hosting service"
-            echo "Build directory contents:"
-            ls -la client/dist || echo "⚠️ Warning: client/dist not found"
-          fi
+          npm install -g netlify-cli
+          echo "Deploying to Netlify..."
+          DEPLOY_OUTPUT=$(netlify deploy --dir=client/dist --prod --auth=$NETLIFY_AUTH_TOKEN --site=$NETLIFY_SITE_ID --json)
+          DEPLOY_URL=$(echo $DEPLOY_OUTPUT | grep -o '"url":"[^"]*"' | sed 's/"url":"//g' | sed 's/"//g')
+          echo "deploy_url=$DEPLOY_URL" >> $GITHUB_OUTPUT
+          echo "✅ Deployed to: $DEPLOY_URL"
         env:
           NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
           NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
       
+      - name: Alternative deployment procedure
+        if: env.NETLIFY_AUTH_TOKEN == ''
+        run: |
+          echo "No Netlify credentials provided. In a production environment, you would deploy here."
+          echo "You can add NETLIFY_AUTH_TOKEN and NETLIFY_SITE_ID secrets to enable deployment."
+        env:
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+      
       - name: Add deployment summary
         run: |
           echo "## Deployment Summary" >> $GITHUB_STEP_SUMMARY
-          if [ -n "$NETLIFY_AUTH_TOKEN" ]; then
-            echo "✅ Successfully deployed to production" >> $GITHUB_STEP_SUMMARY
-            
-            # Display deployment URLs if available
-            if [ -n "${{ steps.deploy.outputs.deploy_url }}" ]; then
-              echo "🔗 **Deployment URL:** [${{ steps.deploy.outputs.deploy_url }}](${{ steps.deploy.outputs.deploy_url }})" >> $GITHUB_STEP_SUMMARY
-              echo "🌐 **Netlify Site Name:** ${{ steps.deploy.outputs.site_name }}.netlify.app" >> $GITHUB_STEP_SUMMARY
-            fi
+          if [ -n "${{ steps.netlify-deploy.outputs.deploy_url }}" ]; then
+            echo "✅ Successfully deployed to: [${{ steps.netlify-deploy.outputs.deploy_url }}](${{ steps.netlify-deploy.outputs.deploy_url }})" >> $GITHUB_STEP_SUMMARY
+          elif [ -n "$NETLIFY_AUTH_TOKEN" ]; then
+            echo "⚠️ Deployment attempted but URL wasn't captured" >> $GITHUB_STEP_SUMMARY
           else
-            echo "⚠️ Simulated deployment only (no deployment tokens provided)" >> $GITHUB_STEP_SUMMARY
-            echo "To enable actual deployment, add NETLIFY_AUTH_TOKEN and NETLIFY_SITE_ID secrets" >> $GITHUB_STEP_SUMMARY
+            echo "ℹ️ Deployment skipped (no credentials provided)" >> $GITHUB_STEP_SUMMARY
+            echo "To enable deployment, add NETLIFY_AUTH_TOKEN and NETLIFY_SITE_ID secrets" >> $GITHUB_STEP_SUMMARY
           fi
-          echo "📅 Deployment date: $(date)" >> $GITHUB_STEP_SUMMARY
+          echo "📅 Deployment completed: $(date)" >> $GITHUB_STEP_SUMMARY
+        env:
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
