@@ -1,0 +1,91 @@
+.product-card {
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.product-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1) !important;
+}
+
+.product-card .card-img-top {
+  transition: transform 0.3s ease;
+}
+
+/* Image zoom effect on hover */
+.product-card:hover .card-img-top {
+  transform: scale(1.05);
+}
+
+/* Make sure images don't distort */
+.product-card .card-img-top {
+  object-fit: contain;
+  height: 180px;
+  padding: 1rem;
+  background-color: #f8f9fa;
+}
+
+/* Add to cart button styling */
+.add-to-cart-btn {
+  bottom: 15px;
+  left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  opacity: 0;
+  transition: all 0.3s ease;
+  width: 80%;
+  border-radius: 20px;
+  font-size: 0.85rem;
+}
+
+/* Show button on hover */
+.product-card:hover .add-to-cart-btn {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+/* Style for loading indicators */
+.skeleton-card {
+  background: linear-gradient(
+    90deg,
+    rgba(240, 240, 240, 0.8) 25%,
+    rgba(245, 245, 245, 0.8) 37%,
+    rgba(240, 240, 240, 0.8) 63%
+  );
+  background-size: 400% 100%;
+  animation: skeleton-loading 1.4s ease infinite;
+}
+
+@keyframes skeleton-loading {
+  0% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0 50%;
+  }
+}
+
+/* Responsive adjustments */
+@media (max-width: 767.98px) {
+  .add-to-cart-btn {
+    opacity: 1;
+    position: static;
+    transform: none;
+    width: 100%;
+    margin-top: 10px;
+    display: block;
+  }
+
+  .product-card {
+    transform: none !important;
+  }
+
+  .product-img-container {
+    padding-top: 65% !important; /* Smaller aspect ratio on mobile */
+  }
+}
+
+/* For very small screens */
+@media (max-width: 575.98px) {
+  .product-title {
+    font-size: 0.9rem !important;
+  }
+}

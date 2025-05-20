@@ -21,57 +21,103 @@ const Catalog = () => {
   const [clearFilter, setClearFilter] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [productsPerPage, setProductsPerPage] = useState(20);
-  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Sử dụng isFilterVisible để phản ánh trạng thái hiển thị của bộ lọc
+  const [isFilterVisible, setIsFilterVisible] = useState(window.innerWidth >= 992);
+
+  // Theo dõi kích thước màn hình để tự động hiển thị bộ lọc trên màn hình lớn
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth >= 992) {
+        // Trên màn hình lớn, luôn hiển thị bộ lọc
+        setIsFilterVisible(true);
+      }
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => {
+      window.removeEventListener('resize', handleResize);
+    };
+  }, []);
 
   useEffect(() => {
-    if (!initialCategory) {
-      const fetchProducts = async () => {
-        try {
-          const URL = `${import.meta.env.VITE_APP_API_GATEWAY_URL}/products/products`;
-          const response = await axios.get(URL, { withCredentials: true });
+    const fetchProducts = async () => {
+      try {
+        setIsLoading(true);
+        let URL;
 
-          setProducts(response?.data?.data);
-          console.log("Products: ", response?.data?.data);
-        } catch (error) {
-          console.log("Error fetching products: ", error);
+        if (initialCategory) {
+          // Nếu có category, tải sản phẩm theo category
+          URL = `${import.meta.env.VITE_APP_API_GATEWAY_URL}/products/products-category/${initialCategory}`;
+        } else {
+          // Nếu không có category, tải tất cả sản phẩm
+          URL = `${import.meta.env.VITE_APP_API_GATEWAY_URL}/products/products`;
         }
-      };
-      fetchProducts();
-    }
+
+        console.log("Fetching products from URL:", URL);
+        const response = await axios.get(URL, { withCredentials: true });
+
+        console.log("API response:", response.data);
+
+        if (response?.data?.data) {
+          setProducts(response.data.data);
+          console.log(`Loaded ${response.data.data.length} products`);
+        } else {
+          console.error("Unexpected API response structure:", response.data);
+          setProducts([]);
+        }
+      } catch (error) {
+        console.error("Error fetching products:", error);
+        // Thêm thông tin chi tiết về lỗi
+        if (error.response) {
+          console.error("Response error data:", error.response.data);
+          console.error("Response error status:", error.response.status);
+        }
+        setProducts([]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchProducts();
   }, [clearFilter, initialCategory]);
 
   const handleRemoveFilter = (filter) => {
-    setAppliedFilters((prev) => ({
-      category: filter === prev.category ? "" : prev.category,
-      price: filter === prev.price ? "" : prev.price,
-    }));
+    const newFilters = {
+      category: filter === appliedFilters.category ? "" : appliedFilters.category,
+      price: filter === appliedFilters.price ? "" : appliedFilters.price
+    };
+
+    setAppliedFilters(newFilters);
+
+    // Nếu không còn bất kỳ bộ lọc nào, tải lại tất cả sản phẩm
+    if (!newFilters.category && !newFilters.price) {
+      setClearFilter(prev => !prev); // Trigger lại effect để tải tất cả sản phẩm
+    }
   };
 
-  const ButtonFilter = ({ filter }) => (
+  const FilterBadge = ({ filter }) => (
     <>
       {filter && (
         <div
-          className="d-flex align-items-center gap-1 fw-bold"
+          className="d-inline-flex align-items-center me-2 mb-2 rounded-pill px-3 py-1"
           style={{
-            height: "38px",
             fontSize: "13px",
-            borderColor: "#CACDD8",
-            borderWidth: 1,
-            borderStyle: "solid",
-            padding: "0 10px",
+            backgroundColor: "#f8f9fa",
+            border: "1px solid #CACDD8"
           }}
         >
-          {filter}
-          <span className="text-muted fw-light" style={{ color: "#A2A6B0" }}>
+          <span className="me-2">{filter}</span>
+          <span className="text-muted me-2" style={{ color: "#A2A6B0" }}>
             (24)
           </span>
           <button
-            className="hover d-flex align-items-center justify-content-center m-0 border-0"
+            className="btn-close btn-close-sm"
             onClick={() => handleRemoveFilter(filter)}
-            style={{ background: "transparent", cursor: "pointer", marginLeft: "5px" }}
-          >
-            <img src={ICONS.Delete} alt="Remove filter" />
-          </button>
+            style={{ fontSize: "0.65rem" }}
+            aria-label="Remove filter"
+          ></button>
         </div>
       )}
     </>
@@ -83,8 +129,8 @@ const Catalog = () => {
 
   const paginate = (pageNumber) => setCurrentPage(pageNumber);
 
-  const handleCollapseFilters = () => {
-    setIsCollapsed(!isCollapsed);
+  const toggleFilters = () => {
+    setIsFilterVisible(prev => !prev);
   };
 
   return (
@@ -96,101 +142,111 @@ const Catalog = () => {
           <h1 className="h3 display-3">MSI PS Series (20)</h1>
         </div>
 
-        <div className="position-relative">
+        {/* Filter toggle button & sorting controls - responsive row */}
+        <div className="d-flex flex-wrap align-items-center justify-content-between mb-3">
+          {/* Filter button cho tất cả kích thước màn hình */}
+          <button
+            className="btn btn-outline-secondary d-flex align-items-center"
+            onClick={toggleFilters}
+            aria-expanded={isFilterVisible}
+          >
+            <img src={ICONS.Filter} alt="Filter" className="me-2" />
+            <span>{isFilterVisible ? "Ẩn bộ lọc" : "Hiện bộ lọc"}</span>
+          </button>
+
+          {/* Sorting controls */}
           <SortingControls
             productsPerPage={productsPerPage}
             setProductsPerPage={setProductsPerPage}
             totalProducts={products.length}
             currentPage={currentPage}
           />
-
-          <button
-            className="btn border-0 hover position-absolute left-0"
-            style={{ zIndex: 10, top: "50%", transform: "translateY(-50%)" }}
-            onClick={handleCollapseFilters}
-          >
-            <img src={ICONS.Filter} alt="" />
-          </button>
         </div>
 
-        <div className="row">
-          {/* Sidebar Filters */}
-          <div className={`col-12 col-md-${isCollapsed ? 0 : 3} mb-4 collapse ${isCollapsed ? "" : "show"}`}>
-            <FilterSection
-              initialCategory={initialCategory}
-              setProducts={setProducts}
-              appliedFilters={appliedFilters}
-              setAppliedFilters={setAppliedFilters}
-              setClearFilter={setClearFilter}
-            />
+        {/* Applied Filters - horizontal scrollable on mobile */}
+        {(appliedFilters.category || appliedFilters.price) && (
+          <div className="mb-3 pb-2 overflow-auto" style={{ whiteSpace: "nowrap" }}>
+            <FilterBadge filter={appliedFilters.category} />
+            <FilterBadge filter={appliedFilters.price} />
 
-            <div className=" p-3 text-center mt-4 rounded" style={{ backgroundColor: "#F5F7FF" }}>
-              <p className="fw-bold mb-3">Brands</p>
-              <button
-                className="btn btn-outline-primary w-100 fw-bold"
-                style={{
-                  height: "37px",
-                  borderColor: "#CACDD8",
-                  borderWidth: 2,
-                  fontSize: "15px",
-                  borderRadius: "999px",
-                  color: "#A2A6B0",
-                }}
-              >
-                All Brands
-              </button>
-              <img
-                src="https://cdn.builder.io/api/v1/image/assets/TEMP/8eb535f7e707114e5ee989fcd93176aeeaf18454db55fea8c09b99dd5ce0ab90?placeholderIfAbsent=true&apiKey=1a2630dba26c44fe94fe53d5e705e42a"
-                alt="Brand logos"
-                className="img-fluid mt-3"
-              />
+            <button
+              className="btn btn-sm btn-outline-danger ms-2"
+              onClick={() => {
+                setAppliedFilters({ category: "", price: "" });
+                setClearFilter(prev => !prev);
+              }}
+            >
+              Xóa tất cả
+            </button>
+          </div>
+        )}
+
+        <div className="row g-4">
+          {/* Sidebar Filters - animated collapse */}
+          <div
+            className={`col-lg-3 mb-4 ${isFilterVisible ? 'd-block' : 'd-none'}`}
+            style={{
+              transition: "all 0.3s ease-in-out"
+            }}
+          >
+            <div className="card shadow-sm">
+              <div className="card-body p-3">
+                <FilterSection
+                  initialCategory={initialCategory}
+                  setProducts={setProducts}
+                  appliedFilters={appliedFilters}
+                  setAppliedFilters={setAppliedFilters}
+                  setClearFilter={setClearFilter}
+                />
+              </div>
             </div>
-
-            <div className="p-3 text-center mt-4 rounded" style={{ backgroundColor: "#F5F7FF" }}>
-              <p className="fw-bold mb-3">Compare Products</p>
-              <p className="small text-muted">You have no items to compare.</p>
-            </div>
-
-            <div className="p-3 text-center mt-4 rounded" style={{ backgroundColor: "#F5F7FF" }}>
-              <p className="fw-bold mb-3">My Wish List</p>
-              <p className="small text-muted">You have no items in your wish list.</p>
-            </div>
-
-            <img
-              src="https://cdn.builder.io/api/v1/image/assets/TEMP/b6a78b711dbc58b395aef4fccb46f698313d5347dfbcb17eaca75f73108fd34f?placeholderIfAbsent=true&apiKey=1a2630dba26c44fe94fe53d5e705e42a"
-              alt="Promotional banner"
-              className="img-fluid mt-4"
-            />
           </div>
 
           {/* Main Content */}
-          <div className={`col-12 col-md-${isCollapsed ? 12 : 9}`}>
-            <div className="d-flex flex-wrap">
-              <ButtonFilter filter={appliedFilters.category} />
-              {appliedFilters.price && appliedFilters.category ? (
-                <div className="d-flex align-items-center fw-bold">
-                  <span className="fs-1">→</span>
-                  <ButtonFilter filter={appliedFilters.price} />
+          <div className={`${isFilterVisible ? 'col-lg-9' : 'col-12'}`}>
+            {isLoading ? (
+              <div className="text-center py-5">
+                <div className="spinner-border text-primary" role="status">
+                  <span className="visually-hidden">Loading...</span>
                 </div>
-              ) : (
-                <ButtonFilter filter={appliedFilters.price} />
-              )}
-            </div>
-
-            <div className={`row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-${isCollapsed ? 5 : 4} gy-4`}>
-              {currentProducts.map((product, index) => (
-                <div key={index} className="col p-0">
-                  <ProductCard {...product} />
+                <p className="mt-3">Đang tải sản phẩm...</p>
+              </div>
+            ) : currentProducts.length > 0 ? (
+              <div className={`row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-xl-${isFilterVisible ? '4' : '5'} g-4`}>
+                {currentProducts.map((product, index) => (
+                  <div key={index} className="col">
+                    <ProductCard {...product} />
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-5">
+                <div className="mb-3">
+                  <i className="fa fa-search fa-3x text-muted"></i>
                 </div>
-              ))}
-            </div>
+                <h5>Không tìm thấy sản phẩm</h5>
+                <p className="text-muted">Hãy thử điều chỉnh bộ lọc hoặc tiêu chí tìm kiếm của bạn.</p>
+                <button
+                  className="btn btn-primary mt-3"
+                  onClick={() => {
+                    setAppliedFilters({ category: "", price: "" });
+                    setClearFilter(prev => !prev);
+                  }}
+                >
+                  Xóa bộ lọc và thử lại
+                </button>
+              </div>
+            )}
 
-            <Pagination
-              productsPerPage={productsPerPage}
-              totalProducts={products.length}
-              paginate={paginate}
-              currentPage={currentPage}
-            />
+            {currentProducts.length > 0 && (
+              <Pagination
+                productsPerPage={productsPerPage}
+                totalProducts={products.length}
+                paginate={paginate}
+                currentPage={currentPage}
+                className="mt-4"
+              />
+            )}
 
             <article className="mt-5 small text-muted">
               <p className="mb-3">
@@ -215,9 +271,36 @@ const Catalog = () => {
             </article>
 
             <div className="text-center mt-4">
-              <button className="btn btn-outline-secondary">More</button>
+              <button className="btn btn-outline-secondary">Xem thêm</button>
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* Mobile Filter Offcanvas - shows on small screens when filter button clicked */}
+      <div
+        className="offcanvas offcanvas-start d-lg-none"
+        tabIndex="-1"
+        id="filterOffcanvas"
+        style={{ visibility: isFilterVisible ? 'visible' : 'hidden', width: '80%' }}
+      >
+        <div className="offcanvas-header">
+          <h5 className="offcanvas-title">Filters</h5>
+          <button
+            type="button"
+            className="btn-close"
+            onClick={toggleFilters}
+            aria-label="Close"
+          ></button>
+        </div>
+        <div className="offcanvas-body">
+          <FilterSection
+            initialCategory={initialCategory}
+            setProducts={setProducts}
+            appliedFilters={appliedFilters}
+            setAppliedFilters={setAppliedFilters}
+            setClearFilter={setClearFilter}
+          />
         </div>
       </div>
     </div>
