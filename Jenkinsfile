@@ -153,7 +153,7 @@ pipeline {
                     echo "Removing old Docker images for all services..."
                     services.each { service ->
                         // Thử xóa các image cũ (sẽ bỏ qua lỗi nếu không tìm thấy)
-                        bat "docker rmi -f ${DOCKER_HUB_USERNAME}/kttkpm:${service} || echo Image not found"
+                        bat "docker rmi -f ${DOCKER_HUB_USERNAME}/smpcstr:${service} || echo Image not found"
                         bat "docker image prune -f || echo No dangling images"
                     }
 
@@ -163,7 +163,7 @@ pipeline {
 
                         if (fileExists("${serviceDir}/Dockerfile")) {
                             echo "Building Docker image for ${service}..."
-                            def imageName = "${DOCKER_HUB_USERNAME}/kttkpm:${service}"
+                            def imageName = "${DOCKER_HUB_USERNAME}/smpcstr:${service}"
 
                             // Build với retry
                             def buildAttempts = 0
