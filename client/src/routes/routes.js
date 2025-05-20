@@ -1,6 +1,6 @@
 import Home from "@/pages/Home/Home";
 import Login from "@/pages/Login/Login";
-import Signup from "@/pages/Signup/Signup";
+import Signup from "../pages/Signup/Signup"; // Fix the import path
 import AboutUs from "../pages/AboutUs/AboutUs";
 import Cart from "../pages/Cart/Cart";
 import Catalog from "../pages/Catalog/Catalog";
