@@ -7,7 +7,7 @@ import ProductDetailsAll from '../pages/Details/ProductDetailsAll';
 import Home from '../pages/Home/Home';
 import Login from '../pages/Login/Login';
 import OrderConfirmation from '../pages/OrderConfirmation/OrderConfirmation';
-import Signup from '../pages/Signup/Signup.jsx'; // Add the .jsx extension explicitly
+import Signup from '../pages/Signup/Signup'; // Remove the .jsx extension
 import UserAccount from '../pages/UserAccount/UserAccount';
 import UserOrders from '../pages/UserAccount/UserOrders';
 import UserWishlist from '../pages/UserAccount/UserWishlist';

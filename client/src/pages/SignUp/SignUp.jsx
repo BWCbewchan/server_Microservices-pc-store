@@ -1,63 +1,62 @@
-import axios from "axios";
-import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { toast } from "react-toastify";
+import { useContext, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { toast } from 'react-toastify';
+import { AuthContext } from '../../context/AuthContext';
 
 const Signup = () => {
-  const navigate = useNavigate();
   const [formData, setFormData] = useState({
-    name: "",
-    email: "",
-    password: "",
-    confirmPassword: ""
+    name: '',
+    email: '',
+    password: '',
+    confirmPassword: ''
   });
   const [loading, setLoading] = useState(false);
-  
+  const navigate = useNavigate();
+  const { register } = useContext(AuthContext);
+
   const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    setFormData({ ...formData, [e.target.name]: e.target.value });
   };
-  
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     
     // Basic validation
     if (formData.password !== formData.confirmPassword) {
-      toast.error("Mật khẩu không khớp");
+      toast.error('Mật khẩu không khớp');
       return;
     }
     
+    setLoading(true);
+    
     try {
-      setLoading(true);
-      const response = await axios.post(
-        `${import.meta.env.VITE_APP_API_GATEWAY_URL}/auth/register`, 
-        {
-          name: formData.name,
-          email: formData.email,
-          password: formData.password
-        }
+      const { success, message } = await register(
+        formData.name,
+        formData.email,
+        formData.password
       );
       
-      localStorage.setItem("token", response.data.token);
-      localStorage.setItem("user", JSON.stringify(response.data.user));
-      
-      toast.success("Đăng ký thành công!");
-      navigate("/");
+      if (success) {
+        toast.success('Đăng ký thành công!');
+        navigate('/');
+      } else {
+        toast.error(message || 'Đăng ký thất bại');
+      }
     } catch (error) {
-      toast.error(error.response?.data?.message || "Đăng ký thất bại");
-      console.error("Registration error:", error);
+      console.error('Registration error:', error);
+      toast.error('Đã xảy ra lỗi khi đăng ký');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="container my-5">
+    <div className="container py-5">
       <div className="row justify-content-center">
         <div className="col-md-6">
           <div className="card shadow">
             <div className="card-body p-5">
-              <h1 className="mb-4 text-center">Đăng ký tài khoản</h1>
+              <h2 className="text-center mb-4">Đăng ký tài khoản</h2>
               
               <form onSubmit={handleSubmit}>
                 <div className="mb-3">
@@ -96,6 +95,7 @@ const Signup = () => {
                     value={formData.password}
                     onChange={handleChange}
                     required
+                    minLength={6}
                   />
                 </div>
                 
@@ -109,6 +109,7 @@ const Signup = () => {
                     value={formData.confirmPassword}
                     onChange={handleChange}
                     required
+                    minLength={6}
                   />
                 </div>
                 
@@ -128,7 +129,7 @@ const Signup = () => {
                 </button>
               </form>
               
-              <div className="text-center mt-4">
+              <div className="mt-4 text-center">
                 <p>
                   Đã có tài khoản? <Link to="/login" className="text-decoration-none">Đăng nhập</Link>
                 </p>
