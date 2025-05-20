@@ -1,4 +1,4 @@
-name: Build and Deploy Client
+name: Build and Deploy Client to GitHub Pages
 
 on:
   push:
@@ -14,6 +14,19 @@ on:
       - ci/ci
     paths:
       - 'client/**'
+  # Allow manual trigger
+  workflow_dispatch:
+
+# Set permissions for GitHub Pages deployment
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Allow only one concurrent deployment
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
 
 jobs:
   build:
@@ -21,7 +34,7 @@ jobs:
     
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       
       - name: Setup Node.js
         uses: actions/setup-node@v3
@@ -47,12 +60,13 @@ jobs:
           cd client
           npm run lint || echo "Linting issues found, but continuing build"
       
-      - name: Upload build artifacts
-        uses: actions/upload-artifact@v1
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+      
+      - name: Upload GitHub Pages artifact
+        uses: actions/upload-pages-artifact@v3
         with:
-          name: build-artifacts
-          path: client/dist
-          retention-days: 1
+          path: 'client/dist'
       
       - name: Add build summary
         run: |
@@ -69,68 +83,21 @@ jobs:
           echo "* Number of files: $(find dist -type f | wc -l)" >> $GITHUB_STEP_SUMMARY
 
   deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     needs: build
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
     
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-      
-      - name: Download build artifacts
-        uses: actions/download-artifact@v1
-        with:
-          name: build-artifacts
-          path: client/dist
-      
-      - name: Verify build artifacts
-        run: |
-          if [ -d "client/dist" ]; then
-            echo "✅ Build artifacts downloaded successfully"
-            ls -la client/dist
-          else
-            echo "❌ Build artifacts missing"
-            exit 1
-          fi
-      
-      - name: Setup Node.js for deployment
-        uses: actions/setup-node@v3
-        with:
-          node-version: '18'
-      
-      - name: Deploy to Netlify
-        id: netlify-deploy
-        if: env.NETLIFY_AUTH_TOKEN != ''
-        run: |
-          npm install -g netlify-cli
-          echo "Deploying to Netlify..."
-          DEPLOY_OUTPUT=$(netlify deploy --dir=client/dist --prod --auth=$NETLIFY_AUTH_TOKEN --site=$NETLIFY_SITE_ID --json)
-          DEPLOY_URL=$(echo $DEPLOY_OUTPUT | grep -o '"url":"[^"]*"' | sed 's/"url":"//g' | sed 's/"//g')
-          echo "deploy_url=$DEPLOY_URL" >> $GITHUB_OUTPUT
-          echo "✅ Deployed to: $DEPLOY_URL"
-        env:
-          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
-          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
-      
-      - name: Alternative deployment procedure
-        if: env.NETLIFY_AUTH_TOKEN == ''
-        run: |
-          echo "No Netlify credentials provided. In a production environment, you would deploy here."
-          echo "You can add NETLIFY_AUTH_TOKEN and NETLIFY_SITE_ID secrets to enable deployment."
-        env:
-          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
       
       - name: Add deployment summary
         run: |
           echo "## Deployment Summary" >> $GITHUB_STEP_SUMMARY
-          if [ -n "${{ steps.netlify-deploy.outputs.deploy_url }}" ]; then
-            echo "✅ Successfully deployed to: [${{ steps.netlify-deploy.outputs.deploy_url }}](${{ steps.netlify-deploy.outputs.deploy_url }})" >> $GITHUB_STEP_SUMMARY
-          elif [ -n "$NETLIFY_AUTH_TOKEN" ]; then
-            echo "⚠️ Deployment attempted but URL wasn't captured" >> $GITHUB_STEP_SUMMARY
-          else
-            echo "ℹ️ Deployment skipped (no credentials provided)" >> $GITHUB_STEP_SUMMARY
-            echo "To enable deployment, add NETLIFY_AUTH_TOKEN and NETLIFY_SITE_ID secrets" >> $GITHUB_STEP_SUMMARY
-          fi
+          echo "✅ Successfully deployed to GitHub Pages" >> $GITHUB_STEP_SUMMARY
+          echo "🔗 Deployment URL: ${{ steps.deployment.outputs.page_url }}" >> $GITHUB_STEP_SUMMARY
           echo "📅 Deployment completed: $(date)" >> $GITHUB_STEP_SUMMARY
-        env:
-          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
