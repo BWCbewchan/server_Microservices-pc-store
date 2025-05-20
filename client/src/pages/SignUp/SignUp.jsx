@@ -1,64 +1,51 @@
-import { useContext, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { toast } from 'react-toastify';
-import { AuthContext } from '../../context/AuthContext';
+import axios from "axios";
+import { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { toast } from "react-toastify";
 
 const Signup = () => {
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    password: '',
-    confirmPassword: ''
+    name: "",
+    email: "",
+    password: "",
+    confirmPassword: ""
   });
   const [loading, setLoading] = useState(false);
-  const { register } = useContext(AuthContext);
-  const navigate = useNavigate();
-
+  
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
+    setFormData(prev => ({ ...prev, [name]: value }));
   };
-
+  
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    // Form validation
-    if (!formData.name || !formData.email || !formData.password) {
-      toast.error('Vui lòng điền đầy đủ thông tin');
-      return;
-    }
-    
+    // Basic validation
     if (formData.password !== formData.confirmPassword) {
-      toast.error('Mật khẩu xác nhận không khớp');
-      return;
-    }
-    
-    if (formData.password.length < 6) {
-      toast.error('Mật khẩu phải có ít nhất 6 ký tự');
+      toast.error("Mật khẩu không khớp");
       return;
     }
     
     try {
       setLoading(true);
-      
-      const result = await register(
-        formData.name,
-        formData.email,
-        formData.password
+      const response = await axios.post(
+        `${import.meta.env.VITE_APP_API_GATEWAY_URL}/auth/register`, 
+        {
+          name: formData.name,
+          email: formData.email,
+          password: formData.password
+        }
       );
       
-      if (result.success) {
-        toast.success('Đăng ký thành công!');
-        navigate('/');
-      } else {
-        toast.error(result.message || 'Đăng ký thất bại');
-      }
+      localStorage.setItem("token", response.data.token);
+      localStorage.setItem("user", JSON.stringify(response.data.user));
+      
+      toast.success("Đăng ký thành công!");
+      navigate("/");
     } catch (error) {
-      console.error('Registration error:', error);
-      toast.error(error.message || 'Đã xảy ra lỗi khi đăng ký');
+      toast.error(error.response?.data?.message || "Đăng ký thất bại");
+      console.error("Registration error:", error);
     } finally {
       setLoading(false);
     }
