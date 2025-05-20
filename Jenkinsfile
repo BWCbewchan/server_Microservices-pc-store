@@ -4,7 +4,7 @@ pipeline {
     environment {
         DOCKER_HUB_CREDS = credentials('docker-hub-credentials')
         RENDER_API_KEY = credentials('render-api-key')
-        DOCKER_HUB_USERNAME = 'giahuyyy'
+        DOCKER_HUB_USERNAME = 'bewchan06'
 
         // Cố định giá trị nhánh
         GITHUB_BRANCH = 'main'
@@ -108,6 +108,20 @@ pipeline {
                         }
                     }
                 }
+                stage('Auth Service') {
+                    when {
+                        anyOf {
+                            changeset "backend/auth-service/**"
+                            expression { return params.FORCE_BUILD_ALL }
+                        }
+                    }
+                    steps {
+                        dir('backend/auth-service') {
+                            bat 'npm install'
+                            bat 'npm test || exit 0'
+                        }
+                    }
+                }
             }
         }
 
@@ -147,13 +161,13 @@ pipeline {
                         error "Failed to log in to Docker Hub after ${loginAttempts} attempts. Skipping build and push."
                     }
 
-                    def services = ["product-catalog-service", "inventory-service", "cart-service", "notification-service", "order-service", "api-gateway"]
+                    def services = ["product-catalog-service", "inventory-service", "cart-service", "notification-service", "order-service", "api-gateway", "auth-service"]
 
                     // Trước khi build, xóa tất cả images cũ để tránh lặp
                     echo "Removing old Docker images for all services..."
                     services.each { service ->
                         // Thử xóa các image cũ (sẽ bỏ qua lỗi nếu không tìm thấy)
-                        bat "docker rmi -f ${DOCKER_HUB_USERNAME}/kttkpm:${service} || echo Image not found"
+                        bat "docker rmi -f ${DOCKER_HUB_USERNAME}/smpcstr:${service} || echo Image not found"
                         bat "docker image prune -f || echo No dangling images"
                     }
 
@@ -163,7 +177,7 @@ pipeline {
 
                         if (fileExists("${serviceDir}/Dockerfile")) {
                             echo "Building Docker image for ${service}..."
-                            def imageName = "${DOCKER_HUB_USERNAME}/kttkpm:${service}"
+                            def imageName = "${DOCKER_HUB_USERNAME}/smpcstr:${service}"
 
                             // Build với retry
                             def buildAttempts = 0

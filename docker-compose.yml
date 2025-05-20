@@ -1,0 +1,82 @@
+version: '3.8'
+
+services:
+  api-gateway:
+    build: ./backend/api-gateway
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=development
+    depends_on:
+      - auth-service
+      - product-service
+      - cart-service
+      - order-service
+      - inventory-service
+      - notification-service
+      - payment-service
+
+  auth-service:
+    build: ./backend/auth-service
+    ports:
+      - "4006:4006"
+    environment:
+      - NODE_ENV=development
+      - MONGO_URI=mongodb://mongodb:27017/authService
+
+  product-service:
+    build: ./backend/product-catalog-service
+    ports:
+      - "4004:4004"
+    environment:
+      - NODE_ENV=development
+      - MONGO_URI=mongodb://mongodb:27017/productService
+
+  cart-service:
+    build: ./backend/cart-service
+    ports:
+      - "4005:4005"
+    environment:
+      - NODE_ENV=development
+      - MONGO_URI=mongodb://mongodb:27017/cartService
+
+  order-service:
+    build: ./backend/order-service
+    ports:
+      - "4009:4009"
+    environment:
+      - NODE_ENV=development
+      - MONGO_URI=mongodb://mongodb:27017/orderService
+
+  inventory-service:
+    build: ./backend/inventory-service
+    ports:
+      - "4000:4000"
+    environment:
+      - NODE_ENV=development
+      - MONGO_URI=mongodb://mongodb:27017/inventoryService
+
+  notification-service:
+    build: ./backend/notification-service
+    ports:
+      - "4001:4001"
+    environment:
+      - NODE_ENV=development
+      - MONGO_URI=mongodb://mongodb:27017/notificationService
+
+  payment-service:
+    build: ./backend/payment-service
+    ports:
+      - "4545:4545"
+    environment:
+      - NODE_ENV=development
+
+  mongodb:
+    image: mongo:latest
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+
+volumes:
+  mongodb_data:
