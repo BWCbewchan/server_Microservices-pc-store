@@ -18,7 +18,7 @@ const Navigation = () => {
     const [searchTerm, setSearchTerm] = useState("");
     const [searchResults, setSearchResults] = useState([]);
     const [isSearching, setIsSearching] = useState(false);
-    
+
     const navigate = useNavigate();
     const { currentUser, logout } = useContext(AuthContext);
     const dropdownRef = useRef(null);
@@ -116,17 +116,17 @@ const Navigation = () => {
         setIsSearching(true);
         try {
             console.log("Đang tìm kiếm sản phẩm với từ khóa:", term);
-            
+
             const apiUrl = `${import.meta.env.VITE_APP_API_GATEWAY_URL}/products/products-search`;
             console.log("API URL:", apiUrl);
-            
+
             const response = await axios.get(apiUrl, {
                 params: { name: term, limit: 5 },
                 withCredentials: true
             });
-            
+
             console.log("Kết quả tìm kiếm:", response.data);
-            
+
             if (response?.data?.data) {
                 setSearchResults(response.data.data);
             } else {
@@ -366,7 +366,7 @@ const Navigation = () => {
                                         </button>
                                     )}
                                 </div>
-                                
+
                                 {/* Kết quả tìm kiếm trên mobile */}
                                 {searchResults.length > 0 && (
                                     <div className="search-results-dropdown">
@@ -394,7 +394,7 @@ const Navigation = () => {
                                                 </div>
                                             ))}
                                         </div>
-                                        <div 
+                                        <div
                                             className="search-results-footer"
                                             onClick={handleViewAllResults}
                                         >
@@ -566,7 +566,7 @@ const Navigation = () => {
                                     Tìm kiếm
                                 </button>
                             </div>
-                            
+
                             {/* Kết quả tìm kiếm trên desktop */}
                             {searchResults.length > 0 && (
                                 <div className="search-results-dropdown search-results-desktop">
@@ -599,7 +599,7 @@ const Navigation = () => {
                                             </div>
                                         ))}
                                     </div>
-                                    <div 
+                                    <div
                                         className="search-results-footer"
                                         onClick={handleViewAllResults}
                                     >

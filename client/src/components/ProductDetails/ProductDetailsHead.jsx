@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
 import { useParams } from "react-router-dom";
-import {    toast } from 'react-toastify';
+import { toast } from 'react-toastify';
 
-function ProductDetailsHead({ activeTab, setActiveTab, price  }) {
+function ProductDetailsHead({ activeTab, setActiveTab, price }) {
   const { id } = useParams();
   const styles = {
     container: {
@@ -11,8 +11,8 @@ function ProductDetailsHead({ activeTab, setActiveTab, price  }) {
       fontFamily: "Poppins, sans-serif",
       textAlign: "center",
       margin: "8px auto",
-       
-      
+
+
     },
     activeTab: { color: "#000", borderBottom: "2px solid #0156FF", cursor: "pointer" },
     tab: { borderBottom: "2px solid transparent", cursor: "pointer" },
@@ -25,6 +25,17 @@ function ProductDetailsHead({ activeTab, setActiveTab, price  }) {
       border: "1px solid #ddd",
       borderRadius: 5,
     },
+  };
+
+  // Format price with dollar sign, commas and two decimal places
+  const formatPrice = (value) => {
+    if (!value) return '$0.00';
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    }).format(value);
   };
 
   const tabs = ["about", "details", "specs"];
@@ -46,8 +57,8 @@ function ProductDetailsHead({ activeTab, setActiveTab, price  }) {
     if (id) fetchInventory();
   }, [id]);
 
-   
-  
+
+
   // UserId giả dùng cho demo
   // const fakeUserId = "user9999";
   const fakeUserId = "64e65e8d3d5e2b0c8a3e9f12"
@@ -57,7 +68,7 @@ function ProductDetailsHead({ activeTab, setActiveTab, price  }) {
   // Xử lý thêm sản phẩm vào giỏ hàng qua API
   const handleAddToCart = async () => {
     console.log("Thêm vào giỏ hàng với ID:", id);
-    
+
     if (!id) {
       alert("Product ID is not defined!");
       return;
@@ -65,7 +76,7 @@ function ProductDetailsHead({ activeTab, setActiveTab, price  }) {
     try {
       const res = await axios.post(`${CART_API_URL}/${fakeUserId}/${id}/1`);
       // console.log("Thêm vào giỏ hàng thành công", res.data);
-      
+
       toast.success("🛒Thêm vào giỏ hàng thành công");
     } catch (error) {
       console.error("Lỗi khi thêm vào giỏ hàng", error.response?.data || error.message);
@@ -99,7 +110,7 @@ function ProductDetailsHead({ activeTab, setActiveTab, price  }) {
           </div>
           <div className="d-flex align-items-center gap-3 py-2">
             <span style={styles.price}>
-              On Sale from <span style={styles.priceBold}>${finalPrice}</span>
+              On Sale from <span style={styles.priceBold}>{formatPrice(finalPrice)}</span>
             </span>
             {/* <input
               type="number"
@@ -123,7 +134,7 @@ function ProductDetailsHead({ activeTab, setActiveTab, price  }) {
               style={{
                 opacity: isOutOfStock ? 0.5 : 1,
                 pointerEvents: isOutOfStock ? "none" : "auto",
-                fontSize: 14, 
+                fontSize: 14,
                 padding: "8px 0px",
                 margin: "0 10px",
               }}
@@ -145,7 +156,5 @@ function ProductDetailsHead({ activeTab, setActiveTab, price  }) {
     </div>
   );
 }
-
- 
 
 export default ProductDetailsHead;
