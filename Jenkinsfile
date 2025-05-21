@@ -6,6 +6,8 @@ pipeline {
         RENDER_API_KEY = credentials('render-api-key')
         DOCKER_HUB_USERNAME = 'bewchan06'
         GITHUB_BRANCH = 'main'
+        // Flag to track if Docker is available
+        DOCKER_AVAILABLE = 'false'
     }
 
     parameters {
@@ -16,6 +18,23 @@ pipeline {
         stage('Checkout') {
             steps {
                 checkout scm
+            }
+        }
+
+        stage('Check Docker') {
+            steps {
+                script {
+                    // Check if Docker is running
+                    def dockerCheck = bat(script: 'docker info', returnStatus: true)
+                    if (dockerCheck == 0) {
+                        echo "Docker is available and running"
+                        env.DOCKER_AVAILABLE = 'true'
+                    } else {
+                        echo "WARNING: Docker is not available or not running!"
+                        echo "Skipping Docker build and push stages"
+                        env.DOCKER_AVAILABLE = 'false'
+                    }
+                }
             }
         }
 
@@ -144,6 +163,9 @@ pipeline {
         }
 
         stage('Build & Push Docker Images') {
+            when {
+                expression { return env.DOCKER_AVAILABLE == 'true' }
+            }
             steps {
                 script {
                     echo "Starting Docker build and push for services..."
@@ -281,12 +303,16 @@ pipeline {
     post {
         always {
             script {
-                try {
-                    echo "Cleaning up Docker artifacts..."
-                    bat "docker container prune -f || echo No stopped containers"
-                    bat "docker image prune -f || echo No dangling images"
-                } catch (Exception e) {
-                    echo "Cleanup failed: ${e.message}"
+                if (env.DOCKER_AVAILABLE == 'true') {
+                    try {
+                        echo "Cleaning up Docker artifacts..."
+                        bat "docker container prune -f || echo No stopped containers"
+                        bat "docker image prune -f || echo No dangling images"
+                    } catch (Exception e) {
+                        echo "Cleanup failed: ${e.message}"
+                    }
+                } else {
+                    echo "Skipping Docker cleanup - Docker was not available"
                 }
             }
         }
