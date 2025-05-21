@@ -295,18 +295,7 @@ const ProductDisplay = () => {
       </div>
 
       <TestimonialCard />
-
       <ProductFeatures />
-
-      <div className="position-fixed bottom-0 end-0 mx-2 my-4">
-        <button
-          className="btn btn-primary rounded-circle"
-          style={{ width: "50px", height: "50px" }}
-          onClick={handleNotification}
-        >
-          <img src={ICONS.Message} alt="" className="img-fluid" />
-        </button>
-      </div>
     </div>
   );
 };
