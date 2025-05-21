@@ -208,105 +208,67 @@ const ProductDisplay = () => {
   };
 
   return (
-    <div className="container-fluid bg-light py-5">
-      <div className="container">
-        <img src={IMAGES.Banner} alt="banner" className="w-100" />
+    <div className="container-fluid bg-light py-3 py-md-5">
+      <div className="container px-2 px-sm-3">
+        <div className="row">
+          <div className="col-12">
+            <img src={IMAGES.Banner} alt="banner" className="img-fluid w-100 rounded" />
+          </div>
+        </div>
       </div>
 
       <ProductSection title="New Products" products={newProducts} seeAllLink="See All New Products" />
 
-      <div className="container my-5 py-4 text-white" style={{ backgroundColor: "#F5F7FF" }}>
-        <div className="d-flex align-items-center justify-content-center ">
-          <div className="">
-            <img
-              src="https://cdn.builder.io/api/v1/image/assets/TEMP/f019d2b4deba5b25bd92c936b8cd677ae76df6639dac225c64ba2315991fa94d?placeholderIfAbsent=true&apiKey=1a2630dba26c44fe94fe53d5e705e42a"
-              alt="Icon"
-              className="img-fluid"
-            />
-          </div>
-          <div className="mx-3">
-            <div className="vr h-100" style={{ background: "#00AEB8", width: "1px" }}></div>
-          </div>
-          <div className="">
-            <p className="mb-0" style={{ color: "#272560" }}>
-              <span className="fw-bold">Own</span> it now, up to 6 months interest free{" "}
-              <a href="#" className="text-decoration-underline" style={{ color: "#272560" }}>
-                learn more
-              </a>
-            </p>
+      <div className="container my-3 my-md-5 py-3 py-md-4" style={{ backgroundColor: "#F5F7FF", borderRadius: "8px" }}>
+        <div className="row">
+          <div className="col-12">
+            <div className="d-flex flex-column flex-md-row align-items-center justify-content-center gap-2 gap-md-3">
+              <div className="mb-2 mb-md-0">
+                <img
+                  src="https://cdn.builder.io/api/v1/image/assets/TEMP/f019d2b4deba5b25bd92c936b8cd677ae76df6639dac225c64ba2315991fa94d?placeholderIfAbsent=true&apiKey=1a2630dba26c44fe94fe53d5e705e42a"
+                  alt="Icon"
+                  className="img-fluid"
+                  style={{ maxWidth: "40px" }}
+                />
+              </div>
+              <div className="d-none d-md-block mx-2">
+                <div className="vr h-100" style={{ background: "#00AEB8", width: "1px" }}></div>
+              </div>
+              <div className="text-center text-md-start">
+                <p className="mb-0" style={{ color: "#272560" }}>
+                  <span className="fw-bold">Own</span> it now, up to 6 months interest free{" "}
+                  <a href="#" className="text-decoration-underline" style={{ color: "#272560" }}>
+                    learn more
+                  </a>
+                </p>
+              </div>
+            </div>
           </div>
         </div>
       </div>
 
       <ProductSection
-        title="Custome Builds"
+        title="Custom Builds"
         products={customBuilds}
         seeAllLink="Custome Builds"
-        brandImage={IMAGES.CustomeBuilds}
       />
-
-      <div className="container my-5">
-        <div className="row">
-          <div className="col-auto">
-            <div className="d-flex flex-column align-items-center">
-              <span>MSI Infinite Series</span>
-              <img
-                src="https://cdn.builder.io/api/v1/image/assets/TEMP/12db06f04c1f704cc4edc98bbeaa73cdc462abbd553e2a7474ba66629f8d75c5?placeholderIfAbsent=true&apiKey=1a2630dba26c44fe94fe53d5e705e42a"
-                alt="MSI Infinite Series"
-                className="img-fluid"
-              />
-            </div>
-          </div>
-          <div className="col-auto">
-            <span>MSI Trident</span>
-          </div>
-          <div className="col-auto">
-            <span>MSI GL Series</span>
-          </div>
-          <div className="col-auto">
-            <span>MSI Nightblade</span>
-          </div>
-        </div>
-      </div>
 
       <ProductSection
         title="MSI Laptops"
         products={MSILaptops}
         seeAllLink="MSI Laptops"
-        brandImage={IMAGES.MSILaptops}
       />
 
-      <div className="container my-5">
-        <div className="row ">
-          <div className="col-auto">
-            <div className="d-flex flex-column align-items-center">
-              <span>MSI GS Series</span>
-              <img
-                src="https://cdn.builder.io/api/v1/image/assets/TEMP/07d0ccfc53c806d775db0bc48600cf9a29ef6a464ed854b2abc7786995d30839?placeholderIfAbsent=true&apiKey=1a2630dba26c44fe94fe53d5e705e42a"
-                alt="MSI GS Series"
-                className="img-fluid"
-              />
-            </div>
-          </div>
-          <div className="col-auto">
-            <span>MSI GT Series</span>
-          </div>
-          <div className="col-auto">
-            <span>MSI GL Series</span>
-          </div>
-          <div className="col-auto">
-            <span>MSI GE Series</span>
-          </div>
-        </div>
-      </div>
-
-      <ProductSection title="Desktops" products={desktops} seeAllLink="Desktops" brandImage={IMAGES.Desktops} />
+      <ProductSection
+        title="Desktops"
+        products={desktops}
+        seeAllLink="Desktops"
+      />
 
       <ProductSection
         title="Gaming Monitors"
         products={gamingMonitors}
         seeAllLink="Gaming Monitors"
-        brandImage={IMAGES.GamingMonitors}
       />
 
       <BrandSection brands={brands} />

@@ -8,13 +8,17 @@ export const useGlobalContext = () => useContext(GlobalContext);
 export default function GlobalProvider({ children }) {
   const [openForm, setOpenForm] = useState(false);
   const [productToUpdate, setProductToUpdate] = useState(null);
-
+  const [notificationToUpdate, setNotificationToUpdate] = useState(null);
 
   return (
     <GlobalContext.Provider
       value={{
         openForm,
-        setOpenForm, productToUpdate, setProductToUpdate
+        setOpenForm,
+        productToUpdate,
+        setProductToUpdate,
+        notificationToUpdate,
+        setNotificationToUpdate,
       }}
     >
       {children}

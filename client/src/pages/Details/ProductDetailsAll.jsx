@@ -36,7 +36,7 @@ const ProductDetailsAll = () => {
   return (
     <>
       {/* Truyền activeTab và setActiveTab xuống ProductDetailsHead */}
-      <ProductDetailsHead activeTab={activeTab} setActiveTab={setActiveTab} price={product.price}/>
+      <ProductDetailsHead activeTab={activeTab} setActiveTab={setActiveTab} price={product.price} />
 
       {/* Breadcrumb */}
       <div className="container">
@@ -91,7 +91,7 @@ const ProductDetailsAll = () => {
               <p className="mt-2 text-secondary">
                 {/* MSI MPG Trident 3 10SC-005AU Intel i7 10700F, 2060 SUPER, 16GB RAM, 512GB SSD, 2TB HDD, Windows 10 Home,
                 Gaming Keyboard and Mouse, 3 Years Warranty Gaming Desktop */}
-                {product?.description }
+                {product?.description}
               </p>
               {/* <div className="d-flex align-items-center my-3">
                 <button className="btn btn-dark rounded-circle me-2" style={{ width: "15px", height: "15px" }}></button>
@@ -104,7 +104,7 @@ const ProductDetailsAll = () => {
                   style={{ width: "15px", height: "15px" }}
                 ></button>
               </div> */}
-              <div style={{ marginTop: "10px",display:'flex' }}>
+              <div style={{ marginTop: "10px", display: 'flex' }}>
                 {Array.isArray(product.color) && product.color.length > 0 ? (
                   product.color.map((color, index) => (
                     <li
@@ -130,7 +130,7 @@ const ProductDetailsAll = () => {
                         }}
                         title={color}
                       />
-                       
+
                     </li>
                   ))
                 ) : (
@@ -302,7 +302,7 @@ const ProductDetailsAll = () => {
               <h1 className="h1" style={{
                 fontSize: '40px',
                 margin: '32px 0'
-              }}>{ product?.name}</h1>
+              }}>{product?.name}</h1>
               <a href="#review" className="text-decoration-none" style={{
                 marginBottom: '29px',
                 display: 'block',
@@ -328,7 +328,7 @@ const ProductDetailsAll = () => {
                   </tr>
                 </tbody>
               </table> */}
-              <FakeSpecs/>
+              <FakeSpecs />
 
               <div style={{ display: "flex", justifyContent: "space-between" }}>
 
