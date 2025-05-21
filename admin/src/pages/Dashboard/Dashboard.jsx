@@ -21,7 +21,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { format } from "date-fns";
-import { Calendar as CalendarIcon, TrendingUp, TrendingDown, Package, Users, DollarSign, ShoppingCart } from "lucide-react";
+import { Calendar as CalendarIcon, TrendingUp, TrendingDown, Package, Users, DollarSign, ShoppingCart, Mail, Phone, User } from "lucide-react";
 
 // API URLs
 const ORDER_API_URL = "http://localhost:3000/api/orders";
@@ -29,6 +29,10 @@ const PRODUCT_API_URL = "http://localhost:4004/products";
 const USER_API_URL = "http://localhost:3000/api/users"; // Adjust according to your setup
 
 export default function Dashboard() {
+  // Get the admin user from localStorage
+  const userString = localStorage.getItem("adminUser");
+  const adminUser = userString ? JSON.parse(userString) : null;
+
   // States
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -43,20 +47,20 @@ export default function Dashboard() {
     completedOrders: 0,
     cancelledOrders: 0,
   });
-  
+
   const [dateRange, setDateRange] = useState({
     startDate: null,
     endDate: null,
   });
-  
+
   const [isStartDateOpen, setIsStartDateOpen] = useState(false);
   const [isEndDateOpen, setIsEndDateOpen] = useState(false);
-  
+
   // Charts data
   const [orderStatusData, setOrderStatusData] = useState([]);
   const [revenueTrendData, setRevenueTrendData] = useState([]);
   const [topProducts, setTopProducts] = useState([]);
-  
+
   const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8'];
 
   // Fetch data
@@ -68,18 +72,18 @@ export default function Dashboard() {
         const ordersResponse = await axios.get(ORDER_API_URL);
         const ordersData = ordersResponse.data;
         setOrders(ordersData);
-        
+
         // Fetch products
         const productsResponse = await axios.get(PRODUCT_API_URL);
         const productsData = productsResponse.data.data || [];
         setProducts(productsData);
-        
+
         // Calculate summary
         calculateSummary(ordersData, productsData);
-        
+
         // Process data for charts
         processChartData(ordersData);
-        
+
       } catch (err) {
         console.error("Error fetching dashboard data:", err);
         setError("Không thể tải dữ liệu thống kê");
@@ -87,56 +91,56 @@ export default function Dashboard() {
         setLoading(false);
       }
     };
-    
+
     fetchData();
   }, []);
-  
+
   // Apply date filter when date range changes
   useEffect(() => {
     if (!orders.length) return;
-    
+
     let filteredOrders = [...orders];
-    
+
     if (dateRange.startDate) {
       const start = new Date(dateRange.startDate);
       start.setHours(0, 0, 0, 0);
-      
+
       filteredOrders = filteredOrders.filter(order => {
         const orderDate = new Date(order.createdAt);
         return orderDate >= start;
       });
     }
-    
+
     if (dateRange.endDate) {
       const end = new Date(dateRange.endDate);
       end.setHours(23, 59, 59, 999);
-      
+
       filteredOrders = filteredOrders.filter(order => {
         const orderDate = new Date(order.createdAt);
         return orderDate <= end;
       });
     }
-    
+
     // Recalculate summary and charts with filtered orders
     calculateSummary(filteredOrders, products);
     processChartData(filteredOrders);
-    
+
   }, [dateRange, orders, products]);
-  
+
   // Calculate summary metrics
   const calculateSummary = (ordersData, productsData) => {
     const totalRevenue = ordersData.reduce((sum, order) => {
       return order.status !== "cancelled" ? sum + order.finalTotal : sum;
     }, 0);
-    
+
     const pendingOrders = ordersData.filter(order => order.status === "pending").length;
     const completedOrders = ordersData.filter(order => order.status === "completed").length;
     const confirmedOrders = ordersData.filter(order => order.status === "confirmed").length;
     const cancelledOrders = ordersData.filter(order => order.status === "cancelled").length;
-    
+
     // Get unique customer count based on userId
     const uniqueCustomers = new Set(ordersData.map(order => order.userId)).size;
-    
+
     setSummary({
       totalRevenue,
       totalOrders: ordersData.length,
@@ -148,7 +152,7 @@ export default function Dashboard() {
       cancelledOrders,
     });
   };
-  
+
   // Process data for various charts
   const processChartData = (ordersData) => {
     // Order status chart data
@@ -159,68 +163,68 @@ export default function Dashboard() {
       { name: "Đã hủy", value: ordersData.filter(order => order.status === "cancelled").length },
     ];
     setOrderStatusData(statusData);
-    
+
     // Revenue trend data - group by month
     const revenueByMonth = {};
-    
+
     ordersData.forEach(order => {
       if (order.status === "cancelled") return;
-      
+
       const date = new Date(order.createdAt);
       const monthYear = `${date.getMonth() + 1}/${date.getFullYear()}`;
-      
+
       if (!revenueByMonth[monthYear]) {
         revenueByMonth[monthYear] = 0;
       }
-      
+
       revenueByMonth[monthYear] += order.finalTotal;
     });
-    
+
     const trendData = Object.keys(revenueByMonth).map(key => ({
       month: key,
       revenue: revenueByMonth[key]
     }));
-    
+
     // Sort by date
     trendData.sort((a, b) => {
       const [monthA, yearA] = a.month.split('/');
       const [monthB, yearB] = b.month.split('/');
       return new Date(yearA, monthA - 1) - new Date(yearB, monthB - 1);
     });
-    
+
     setRevenueTrendData(trendData);
-    
+
     // Top selling products
     const productSales = {};
-    
+
     ordersData.forEach(order => {
       if (order.status === "cancelled") return;
-      
+
       order.items.forEach(item => {
         if (!productSales[item.name]) {
-          productSales[item.name] = { 
-            quantity: 0, 
-            revenue: 0 
+          productSales[item.name] = {
+            quantity: 0,
+            revenue: 0
           };
         }
-        
+
         productSales[item.name].quantity += item.quantity;
         productSales[item.name].revenue += item.price * item.quantity;
       });
     });
-    
+
     const topProductsData = Object.keys(productSales).map(name => ({
       name,
       quantity: productSales[name].quantity,
       revenue: productSales[name].revenue
     }));
-    
+
     // Sort by revenue
     topProductsData.sort((a, b) => b.revenue - a.revenue);
-    
+
     setTopProducts(topProductsData.slice(0, 5)); // Top 5 products
   };
-  
+
   // Reset date filters
   const handleResetDateFilters = () => {
     setDateRange({
@@ -249,16 +253,59 @@ export default function Dashboard() {
 
   return (
     <div className="p-6 space-y-6">
+      {/* Admin User Welcome Card */}
+      <Card className="border-none shadow-sm bg-gradient-to-r from-blue-50 to-indigo-50">
+        <CardContent className="p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-bold mb-2">
+                Chào mừng, {adminUser?.name || 'Admin'}!
+              </h1>
+              <p className="text-gray-600">
+                {new Date().toLocaleDateString('vi-VN', {
+                  weekday: 'long',
+                  year: 'numeric',
+                  month: 'long',
+                  day: 'numeric'
+                })}
+              </p>
+            </div>
+
+            <div className="flex items-center space-x-4">
+              {adminUser && (
+                <div className="text-right">
+                  <div className="text-sm text-gray-600">
+                    <span className="flex items-center justify-end">
+                      <Mail className="h-4 w-4 mr-1" />
+                      {adminUser.email}
+                    </span>
+                  </div>
+                  <div className="text-sm text-gray-600">
+                    <span className="inline-block px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs font-medium">
+                      {adminUser.role || 'Administrator'}
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              <div className="h-12 w-12 rounded-full bg-blue-100 flex items-center justify-center">
+                <User className="h-6 w-6 text-blue-600" />
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold">Dashboard</h1>
-        
+
         {/* Date filtering */}
         <div className="flex items-center gap-4">
           <div>
             <Popover open={isStartDateOpen} onOpenChange={setIsStartDateOpen}>
               <PopoverTrigger asChild>
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   className={`w-[180px] justify-start text-left font-normal ${!dateRange.startDate && 'text-gray-400'}`}
                 >
                   <CalendarIcon className="mr-2 h-4 w-4" />
@@ -278,12 +325,12 @@ export default function Dashboard() {
               </PopoverContent>
             </Popover>
           </div>
-          
+
           <div>
             <Popover open={isEndDateOpen} onOpenChange={setIsEndDateOpen}>
               <PopoverTrigger asChild>
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   className={`w-[180px] justify-start text-left font-normal ${!dateRange.endDate && 'text-gray-400'}`}
                 >
                   <CalendarIcon className="mr-2 h-4 w-4" />
@@ -303,13 +350,13 @@ export default function Dashboard() {
               </PopoverContent>
             </Popover>
           </div>
-          
+
           <Button variant="ghost" onClick={handleResetDateFilters}>
             Xóa bộ lọc
           </Button>
         </div>
       </div>
-      
+
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <Card>
@@ -322,13 +369,13 @@ export default function Dashboard() {
               {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(summary.totalRevenue)}
             </div>
             <p className="text-xs text-gray-500">
-              {dateRange.startDate || dateRange.endDate 
-                ? `Khoảng thời gian đã chọn` 
+              {dateRange.startDate || dateRange.endDate
+                ? `Khoảng thời gian đã chọn`
                 : `Tổng doanh thu`}
             </p>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium">Đơn hàng</CardTitle>
@@ -341,7 +388,7 @@ export default function Dashboard() {
             </p>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium">Sản phẩm</CardTitle>
@@ -352,7 +399,7 @@ export default function Dashboard() {
             <p className="text-xs text-gray-500">Tổng số sản phẩm trong cửa hàng</p>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium">Khách hàng</CardTitle>
@@ -364,7 +411,7 @@ export default function Dashboard() {
           </CardContent>
         </Card>
       </div>
-      
+
       {/* Charts */}
       <Tabs defaultValue="overview">
         <TabsList>
@@ -372,7 +419,7 @@ export default function Dashboard() {
           <TabsTrigger value="revenue">Doanh thu</TabsTrigger>
           <TabsTrigger value="products">Sản phẩm</TabsTrigger>
         </TabsList>
-        
+
         <TabsContent value="overview" className="space-y-6">
           {/* Revenue Trend Chart */}
           <Card>
@@ -389,11 +436,11 @@ export default function Dashboard() {
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="month" />
                   <YAxis />
-                  <Tooltip 
+                  <Tooltip
                     formatter={(value) => [
                       new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(value),
                       "Doanh thu"
-                    ]} 
+                    ]}
                   />
                   <Legend />
                   <Line type="monotone" dataKey="revenue" stroke="#8884d8" activeDot={{ r: 8 }} name="Doanh thu" />
@@ -401,7 +448,7 @@ export default function Dashboard() {
               </ResponsiveContainer>
             </CardContent>
           </Card>
-          
+
           {/* Order Status Distribution */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <Card>
@@ -431,7 +478,7 @@ export default function Dashboard() {
                 </ResponsiveContainer>
               </CardContent>
             </Card>
-            
+
             {/* Top Selling Products */}
             <Card>
               <CardHeader>
@@ -446,18 +493,18 @@ export default function Dashboard() {
                     margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
                   >
                     <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis type="number" 
-                      tickFormatter={(value) => 
-                        new Intl.NumberFormat('vi-VN', { 
-                          notation: 'compact', 
+                    <XAxis type="number"
+                      tickFormatter={(value) =>
+                        new Intl.NumberFormat('vi-VN', {
+                          notation: 'compact',
                           compactDisplay: 'short',
-                          style: 'currency', 
-                          currency: 'VND' 
+                          style: 'currency',
+                          currency: 'VND'
                         }).format(value)
-                      } 
+                      }
                     />
                     <YAxis type="category" dataKey="name" width={120} />
-                    <Tooltip 
+                    <Tooltip
                       formatter={(value) => [
                         new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(value),
                         "Doanh thu"
@@ -471,7 +518,7 @@ export default function Dashboard() {
             </Card>
           </div>
         </TabsContent>
-        
+
         <TabsContent value="revenue" className="space-y-6">
           {/* More detailed revenue analysis could go here */}
           <Card>
@@ -486,7 +533,7 @@ export default function Dashboard() {
             </CardContent>
           </Card>
         </TabsContent>
-        
+
         <TabsContent value="products" className="space-y-6">
           {/* Product performance analysis could go here */}
           <Card>
@@ -502,14 +549,14 @@ export default function Dashboard() {
           </Card>
         </TabsContent>
       </Tabs>
-      
+
       {/* Recent Orders */}
       <Card>
         <CardHeader>
           <CardTitle>Đơn hàng gần đây</CardTitle>
           <CardDescription>
-            {dateRange.startDate || dateRange.endDate 
-              ? `Đơn hàng trong khoảng thời gian đã chọn` 
+            {dateRange.startDate || dateRange.endDate
+              ? `Đơn hàng trong khoảng thời gian đã chọn`
               : `10 đơn hàng gần nhất`}
           </CardDescription>
         </CardHeader>
@@ -538,12 +585,11 @@ export default function Dashboard() {
                         {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(order.finalTotal)}
                       </td>
                       <td className="py-3 px-4">
-                        <span className={`px-2 py-1 rounded-full text-xs ${
-                          order.status === 'completed' ? 'bg-green-100 text-green-800' :
-                          order.status === 'pending' ? 'bg-blue-100 text-blue-800' :
-                          order.status === 'confirmed' ? 'bg-yellow-100 text-yellow-800' :
-                          'bg-red-100 text-red-800'
-                        }`}>
+                        <span className={`px-2 py-1 rounded-full text-xs ${order.status === 'completed' ? 'bg-green-100 text-green-800' :
+                            order.status === 'pending' ? 'bg-blue-100 text-blue-800' :
+                              order.status === 'confirmed' ? 'bg-yellow-100 text-yellow-800' :
+                                'bg-red-100 text-red-800'
+                          }`}>
                           {order.status}
                         </span>
                       </td>
