@@ -28,7 +28,7 @@ app.get('/payment', async (req, res) => {
   const { amount, orderInfo, orderId, requestId, extraData } = req.query;
 
   const redirectUrl = 'http://localhost:2000/home';
-  const ipnUrl = 'https://c284-171-252-189-124.ngrok-free.app/callback';
+  const ipnUrl = 'https://6745-171-252-189-124.ngrok-free.app/callback';
   const requestType = "payWithMethod";
   const autoCapture = true;
   const lang = 'vi';

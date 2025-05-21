@@ -91,10 +91,27 @@ export default function OrderDetailModal({ orderId, onClose }) {
                             <div className="border p-4 rounded">
                                 <h3 className="font-semibold text-lg mb-2">Thông tin thanh toán</h3>
                                 <p>
-                                    <span className="font-bold">Phương thức:</span> {orderDetail.payment?.method}
+                                    <span className="font-bold">Phương thức:</span> {orderDetail.payment?.method === "cod" 
+                                      ? "Thanh toán khi nhận hàng (COD)" 
+                                      : orderDetail.payment?.method === "bank" 
+                                        ? "Chuyển khoản ngân hàng" 
+                                        : orderDetail.payment?.method}
                                 </p>
                                 <p>
-                                    <span className="font-bold">Trạng thái:</span> {orderDetail.payment?.status}
+                                    <span className="font-bold">Trạng thái:</span>{" "}
+                                    {orderDetail.payment?.status === "paid" ? (
+                                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                            Đã thanh toán
+                                        </span>
+                                    ) : orderDetail.payment?.status === "pending" ? (
+                                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                                            Chờ thanh toán
+                                        </span>
+                                    ) : (
+                                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                                            Thanh toán thất bại
+                                        </span>
+                                    )}
                                 </p>
                             </div>
                             {/* Order Items */}

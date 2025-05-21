@@ -173,6 +173,57 @@ export default function TableOrders() {
     }
   };
 
+  // Add a function to update payment status directly from the order list
+  const handleUpdatePaymentStatus = async (orderId, order, newPaymentStatus) => {
+    if (window.confirm(`Xác nhận thay đổi trạng thái thanh toán sang "${newPaymentStatus === 'paid' ? 'Đã thanh toán' : 'Chờ thanh toán'}"?`)) {
+      try {
+        setActionLoading(true);
+        
+        // Prepare update data
+        const updateData = {
+          'payment.status': newPaymentStatus
+        };
+        
+        // If payment status is changed to "paid" and order is pending, also update order status
+        if (newPaymentStatus === 'paid' && order.status === 'pending') {
+          if (window.confirm('Xác nhận thanh toán thành công. Cập nhật trạng thái đơn hàng thành "Đã xác nhận"?')) {
+            updateData.status = 'confirmed';
+          }
+        }
+        
+        // Send update request
+        const encodedUpdateData = encodeURIComponent(JSON.stringify(updateData));
+        const response = await axios.put(`${ORDER_API_URL}/update/${orderId}/${encodedUpdateData}`);
+        
+        if (response.data) {
+          // Update order in state
+          setOrders(prevOrders => 
+            prevOrders.map(o => {
+              if (o._id === orderId) {
+                return {
+                  ...o,
+                  payment: {
+                    ...o.payment,
+                    status: newPaymentStatus
+                  },
+                  ...(updateData.status ? { status: updateData.status } : {})
+                };
+              }
+              return o;
+            })
+          );
+          
+          toast.success('Cập nhật trạng thái thanh toán thành công!');
+        }
+      } catch (err) {
+        console.error("Error updating payment status:", err);
+        toast.error("Lỗi khi cập nhật trạng thái thanh toán!");
+      } finally {
+        setActionLoading(false);
+      }
+    }
+  };
+
   // Hàm chỉnh sửa đơn hàng (ví dụ mở modal, chuyển trang,...)
   const handleEdit = (orderId) => {
     setEditingOrderId(orderId);
@@ -254,6 +305,31 @@ export default function TableOrders() {
     {
       accessorFn: (row) => row.payment?.status,
       header: "TT Thanh toán",
+      cell: (info) => {
+        const status = info.getValue();
+        const order = info.row.original;
+        
+        // Return a styled badge based on status
+        if (status === 'paid') {
+          return (
+            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+              Đã thanh toán
+            </span>
+          );
+        } else if (status === 'pending') {
+          return (
+            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+              Chờ thanh toán
+            </span>
+          );
+        }
+        
+        return (
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+            Thanh toán thất bại
+          </span>
+        );
+      }
     },
     {
       accessorFn: (row) => row.shipping?.fee,

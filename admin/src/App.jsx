@@ -11,6 +11,8 @@ import ProductPage from "@/pages/Products/ProductPage";
 import NotificationPage from "@/pages/Notification/NotificationPage";
 import CustomersPage from "@/pages/Customers/CustomersPage";
 import Settings from "@/pages/Settings/Settings";
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 
 function App() {
@@ -42,6 +44,7 @@ function App() {
               </main>
             </div>
             <Toaster position="top-center" />
+            <ToastContainer />
           </div>
         </Router>
       </ThemeProvider>
