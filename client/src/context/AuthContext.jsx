@@ -105,7 +105,7 @@ export const AuthProvider = ({ children }) => {
 
       // Try both API endpoints
       try {
-        const response = await axios.get(`${import.meta.env.VITE_APP_API_GATEWAY_URL || 'http://localhost:3000'}/api/auth/me`, config);
+        const response = await axios.get(`${API_URL || 'http://localhost:3000'}/me`, config);
         console.log("User data response:", response.data);
         
         if (response.data && response.data.user) {
