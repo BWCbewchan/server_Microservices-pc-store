@@ -19,7 +19,13 @@ app.use(express.json());
 app.use( cartRoutes);
 // app.use("/api/cart", cartRoutes);
 
-
+app.get('/health', (req, res) => {
+  res.status(200).json({
+    status: 'ok',
+    service: 'inventory-service',
+    timestamp: new Date().toISOString()
+  });
+});
 const PORT = process.env.PORT || 4005;
 const MONGO_URI = process.env.MONGO_URI || "mongodb+srv://ngophuc2911:phuc29112003@cluster0.zz9vo.mongodb.net/cartService?retryWrites=true&w=majority";
 

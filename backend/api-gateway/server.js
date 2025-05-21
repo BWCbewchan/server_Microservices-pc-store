@@ -35,6 +35,9 @@ app.use(cors({
 
 app.use(express.json());
 
+// Add static file serving capability to serve the status page
+app.use(express.static('public'));
+
 // Add the param function to the request object for the API Gateway
 app.use((req, res, next) => {
   req.param = function(name) {
@@ -711,6 +714,59 @@ app.get('/mock/products/products-category/:category', (req, res) => {
         description: `Another mock ${category} product`,
         image: "https://via.placeholder.com/300",
         category: category
+      }
+    ]
+  });
+});
+
+// Add a route that serves the status page
+app.get('/status', (req, res) => {
+  res.sendFile(__dirname + '/public/server-status.html');
+});
+
+// Add a special endpoint to expose service URLs safely for the status page
+app.get('/status-config', (req, res) => {
+  res.json({
+    services: [
+      { 
+        name: "API Gateway", 
+        url: `${req.protocol}://${req.get('host')}/api-status`,
+        description: "Main entry point for all client requests"
+      },
+      { 
+        name: "Product Catalog Service", 
+        url: `${services.products}/health`,
+        description: "Manages product information and catalog"
+      },
+      { 
+        name: "Auth Service", 
+        url: `${services.auth}/health`,
+        description: "Handles authentication and user management"
+      },
+      { 
+        name: "Cart Service", 
+        url: `${services.cart}/health`,
+        description: "Manages shopping cart functionality"
+      },
+      { 
+        name: "Order Service", 
+        url: `${services.orders}/health`,
+        description: "Processes and manages orders"
+      },
+      { 
+        name: "Inventory Service", 
+        url: `${services.inventory}/health`,
+        description: "Tracks product inventory and availability"
+      },
+      { 
+        name: "Notification Service", 
+        url: `${services.notification}/health`,
+        description: "Sends notifications to users"
+      },
+      { 
+        name: "Payment Service", 
+        url: `${services.payment}/health`,
+        description: "Handles payment processing"
       }
     ]
   });

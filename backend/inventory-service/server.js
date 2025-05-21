@@ -16,6 +16,16 @@ app.use(
     allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
+
+// Add health check endpoint
+app.get('/health', (req, res) => {
+  res.status(200).json({
+    status: 'ok',
+    service: 'inventory-service',
+    timestamp: new Date().toISOString()
+  });
+});
+
 app.use(express.json());
 app.use(inventoryRoutes);
 cron.schedule('*/10 * * * *', async () => {

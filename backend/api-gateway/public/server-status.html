@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Microservices Status Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f8f9fa;
+            padding: 20px;
+        }
+        .status-card {
+            transition: all 0.3s ease;
+            margin-bottom: 15px;
+        }
+        .status-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+        }
+        .service-online {
+            border-left: 5px solid #28a745;
+        }
+        .service-offline {
+            border-left: 5px solid #dc3545;
+        }
+        .service-unknown {
+            border-left: 5px solid #ffc107;
+        }
+        .ping-count {
+            font-size: 0.8rem;
+            color: #6c757d;
+        }
+        .last-ping {
+            font-size: 0.8rem;
+        }
+        .status-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 5px;
+        }
+        .status-online {
+            background-color: #28a745;
+        }
+        .status-offline {
+            background-color: #dc3545;
+        }
+        .status-unknown {
+            background-color: #ffc107;
+        }
+        .ping-button {
+            padding: 2px 8px;
+            font-size: 0.8rem;
+        }
+        #global-controls {
+            position: sticky;
+            top: 10px;
+            z-index: 100;
+            padding: 15px;
+            background-color: rgba(255, 255, 255, 0.95);
+            border-radius: 8px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        .log-container {
+            height: 200px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 0.85rem;
+            background-color: #212529;
+            color: #f8f9fa;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        .log-entry {
+            margin-bottom: 3px;
+            border-bottom: 1px solid #343a40;
+            padding-bottom: 3px;
+        }
+        .log-time {
+            color: #6c757d;
+        }
+        .log-success {
+            color: #28a745;
+        }
+        .log-error {
+            color: #dc3545;
+        }
+        .log-warning {
+            color: #ffc107;
+        }
+        .log-info {
+            color: #17a2b8;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="text-center mb-4">PC Store Microservices Status</h1>
+        
+        <div id="global-controls" class="mb-4">
+            <div class="row align-items-center">
+                <div class="col-md-4">
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" id="autoRefreshToggle" checked>
+                        <label class="form-check-label" for="autoRefreshToggle">Auto-refresh</label>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="input-group">
+                        <span class="input-group-text">Interval</span>
+                        <select class="form-select" id="refreshInterval">
+                            <option value="30000">30 seconds</option>
+                            <option value="60000">1 minute</option>
+                            <option value="300000" selected>5 minutes</option>
+                            <option value="600000">10 minutes</option>
+                            <option value="1800000">30 minutes</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="col-md-4 text-end">
+                    <button id="pingAllBtn" class="btn btn-primary">Ping All Services</button>
+                    <button id="clearLogsBtn" class="btn btn-secondary ms-2">Clear Logs</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">Activity Log</h5>
+                        <span id="totalSuccessRate" class="badge bg-info">Success Rate: --</span>
+                    </div>
+                    <div class="card-body p-0">
+                        <div id="logContainer" class="log-container"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="servicesContainer" class="row">
+            <!-- Services will be dynamically added here -->
+        </div>
+    </div>
+
+    <script>
+        // Services will be loaded dynamically from the API
+        let services = [];
+
+        // State
+        let serviceStates = {};
+        let pingIntervals = {};
+        let logEntries = [];
+        let totalPings = 0;
+        let successfulPings = 0;
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            // First load services configuration
+            fetch('/status-config')
+                .then(response => response.json())
+                .then(data => {
+                    services = data.services;
+                    
+                    // Create service cards
+                    renderServiceCards();
+                    
+                    // Initialize service states
+                    services.forEach(service => {
+                        serviceStates[service.name] = {
+                            status: 'unknown',
+                            pingCount: 0,
+                            successCount: 0,
+                            lastPing: null,
+                            lastSuccess: null,
+                            responseTime: null
+                        };
+                    });
+                    
+                    // Setup event listeners
+                    document.getElementById('pingAllBtn').addEventListener('click', pingAllServices);
+                    document.getElementById('autoRefreshToggle').addEventListener('change', toggleAutoRefresh);
+                    document.getElementById('refreshInterval').addEventListener('change', updateRefreshInterval);
+                    document.getElementById('clearLogsBtn').addEventListener('click', clearLogs);
+                    
+                    // Start initial checks
+                    pingAllServices();
+                    
+                    // Start auto-refresh if enabled
+                    toggleAutoRefresh();
+                })
+                .catch(error => {
+                    console.error('Error loading service configuration:', error);
+                    document.getElementById('servicesContainer').innerHTML = 
+                        `<div class="alert alert-danger">Failed to load services configuration: ${error.message}</div>`;
+                });
+        });
+
+        function renderServiceCards() {
+            const container = document.getElementById('servicesContainer');
+            container.innerHTML = '';
+
+            services.forEach(service => {
+                const serviceCard = document.createElement('div');
+                serviceCard.className = 'col-md-6 col-lg-4';
+                serviceCard.innerHTML = `
+                    <div id="card-${service.name.replace(/\s+/g, '-').toLowerCase()}" class="card status-card service-unknown">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0">
+                                <span id="indicator-${service.name.replace(/\s+/g, '-').toLowerCase()}" 
+                                      class="status-indicator status-unknown"></span>
+                                ${service.name}
+                            </h5>
+                            <button class="ping-button btn btn-sm btn-outline-primary"
+                                    onclick="pingService('${service.name}')">Ping</button>
+                        </div>
+                        <div class="card-body">
+                            <p class="card-text">${service.description}</p>
+                            <p class="card-text small text-truncate"><strong>URL:</strong> <span class="text-muted">${service.url}</span></p>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span id="status-${service.name.replace(/\s+/g, '-').toLowerCase()}" 
+                                      class="badge bg-warning">Unknown</span>
+                                <span id="ping-count-${service.name.replace(/\s+/g, '-').toLowerCase()}" 
+                                      class="ping-count">Pings: 0 (0%)</span>
+                            </div>
+                            <div class="d-flex justify-content-between align-items-center mt-2">
+                                <span id="response-time-${service.name.replace(/\s+/g, '-').toLowerCase()}" 
+                                      class="small text-muted">Response time: --</span>
+                                <span id="last-ping-${service.name.replace(/\s+/g, '-').toLowerCase()}" 
+                                      class="last-ping text-muted">Last ping: --</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                container.appendChild(serviceCard);
+            });
+        }
+
+        function pingService(serviceName) {
+            const service = services.find(s => s.name === serviceName);
+            if (!service) return;
+            
+            const startTime = Date.now();
+            
+            // Update UI to show request in progress
+            updateServiceUI(serviceName, { status: 'unknown' });
+            addLogEntry(`Pinging ${serviceName}...`, 'info');
+            
+            // Update state
+            serviceStates[serviceName].pingCount++;
+            serviceStates[serviceName].lastPing = new Date();
+            totalPings++;
+            
+            // Make the request
+            fetch(service.url, { 
+                method: 'GET',
+                headers: { 'Accept': 'application/json' },
+                mode: 'cors',
+                cache: 'no-cache',
+                timeout: 10000
+            })
+            .then(response => {
+                const responseTime = Date.now() - startTime;
+                serviceStates[serviceName].responseTime = responseTime;
+                
+                if (response.ok) {
+                    serviceStates[serviceName].status = 'online';
+                    serviceStates[serviceName].successCount++;
+                    serviceStates[serviceName].lastSuccess = new Date();
+                    successfulPings++;
+                    
+                    updateServiceUI(serviceName, { 
+                        status: 'online', 
+                        responseTime: responseTime
+                    });
+                    
+                    addLogEntry(`✅ ${serviceName} is online (${responseTime}ms)`, 'success');
+                } else {
+                    serviceStates[serviceName].status = 'offline';
+                    updateServiceUI(serviceName, { 
+                        status: 'offline', 
+                        responseTime: responseTime
+                    });
+                    
+                    addLogEntry(`❌ ${serviceName} returned status ${response.status} (${responseTime}ms)`, 'error');
+                }
+                
+                updateTotalSuccessRate();
+                return response.text();
+            })
+            .then(data => {
+                // Optional: Process response data if needed
+            })
+            .catch(error => {
+                serviceStates[serviceName].status = 'offline';
+                updateServiceUI(serviceName, { status: 'offline' });
+                addLogEntry(`❌ Failed to connect to ${serviceName}: ${error.message}`, 'error');
+                updateTotalSuccessRate();
+            });
+        }
+
+        function pingAllServices() {
+            addLogEntry('🔄 Pinging all services...', 'info');
+            services.forEach(service => pingService(service.name));
+        }
+
+        function updateServiceUI(serviceName, updates) {
+            const serviceId = serviceName.replace(/\s+/g, '-').toLowerCase();
+            const card = document.getElementById(`card-${serviceId}`);
+            const statusBadge = document.getElementById(`status-${serviceId}`);
+            const indicator = document.getElementById(`indicator-${serviceId}`);
+            const pingCount = document.getElementById(`ping-count-${serviceId}`);
+            const lastPing = document.getElementById(`last-ping-${serviceId}`);
+            const responseTime = document.getElementById(`response-time-${serviceId}`);
+            
+            if (updates.status) {
+                // Remove existing status classes from card
+                card.classList.remove('service-online', 'service-offline', 'service-unknown');
+                card.classList.add(`service-${updates.status}`);
+                
+                // Update status badge
+                statusBadge.classList.remove('bg-success', 'bg-danger', 'bg-warning');
+                
+                // Update indicator
+                indicator.classList.remove('status-online', 'status-offline', 'status-unknown');
+                indicator.classList.add(`status-${updates.status}`);
+                
+                if (updates.status === 'online') {
+                    statusBadge.classList.add('bg-success');
+                    statusBadge.textContent = 'Online';
+                } else if (updates.status === 'offline') {
+                    statusBadge.classList.add('bg-danger');
+                    statusBadge.textContent = 'Offline';
+                } else {
+                    statusBadge.classList.add('bg-warning');
+                    statusBadge.textContent = 'Unknown';
+                }
+            }
+            
+            // Update ping count and success rate
+            const state = serviceStates[serviceName];
+            const successRate = state.pingCount > 0 
+                ? Math.round((state.successCount / state.pingCount) * 100) 
+                : 0;
+            
+            pingCount.textContent = `Pings: ${state.pingCount} (${successRate}%)`;
+            
+            // Update last ping time
+            if (state.lastPing) {
+                lastPing.textContent = `Last ping: ${formatTime(state.lastPing)}`;
+            }
+            
+            // Update response time
+            if (updates.responseTime) {
+                responseTime.textContent = `Response time: ${updates.responseTime}ms`;
+            }
+        }
+
+        function toggleAutoRefresh() {
+            const autoRefreshEnabled = document.getElementById('autoRefreshToggle').checked;
+            
+            // Clear existing intervals
+            Object.values(pingIntervals).forEach(interval => clearInterval(interval));
+            pingIntervals = {};
+            
+            if (autoRefreshEnabled) {
+                const interval = parseInt(document.getElementById('refreshInterval').value);
+                addLogEntry(`🔄 Auto-refresh enabled with interval ${formatDuration(interval)}`, 'info');
+                
+                // Set up a single interval for all services
+                pingIntervals.all = setInterval(pingAllServices, interval);
+                
+                // Also set up individual intervals to stagger the requests
+                services.forEach((service, index) => {
+                    const staggeredDelay = index * (interval / services.length);
+                    setTimeout(() => {
+                        pingService(service.name);
+                    }, staggeredDelay);
+                });
+            } else {
+                addLogEntry('⏸️ Auto-refresh disabled', 'warning');
+            }
+        }
+
+        function updateRefreshInterval() {
+            if (document.getElementById('autoRefreshToggle').checked) {
+                toggleAutoRefresh(); // Re-apply with new interval
+            }
+        }
+
+        function updateTotalSuccessRate() {
+            const rate = totalPings > 0 
+                ? Math.round((successfulPings / totalPings) * 100) 
+                : 0;
+            
+            document.getElementById('totalSuccessRate').textContent = 
+                `Success Rate: ${rate}% (${successfulPings}/${totalPings})`;
+        }
+
+        function addLogEntry(message, type = 'info') {
+            const logContainer = document.getElementById('logContainer');
+            const now = new Date();
+            
+            const entry = {
+                time: now,
+                message: message,
+                type: type
+            };
+            
+            logEntries.push(entry);
+            
+            // Keep only the last 500 entries
+            if (logEntries.length > 500) {
+                logEntries.shift();
+            }
+            
+            // Create entry element
+            const entryElement = document.createElement('div');
+            entryElement.className = `log-entry log-${type}`;
+            entryElement.innerHTML = `
+                <span class="log-time">[${formatTime(now)}]</span> ${message}
+            `;
+            
+            logContainer.appendChild(entryElement);
+            
+            // Scroll to bottom
+            logContainer.scrollTop = logContainer.scrollHeight;
+        }
+
+        function clearLogs() {
+            const logContainer = document.getElementById('logContainer');
+            logContainer.innerHTML = '';
+            logEntries = [];
+            addLogEntry('🧹 Logs cleared', 'info');
+        }
+
+        // Helper Functions
+        function formatTime(date) {
+            return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        }
+
+        function formatDuration(ms) {
+            if (ms < 1000) return `${ms}ms`;
+            if (ms < 60000) return `${Math.floor(ms / 1000)} seconds`;
+            if (ms < 3600000) return `${Math.floor(ms / 60000)} minutes`;
+            return `${Math.floor(ms / 3600000)} hours`;
+        }
+    </script>
+</body>
+</html>

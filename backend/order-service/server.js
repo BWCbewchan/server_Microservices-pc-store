@@ -16,10 +16,19 @@ app.use(
   })
 );
 
+// Add health check endpoint
+app.get('/health', (req, res) => {
+  res.status(200).json({
+    status: 'ok',
+    service: 'order-service',
+    timestamp: new Date().toISOString()
+  });
+});
+
 app.use(bodyParser.json());
 // app.use("/api/orders", orderRoutes);
 
-app.use(  orderRoutes);
+app.use(orderRoutes);
 
 const PORT = process.env.PORT || 4009;
 const MONGO_URI =

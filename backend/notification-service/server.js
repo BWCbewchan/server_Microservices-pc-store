@@ -18,6 +18,14 @@ const io = new Server(server, {
   },
 });
 
+app.get("/health", (req, res) => {
+  res.status(200).json({
+    status: 'ok',
+    service: 'notification-service',
+    timestamp: new Date().toISOString()
+  });
+});
+
 app.get("/base-url", (req, res) => {
   res.json({ baseUrl: `http://localhost:${port}` });
 });
