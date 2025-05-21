@@ -1,6 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const authController = require("../controllers/authController");
+const adminAuthController = require("../controllers/adminAuthController");
 const authMiddleware = require("../middleware/authMiddleware");
 
 // Add CORS headers to all routes
@@ -8,11 +9,11 @@ router.use((req, res, next) => {
   res.header('Access-Control-Allow-Origin', '*');
   res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
   res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
-  
+
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
   }
-  
+
   next();
 });
 
@@ -34,14 +35,14 @@ router.post("/register", (req, res) => {
   res.header('Access-Control-Allow-Origin', '*');
   res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
   res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-  
+
   // Log the incoming request for debugging
   console.log('Register endpoint hit, params:', {
     name: req.param('name'),
     email: req.param('email'),
     password: req.param('password') ? '********' : undefined
   });
-  
+
   // Process registration
   authController.register(req, res);
 });
@@ -52,13 +53,13 @@ router.post("/login", (req, res) => {
   res.header('Access-Control-Allow-Origin', '*');
   res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
   res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-  
+
   // Log the incoming request for debugging
   console.log(`[${new Date().toISOString()}] Login endpoint hit, params:`, {
     email: req.param('email'),
     password: req.param('password') ? '********' : undefined
   });
-  
+
   // Process login
   authController.login(req, res);
 });
@@ -79,5 +80,9 @@ router.post("/echo", (req, res) => {
 // Protected routes
 router.get("/me", authMiddleware.protect, authController.getCurrentUser);
 router.put("/update", authMiddleware.protect, authController.updateUser);
+
+// Admin authentication routes
+router.post('/admin/login', adminAuthController.adminLogin);
+router.get('/admin/profile', authMiddleware.protect, authMiddleware.restrictTo('admin'), adminAuthController.getAdminProfile);
 
 module.exports = router;

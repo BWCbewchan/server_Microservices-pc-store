@@ -1,14 +1,17 @@
-import Overview from "@/pages/Overview/Overview";
-import Customers from "@/pages/Cutomers/Customers";
-import Products from "@/pages/Products/Products";
+import Dashboard from "@/pages/Dashboard/Dashboard";
+import TableOrders from "@/pages/Orders/TableOrders";
+import ProductPage from "@/pages/Products/ProductPage";
+import NotificationPage from "@/pages/Notification/NotificationPage";
+import CustomersPage from "@/pages/Customers/CustomersPage";
 import Settings from "@/pages/Settings/Settings";
-import Orders from "@/pages/Orders/TableOrders";
+
 const routes = [
-  { path: "/overview", component: Overview },
-  { path: "/customers", component: Customers },
-  { path: "/products", component: Products },
-  { path: "/settings", component: Settings },
-  { path: "/orders", component: Orders },
+  { path: "/dashboard", component: Dashboard, label: "Dashboard" },
+  { path: "/orders", component: TableOrders, label: "Orders" },
+  { path: "/products", component: ProductPage, label: "Products" },
+  { path: "/customers", component: CustomersPage, label: "Customers" },
+  { path: "/notifications", component: NotificationPage, label: "Notifications" },
+  { path: "/settings", component: Settings, label: "Settings" }
 ];
 
 export { routes };
