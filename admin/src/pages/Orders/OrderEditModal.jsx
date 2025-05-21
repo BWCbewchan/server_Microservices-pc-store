@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
-import { toast } from "react-toastify";
+
 
 // Base URL for API requests
 const ORDER_API_URL = "http://localhost:3000/api/orders";
@@ -36,7 +36,7 @@ const OrderEditModal = ({ orderId, onClose, onSave }) => {
         const response = await axios.get(`${ORDER_API_URL}/${orderId}`);
         const orderData = response.data;
         setOrder(orderData);
-        
+
         // Initialize form data from order
         setFormData({
           customerName: orderData.customer?.name || "",
@@ -51,13 +51,13 @@ const OrderEditModal = ({ orderId, onClose, onSave }) => {
           customerNote: orderData.notes?.customerNote || "",
           sellerNote: orderData.notes?.sellerNote || ""
         });
-        
+
         // Initialize items
         setItems(orderData.items || []);
-        
+
         // Calculate initial totals
         calculateTotals(orderData.items, orderData.shipping?.fee || 0);
-        
+
         setLoading(false);
       } catch (err) {
         console.error("Error fetching order details:", err);
@@ -65,7 +65,7 @@ const OrderEditModal = ({ orderId, onClose, onSave }) => {
         setLoading(false);
       }
     };
-    
+
     fetchOrderDetails();
   }, [orderId]);
 
@@ -74,7 +74,7 @@ const OrderEditModal = ({ orderId, onClose, onSave }) => {
     const itemsSubtotal = currentItems.reduce((total, item) => {
       return total + (item.price * item.quantity);
     }, 0);
-    
+
     setSubTotal(itemsSubtotal);
     setFinalTotal(itemsSubtotal + parseFloat(shippingFee));
   };
@@ -82,13 +82,13 @@ const OrderEditModal = ({ orderId, onClose, onSave }) => {
   // Handle form field changes
   const handleChange = (e) => {
     const { name, value } = e.target;
-    
+
     setFormData(prev => {
       const newFormData = {
         ...prev,
         [name]: value
       };
-      
+
       // If payment status is changed to "paid", suggest updating order status
       if (name === 'paymentStatus' && value === 'paid' && order.status === 'pending') {
         if (window.confirm('Xác nhận thanh toán thành công. Cập nhật trạng thái đơn hàng thành "Đã xác nhận"?')) {
@@ -99,12 +99,12 @@ const OrderEditModal = ({ orderId, onClose, onSave }) => {
           };
         }
       }
-      
+
       // Recalculate totals if shipping fee changes
       if (name === 'shippingFee') {
         calculateTotals(items, value);
       }
-      
+
       return newFormData;
     });
   };
@@ -113,14 +113,14 @@ const OrderEditModal = ({ orderId, onClose, onSave }) => {
   const handleItemQuantityChange = (index, newQuantity) => {
     // Ensure quantity is a positive number
     newQuantity = Math.max(1, parseInt(newQuantity) || 1);
-    
+
     setItems(prevItems => {
       const updatedItems = [...prevItems];
       updatedItems[index].quantity = newQuantity;
-      
+
       // Recalculate totals
       calculateTotals(updatedItems, formData.shippingFee);
-      
+
       return updatedItems;
     });
   };
@@ -130,10 +130,10 @@ const OrderEditModal = ({ orderId, onClose, onSave }) => {
     // Get the original item to compare
     const originalItem = order.items.find(item => item._id === items[index]._id) || {};
     const originalPrice = originalItem.price || 0;
-    
+
     // Convert input to number
     const newPrice = parseFloat(newPriceInput);
-    
+
     // If the input is valid or unchanged, update the price
     if (!isNaN(newPrice) && newPrice >= 0) {
       setItems(prevItems => {
@@ -150,15 +150,15 @@ const OrderEditModal = ({ orderId, onClose, onSave }) => {
     setItems(prevItems => {
       const updatedItems = [...prevItems];
       const removedItem = updatedItems.splice(index, 1)[0];
-      
+
       // Add to removed items list if it has an ID
       if (removedItem._id) {
         setRemovedItems(prev => [...prev, removedItem._id]);
       }
-      
+
       // Recalculate totals
       calculateTotals(updatedItems, formData.shippingFee);
-      
+
       return updatedItems;
     });
   };
@@ -166,15 +166,15 @@ const OrderEditModal = ({ orderId, onClose, onSave }) => {
   // Handle form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (items.length === 0) {
       setError("Đơn hàng phải có ít nhất một sản phẩm");
       return;
     }
-    
+
     try {
       setSaving(true);
-      
+
       // Prepare data for update
       const updateData = {
         customer: {
@@ -202,13 +202,13 @@ const OrderEditModal = ({ orderId, onClose, onSave }) => {
         removedItems: removedItems,
         status: formData.orderStatus  // Add order status update
       };
-      
+
       // Encode update data for URL
       const encodedUpdateData = encodeURIComponent(JSON.stringify(updateData));
-      
+
       // Send update request
       const response = await axios.put(`${ORDER_API_URL}/update/${orderId}/${encodedUpdateData}`);
-      
+
       if (response.data) {
         // Update the local order with the response data
         const updatedOrder = {
@@ -222,10 +222,10 @@ const OrderEditModal = ({ orderId, onClose, onSave }) => {
           status: updateData.status,
           updatedAt: new Date().toISOString()
         };
-        
+
         // Call the onSave callback with the locally updated order data
         onSave(updatedOrder);
-        
+
         // Show success message for payment status changes
         if (formData.paymentStatus === 'paid' && order.payment?.status !== 'paid') {
           toast.success("Đã cập nhật trạng thái thanh toán thành công!");
@@ -255,7 +255,7 @@ const OrderEditModal = ({ orderId, onClose, onSave }) => {
         <div className="bg-white p-6 rounded-lg shadow-lg max-w-3xl w-full">
           <h2 className="text-xl font-bold mb-4 text-red-600">{error}</h2>
           <div className="flex justify-end mt-4">
-            <button 
+            <button
               className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600"
               onClick={onClose}
             >
@@ -272,7 +272,7 @@ const OrderEditModal = ({ orderId, onClose, onSave }) => {
       <div className="bg-white p-6 rounded-lg shadow-lg max-w-4xl w-full my-8">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl font-bold">Chỉnh sửa đơn hàng #{order._id}</h2>
-          <button 
+          <button
             className="text-gray-500 hover:text-gray-700"
             onClick={onClose}
           >
@@ -281,13 +281,13 @@ const OrderEditModal = ({ orderId, onClose, onSave }) => {
             </svg>
           </button>
         </div>
-        
+
         {/* Edit Form */}
         <form onSubmit={handleSubmit} className="overflow-y-auto max-h-[80vh]">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
             <div>
               <h3 className="font-semibold mb-2">Thông tin khách hàng</h3>
-              
+
               <div className="mb-2">
                 <label className="block text-sm font-medium mb-1">Tên khách hàng</label>
                 <input
@@ -298,7 +298,7 @@ const OrderEditModal = ({ orderId, onClose, onSave }) => {
                   className="w-full border rounded px-3 py-2"
                 />
               </div>
-              
+
               <div className="mb-2">
                 <label className="block text-sm font-medium mb-1">Email</label>
                 <input
@@ -309,7 +309,7 @@ const OrderEditModal = ({ orderId, onClose, onSave }) => {
                   className="w-full border rounded px-3 py-2"
                 />
               </div>
-              
+
               <div className="mb-2">
                 <label className="block text-sm font-medium mb-1">Số điện thoại</label>
                 <input
@@ -320,7 +320,7 @@ const OrderEditModal = ({ orderId, onClose, onSave }) => {
                   className="w-full border rounded px-3 py-2"
                 />
               </div>
-              
+
               <div className="mb-2">
                 <label className="block text-sm font-medium mb-1">Địa chỉ</label>
                 <textarea
@@ -332,10 +332,10 @@ const OrderEditModal = ({ orderId, onClose, onSave }) => {
                 ></textarea>
               </div>
             </div>
-            
+
             <div>
               <h3 className="font-semibold mb-2">Thông tin vận chuyển & thanh toán</h3>
-              
+
               <div className="mb-2">
                 <label className="block text-sm font-medium mb-1">Phương thức vận chuyển</label>
                 <select
@@ -348,7 +348,7 @@ const OrderEditModal = ({ orderId, onClose, onSave }) => {
                   <option value="express">Nhanh</option>
                 </select>
               </div>
-              
+
               <div className="mb-2">
                 <label className="block text-sm font-medium mb-1">Phí vận chuyển</label>
                 <input
@@ -359,7 +359,7 @@ const OrderEditModal = ({ orderId, onClose, onSave }) => {
                   className="w-full border rounded px-3 py-2"
                 />
               </div>
-              
+
               <div className="mb-2">
                 <label className="block text-sm font-medium mb-1">Phương thức thanh toán</label>
                 <select
@@ -372,7 +372,7 @@ const OrderEditModal = ({ orderId, onClose, onSave }) => {
                   <option value="bank">Chuyển khoản ngân hàng</option>
                 </select>
               </div>
-              
+
               {/* Add payment status field */}
               <div className="mb-2">
                 <label className="block text-sm font-medium mb-1">Trạng thái thanh toán</label>
@@ -387,7 +387,7 @@ const OrderEditModal = ({ orderId, onClose, onSave }) => {
                   <option value="failed">Thanh toán thất bại</option>
                 </select>
               </div>
-              
+
               {/* Add order status field */}
               <div className="mb-2">
                 <label className="block text-sm font-medium mb-1">Trạng thái đơn hàng</label>
@@ -403,7 +403,7 @@ const OrderEditModal = ({ orderId, onClose, onSave }) => {
                   <option value="cancelled">Đã hủy</option>
                 </select>
               </div>
-              
+
               {/* Payment status notice for bank transfers */}
               {formData.paymentMethod === 'bank' && formData.paymentStatus === 'pending' && (
                 <div className="mb-4 mt-2 bg-yellow-50 border border-yellow-200 rounded p-3 text-sm text-yellow-800">
@@ -411,7 +411,7 @@ const OrderEditModal = ({ orderId, onClose, onSave }) => {
                   <p>Sau khi xác nhận khách hàng đã thanh toán, vui lòng cập nhật trạng thái thanh toán thành "Đã thanh toán".</p>
                 </div>
               )}
-              
+
               {formData.paymentMethod === 'bank' && formData.paymentStatus === 'paid' && (
                 <div className="mb-4 mt-2 bg-green-50 border border-green-200 rounded p-3 text-sm text-green-800">
                   <p className="font-medium">Đã xác nhận thanh toán</p>
@@ -420,10 +420,10 @@ const OrderEditModal = ({ orderId, onClose, onSave }) => {
               )}
             </div>
           </div>
-          
+
           <div className="mb-4">
             <h3 className="font-semibold mb-2">Ghi chú</h3>
-            
+
             <div className="mb-2">
               <label className="block text-sm font-medium mb-1">Ghi chú của khách hàng</label>
               <textarea
@@ -434,7 +434,7 @@ const OrderEditModal = ({ orderId, onClose, onSave }) => {
                 rows="2"
               ></textarea>
             </div>
-            
+
             <div className="mb-2">
               <label className="block text-sm font-medium mb-1">Ghi chú của người bán</label>
               <textarea
@@ -446,7 +446,7 @@ const OrderEditModal = ({ orderId, onClose, onSave }) => {
               ></textarea>
             </div>
           </div>
-          
+
           {/* Products list - editable */}
           <div className="mb-4">
             <h3 className="font-semibold mb-2">Sản phẩm</h3>
@@ -534,14 +534,14 @@ const OrderEditModal = ({ orderId, onClose, onSave }) => {
               </table>
             </div>
           </div>
-          
+
           {/* Show error message if any */}
           {error && (
             <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
               {error}
             </div>
           )}
-          
+
           {/* Action buttons */}
           <div className="flex justify-end gap-2">
             <button

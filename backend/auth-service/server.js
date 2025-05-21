@@ -6,6 +6,7 @@ const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const authRoutes = require('./routes/authRoutes');
+const userRoutes = require('./routes/userRoutes'); // Add this line
 const adminAuthController = require('./controllers/adminAuthController');
 
 const app = express();
@@ -28,6 +29,7 @@ app.use(express.json());
 
 // Use auth routes
 app.use(authRoutes);
+app.use(userRoutes); // Add this line to include user routes
 
 // Connect to MongoDB
 mongoose
