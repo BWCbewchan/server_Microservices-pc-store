@@ -18,17 +18,17 @@ import {
 const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#8884d8"];
 
 // API URL
-const USER_API_URL = "http://localhost:3000/api/users"; // Adjust as needed
+const USER_API_URL = `${import.meta.env.VITE_APP_API_GATEWAY_URL}/users`; // Adjust as needed
 
 export default function UserStats() {
   const [userData, setUserData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  
+
   // Stats
   const [regionData, setRegionData] = useState([]);
   const [activityData, setActivityData] = useState([]);
-  
+
   useEffect(() => {
     const fetchUserData = async () => {
       try {
@@ -43,10 +43,10 @@ export default function UserStats() {
         setLoading(false);
       }
     };
-    
+
     fetchUserData();
   }, []);
-  
+
   const processUserData = (users) => {
     // Process region data
     const regions = {};
@@ -57,20 +57,20 @@ export default function UserStats() {
       }
       regions[region]++;
     });
-    
+
     const regionDataArray = Object.keys(regions).map(region => ({
       name: region,
       value: regions[region]
     }));
-    
+
     setRegionData(regionDataArray);
-    
+
     // Process activity data (last login)
     const now = new Date();
     const oneDay = 24 * 60 * 60 * 1000;
     const oneWeek = 7 * oneDay;
     const oneMonth = 30 * oneDay;
-    
+
     const activity = {
       today: 0,
       week: 0,
@@ -78,16 +78,16 @@ export default function UserStats() {
       older: 0,
       never: 0
     };
-    
+
     users.forEach(user => {
       if (!user.lastLogin) {
         activity.never++;
         return;
       }
-      
+
       const lastLogin = new Date(user.lastLogin);
       const timeDiff = now - lastLogin;
-      
+
       if (timeDiff < oneDay) {
         activity.today++;
       } else if (timeDiff < oneWeek) {
@@ -98,7 +98,7 @@ export default function UserStats() {
         activity.older++;
       }
     });
-    
+
     const activityDataArray = [
       { name: "Today", value: activity.today },
       { name: "This Week", value: activity.week },
@@ -106,22 +106,22 @@ export default function UserStats() {
       { name: "Older", value: activity.older },
       { name: "Never", value: activity.never }
     ];
-    
+
     setActivityData(activityDataArray);
   };
-  
+
   if (loading) {
     return <div>Loading user statistics...</div>;
   }
-  
+
   if (error) {
     return <div className="text-red-500">{error}</div>;
   }
-  
+
   return (
     <div className="space-y-6">
       <h2 className="text-2xl font-bold">User Statistics</h2>
-      
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* User by Region */}
         <Card>
@@ -151,7 +151,7 @@ export default function UserStats() {
             </ResponsiveContainer>
           </CardContent>
         </Card>
-        
+
         {/* User Activity */}
         <Card>
           <CardHeader>

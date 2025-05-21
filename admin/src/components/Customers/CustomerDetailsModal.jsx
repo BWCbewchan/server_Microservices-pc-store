@@ -3,7 +3,7 @@ import axios from "axios";
 import { format } from "date-fns";
 
 // Update to use the correct API endpoint
-const USER_API_URL = "http://localhost:3000/api/auth/users"; // Correct endpoint
+const USER_API_URL = `${import.meta.env.VITE_APP_API_GATEWAY_URL}/auth/users`; // Correct endpoint
 
 export default function CustomerDetailsModal({ userId, onClose, onUserUpdate }) {
   const [customer, setCustomer] = useState(null);
@@ -131,8 +131,8 @@ export default function CustomerDetailsModal({ userId, onClose, onUserUpdate }) 
                   {/* Update Message */}
                   {updateMessage && (
                     <div className={`p-3 rounded-md ${updateMessage.type === "success"
-                        ? "bg-green-100 text-green-800"
-                        : "bg-red-100 text-red-800"
+                      ? "bg-green-100 text-green-800"
+                      : "bg-red-100 text-red-800"
                       }`}>
                       {updateMessage.text}
                     </div>
@@ -151,8 +151,8 @@ export default function CustomerDetailsModal({ userId, onClose, onUserUpdate }) 
                         <p className="text-gray-600">{customer?.email}</p>
                         <p className="mt-1 text-sm">
                           <span className={`inline-block px-2 py-1 rounded-full text-xs ${customer?.role === 'admin'
-                              ? "bg-purple-100 text-purple-800"
-                              : "bg-blue-100 text-blue-800"
+                            ? "bg-purple-100 text-purple-800"
+                            : "bg-blue-100 text-blue-800"
                             }`}>
                             {customer?.role === 'admin' ? 'Admin' : 'Người dùng'}
                           </span>

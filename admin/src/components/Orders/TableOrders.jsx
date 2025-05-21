@@ -14,7 +14,7 @@ import { Table, TableHeader, TableRow, TableHead, TableCell, TableBody } from "@
 import OrderDetailModal from "./OrderDetailModal";
 
 // Đường dẫn API (sửa lại nếu cần)
-const ORDER_API_URL = "http://localhost:3000/api/orders";
+const ORDER_API_URL = `${import.meta.env.VITE_APP_API_GATEWAY_URL}/orders`;
 
 // Data mẫu (bạn có thể thay bằng axios.get khi API đã ổn)
 const sampleData = [
@@ -64,7 +64,7 @@ export default function TableOrders() {
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
   const [error, setError] = useState("");
-const [modalOrderId, setModalOrderId] = useState(null);
+  const [modalOrderId, setModalOrderId] = useState(null);
   // Lấy danh sách đơn hàng
   useEffect(() => {
     const fetchOrders = async () => {

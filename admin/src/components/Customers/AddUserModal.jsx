@@ -1,7 +1,7 @@
 import { useState } from "react";
 import axios from "axios";
 
-const USER_API_URL = "http://localhost:3000/api/auth/register";
+const USER_API_URL = `${import.meta.env.VITE_APP_API_GATEWAY_URL}/auth/register`;
 
 export default function AddUserModal({ onClose, onUserAdded }) {
     const [formData, setFormData] = useState({
