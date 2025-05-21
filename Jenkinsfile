@@ -160,7 +160,7 @@ pipeline {
                         error "Failed to log in to Docker Hub after ${loginAttempts} attempts. Skipping build and push."
                     }
 
-                    def services = ["product-catalog-service", "inventory-service", "cart-service", "notification-service", "order-service", "payment-service", "api-gateway"]
+                    def services = ["product-catalog-service", "inventory-service", "cart-service", "notification-service", "order-service", "payment-service", "api-gateway","auth-service"]
 
                     // Trước khi build, xóa tất cả images cũ để tránh lặp
                     echo "Removing old Docker images for all services..."
