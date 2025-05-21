@@ -9,6 +9,7 @@
     "start": "node server.js"
   },
   "dependencies": {
+    "auth-service": "file:",
     "bcryptjs": "^2.4.3",
     "compression": "^1.8.0",
     "cors": "^2.8.5",
