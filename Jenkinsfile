@@ -8,12 +8,43 @@ pipeline {
 
         // Cố định giá trị nhánh
         GITHUB_BRANCH = 'main'
+        // Flag to track if Docker is available
+        DOCKER_AVAILABLE = false
     }
 
     stages {
         stage('Checkout') {
             steps {
                 checkout scm
+            }
+        }
+
+        stage('Check Docker') {
+            steps {
+                script {
+                    // Check if Docker is running
+                    def dockerCheck = bat(script: 'docker info', returnStatus: true)
+                    if (dockerCheck == 0) {
+                        echo "Docker is available and running"
+                        env.DOCKER_AVAILABLE = 'true'
+                    } else {
+                        echo "WARNING: Docker is not available or not running!"
+                        echo "Deployment will continue, but Docker build steps will be skipped."
+                        env.DOCKER_AVAILABLE = 'false'
+                        // Optional: Try to start Docker (if it's installed but not running)
+                        try {
+                            bat 'net start com.docker.service || echo Docker service not found, skipping'
+                            bat 'timeout /t 10'
+                            dockerCheck = bat(script: 'docker info', returnStatus: true)
+                            if (dockerCheck == 0) {
+                                echo "Successfully started Docker"
+                                env.DOCKER_AVAILABLE = 'true'
+                            }
+                        } catch (Exception e) {
+                            echo "Could not start Docker: ${e.message}"
+                        }
+                    }
+                }
             }
         }
 
@@ -140,6 +171,9 @@ pipeline {
         }
 
         stage('Build & Push Docker Images') {
+            when {
+                expression { return env.DOCKER_AVAILABLE == 'true' }
+            }
             steps {
                 script {
                     echo "Starting Docker build and push for services..."
@@ -313,19 +347,23 @@ pipeline {
     post {
         always {
             script {
-                try {
-                    echo "Cleaning up Docker images and containers..."
+                if (env.DOCKER_AVAILABLE == 'true') {
+                    try {
+                        echo "Cleaning up Docker images and containers..."
 
-                    // Xóa các container dừng
-                    bat "docker container prune -f || echo No stopped containers"
+                        // Xóa các container dừng
+                        bat "docker container prune -f || echo No stopped containers"
 
-                    // Xóa các image dangling
-                    bat "docker image prune -f || echo No dangling images"
+                        // Xóa các image dangling
+                        bat "docker image prune -f || echo No dangling images"
 
-                    // Thay vì 'system prune' để tránh xóa các image đang sử dụng
-                    echo "Docker cleanup completed"
-                } catch (Exception e) {
-                    echo "Warning: Docker cleanup failed: ${e.message}"
+                        // Thay vì 'system prune' để tránh xóa các image đang sử dụng
+                        echo "Docker cleanup completed"
+                    } catch (Exception e) {
+                        echo "Warning: Docker cleanup failed: ${e.message}"
+                    }
+                } else {
+                    echo "Skipping Docker cleanup - Docker was not available during this build"
                 }
             }
         }
