@@ -1,50 +1,21 @@
 pipeline {
     agent any
 
+    parameters {
+        booleanParam(name: 'FORCE_BUILD_ALL', defaultValue: false, description: 'Force rebuild all services')
+    }
+
     environment {
         DOCKER_HUB_CREDS = credentials('docker-hub-credentials')
         RENDER_API_KEY = credentials('render-api-key')
         DOCKER_HUB_USERNAME = 'bewchan06'
-
-        // Cố định giá trị nhánh
         GITHUB_BRANCH = 'main'
-        // Flag to track if Docker is available
-        DOCKER_AVAILABLE = false
     }
 
     stages {
         stage('Checkout') {
             steps {
                 checkout scm
-            }
-        }
-
-        stage('Check Docker') {
-            steps {
-                script {
-                    // Check if Docker is running
-                    def dockerCheck = bat(script: 'docker info', returnStatus: true)
-                    if (dockerCheck == 0) {
-                        echo "Docker is available and running"
-                        env.DOCKER_AVAILABLE = 'true'
-                    } else {
-                        echo "WARNING: Docker is not available or not running!"
-                        echo "Deployment will continue, but Docker build steps will be skipped."
-                        env.DOCKER_AVAILABLE = 'false'
-                        // Optional: Try to start Docker (if it's installed but not running)
-                        try {
-                            bat 'net start com.docker.service || echo Docker service not found, skipping'
-                            bat 'timeout /t 10'
-                            dockerCheck = bat(script: 'docker info', returnStatus: true)
-                            if (dockerCheck == 0) {
-                                echo "Successfully started Docker"
-                                env.DOCKER_AVAILABLE = 'true'
-                            }
-                        } catch (Exception e) {
-                            echo "Could not start Docker: ${e.message}"
-                        }
-                    }
-                }
             }
         }
 
@@ -59,8 +30,15 @@ pipeline {
                     }
                     steps {
                         dir('backend/product-catalog-service') {
-                            bat 'npm install'
-                            bat 'npm test || exit 0' // Sử dụng exit 0 để tiếp tục nếu test thất bại
+                            script {
+                                if (isUnix()) {
+                                    sh 'npm install'
+                                    sh 'npm test || exit 0'
+                                } else {
+                                    bat 'npm install'
+                                    bat 'npm test || exit 0'
+                                }
+                            }
                         }
                     }
                 }
@@ -74,111 +52,29 @@ pipeline {
                     }
                     steps {
                         dir('backend/inventory-service') {
-                            bat 'npm install'
-                            bat 'npm test || exit 0'
+                            script {
+                                if (isUnix()) {
+                                    sh 'npm install'
+                                    sh 'npm test || exit 0'
+                                } else {
+                                    bat 'npm install'
+                                    bat 'npm test || exit 0'
+                                }
+                            }
                         }
                     }
                 }
 
-                stage('Cart Service') {
-                    when {
-                        anyOf {
-                            changeset "backend/cart-service/**"
-                            expression { return params.FORCE_BUILD_ALL }
-                        }
-                    }
-                    steps {
-                        dir('backend/cart-service') {
-                            bat 'npm install'
-                            bat 'npm test || exit 0'
-                        }
-                    }
-                }
+                // Các stage khác tương tự...
 
-                stage('Order Service') {
-                    when {
-                        anyOf {
-                            changeset "backend/order-service/**"
-                            expression { return params.FORCE_BUILD_ALL }
-                        }
-                    }
-                    steps {
-                        dir('backend/order-service') {
-                            bat 'npm install'
-                            bat 'npm test || exit 0'
-                        }
-                    }
-                }
-
-                stage('Payment Service') {
-                    when {
-                        anyOf {
-                            changeset "backend/payment-service/**"
-                            expression { return params.FORCE_BUILD_ALL }
-                        }
-                    }
-                    steps {
-                        dir('backend/payment-service') {
-                            bat 'npm install'
-                            bat 'npm test || exit 0'
-                        }
-                    }
-                }
-                stage('Notification Service') {
-                    when {
-                        anyOf {
-                            changeset "backend/notification-service/**"
-                            expression { return params.FORCE_BUILD_ALL }
-                        }
-                    }
-                    steps {
-                        dir('backend/notification-service') {
-                            bat 'npm install'
-                            bat 'npm test || exit 0'
-                        }
-                    }
-                }
-
-                stage('API Gateway') {
-                    when {
-                        anyOf {
-                            changeset "backend/api-gateway/**"
-                            expression { return params.FORCE_BUILD_ALL }
-                        }
-                    }
-                    steps {
-                        dir('backend/api-gateway') {
-                            bat 'npm install'
-                            bat 'npm test || exit 0'
-                        }
-                    }
-                }
-                stage('Auth Service') {
-                    when {
-                        anyOf {
-                            changeset "backend/auth-service/**"
-                            expression { return params.FORCE_BUILD_ALL }
-                        }
-                    }
-                    steps {
-                        dir('backend/auth-service') {
-                            bat 'npm install'
-                            bat 'npm test || exit 0'
-                        }
-                    }
-                }
             }
         }
 
         stage('Build & Push Docker Images') {
-            when {
-                expression { return env.DOCKER_AVAILABLE == 'true' }
-            }
             steps {
                 script {
                     echo "Starting Docker build and push for services..."
 
-                    // Đăng nhập Docker với retry logic
                     def loginAttempts = 0
                     def loginSuccessful = false
 
@@ -190,7 +86,8 @@ pipeline {
                                         usernameVariable: 'DOCKER_USER',
                                         passwordVariable: 'DOCKER_PASS')]) {
                             try {
-                                def loginResult = bat(script: "docker login -u %DOCKER_USER% -p %DOCKER_PASS%", returnStatus: true)
+                                def loginResult = isUnix() ? sh(script: "docker login -u $DOCKER_USER -p $DOCKER_PASS", returnStatus: true)
+                                                           : bat(script: "docker login -u %DOCKER_USER% -p %DOCKER_PASS%", returnStatus: true)
                                 if (loginResult == 0) {
                                     echo "Docker Hub login successful"
                                     loginSuccessful = true
@@ -211,15 +108,21 @@ pipeline {
 
                     def services = ["product-catalog-service", "inventory-service", "cart-service", "notification-service", "order-service", "api-gateway", "auth-service", "payment-service"]
 
-                    // Trước khi build, xóa tất cả images cũ để tránh lặp
                     echo "Removing old Docker images for all services..."
                     services.each { service ->
-                        // Thử xóa các image cũ (sẽ bỏ qua lỗi nếu không tìm thấy)
-                        bat "docker rmi -f ${DOCKER_HUB_USERNAME}/smpcstr:${service} || echo Image not found"
-                        bat "docker image prune -f || echo No dangling images"
+                        def removeCmd = isUnix() ? "docker rmi -f ${DOCKER_HUB_USERNAME}/smpcstr:${service} || echo Image not found"
+                                                 : "docker rmi -f ${DOCKER_HUB_USERNAME}/smpcstr:${service} || echo Image not found"
+                        def pruneCmd = isUnix() ? "docker image prune -f || echo No dangling images"
+                                                : "docker image prune -f || echo No dangling images"
+                        if (isUnix()) {
+                            sh removeCmd
+                            sh pruneCmd
+                        } else {
+                            bat removeCmd
+                            bat pruneCmd
+                        }
                     }
 
-                    // Build và push các service với retry logic
                     services.each { service ->
                         def serviceDir = "backend/${service}"
 
@@ -227,14 +130,14 @@ pipeline {
                             echo "Building Docker image for ${service}..."
                             def imageName = "${DOCKER_HUB_USERNAME}/smpcstr:${service}"
 
-                            // Build với retry
                             def buildAttempts = 0
                             def buildSuccessful = false
 
                             while (!buildSuccessful && buildAttempts < 2) {
                                 buildAttempts++
                                 try {
-                                    def buildResult = bat(script: "docker build -t ${imageName} ${serviceDir}", returnStatus: true)
+                                    def buildResult = isUnix() ? sh(script: "docker build -t ${imageName} ${serviceDir}", returnStatus: true)
+                                                               : bat(script: "docker build -t ${imageName} ${serviceDir}", returnStatus: true)
                                     if (buildResult == 0) {
                                         buildSuccessful = true
                                     } else {
@@ -249,10 +152,9 @@ pipeline {
 
                             if (!buildSuccessful) {
                                 echo "Failed to build Docker image for ${service} after ${buildAttempts} attempts. Skipping push."
-                                return  // Skip to next service in the each loop instead of continue// This will skip to the next service in the each loop
+                                return
                             }
 
-                            // Push image với retry
                             echo "Pushing Docker image for ${service}..."
                             def pushAttempts = 0
                             def pushSuccessful = false
@@ -260,7 +162,8 @@ pipeline {
                             while (!pushSuccessful && pushAttempts < 3) {
                                 pushAttempts++
                                 try {
-                                    def pushResult = bat(script: "docker push ${imageName}", returnStatus: true)
+                                    def pushResult = isUnix() ? sh(script: "docker push ${imageName}", returnStatus: true)
+                                                               : bat(script: "docker push ${imageName}", returnStatus: true)
                                     if (pushResult == 0) {
                                         pushSuccessful = true
                                         echo "Successfully pushed ${imageName}"
@@ -296,19 +199,16 @@ pipeline {
         stage('Deploy to Render') {
             when {
                 expression {
-                    // Sửa điều kiện để luôn chạy trên nhánh main
-                    return env.BRANCH_NAME == 'main' || env.GIT_BRANCH == 'origin/main' || true
+                    return env.BRANCH_NAME == 'main' || env.GIT_BRANCH == 'origin/main'
                 }
             }
             steps {
                 script {
                     echo "Starting deployment to Render..."
 
-                    // Kiểm tra API key có tồn tại không
                     if (RENDER_API_KEY?.trim()) {
                         echo "Render API key found, proceeding with deployment..."
 
-                        // Đối với mỗi service đã được định nghĩa trong Render
                         def services = [
                             "kt-tkpm-project-product-catalog-service",
                             "kt-tkpm-project-inventory-service",
@@ -316,25 +216,32 @@ pipeline {
                             "kt-tkpm-project-notification-service",
                             "kt-tkpm-project-order-service",
                             "kt-tkpm-project-api-gateway",
-                            "kt-tkpm-project-payment-service", // Added payment service
-                            "kt-tkpm-project-auth-service"     // Also added auth service for completeness
+                            "kt-tkpm-project-payment-service",
+                            "kt-tkpm-project-auth-service"
                         ]
 
                         services.each { service ->
                             echo "Triggering deployment for service: ${service}"
-                            // Sử dụng PowerShell để gửi cURL request
-                            powershell """
-                                \$headers = @{
-                                    'Authorization' = 'Bearer ${RENDER_API_KEY}'
-                                    'Content-Type' = 'application/json'
-                                }
-                                try {
-                                    Invoke-RestMethod -Uri "https://api.render.com/v1/services/${service}/deploys" -Method POST -Headers \$headers
-                                    Write-Host "Deployment request sent for ${service}"
-                                } catch {
-                                    Write-Host "Deployment request for ${service} failed but continuing: \$_"
-                                }
-                            """
+                            if (isUnix()) {
+                                sh """
+                                    curl -X POST https://api.render.com/v1/services/${service}/deploys \\
+                                    -H 'Authorization: Bearer ${RENDER_API_KEY}' \\
+                                    -H 'Content-Type: application/json'
+                                """
+                            } else {
+                                powershell """
+                                    \$headers = @{
+                                        'Authorization' = 'Bearer ${RENDER_API_KEY}'
+                                        'Content-Type' = 'application/json'
+                                    }
+                                    try {
+                                        Invoke-RestMethod -Uri "https://api.render.com/v1/services/${service}/deploys" -Method POST -Headers \$headers
+                                        Write-Host "Deployment request sent for ${service}"
+                                    } catch {
+                                        Write-Host "Deployment request for ${service} failed but continuing: \$_"
+                                    }
+                                """
+                            }
                         }
                     } else {
                         echo "Warning: No Render API key found. Skipping deployment step."
@@ -347,23 +254,25 @@ pipeline {
     post {
         always {
             script {
-                if (env.DOCKER_AVAILABLE == 'true') {
-                    try {
-                        echo "Cleaning up Docker images and containers..."
+                try {
+                    echo "Cleaning up Docker images and containers..."
 
-                        // Xóa các container dừng
-                        bat "docker container prune -f || echo No stopped containers"
+                    def pruneContainersCmd = isUnix() ? "docker container prune -f || echo No stopped containers"
+                                                      : "docker container prune -f || echo No stopped containers"
+                    def pruneImagesCmd = isUnix() ? "docker image prune -f || echo No dangling images"
+                                                  : "docker image prune -f || echo No dangling images"
 
-                        // Xóa các image dangling
-                        bat "docker image prune -f || echo No dangling images"
-
-                        // Thay vì 'system prune' để tránh xóa các image đang sử dụng
-                        echo "Docker cleanup completed"
-                    } catch (Exception e) {
-                        echo "Warning: Docker cleanup failed: ${e.message}"
+                    if (isUnix()) {
+                        sh pruneContainersCmd
+                        sh pruneImagesCmd
+                    } else {
+                        bat pruneContainersCmd
+                        bat pruneImagesCmd
                     }
-                } else {
-                    echo "Skipping Docker cleanup - Docker was not available during this build"
+
+                    echo "Docker cleanup completed"
+                } catch (Exception e) {
+                    echo "Warning: Docker cleanup failed: ${e.message}"
                 }
             }
         }
