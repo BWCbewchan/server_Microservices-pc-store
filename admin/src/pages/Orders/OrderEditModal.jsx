@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
+import { toast } from "react-toastify";
 
 // Base URL for API requests
 const ORDER_API_URL = "http://localhost:3000/api/orders";
@@ -17,6 +18,8 @@ const OrderEditModal = ({ orderId, onClose, onSave }) => {
     shippingMethod: "",
     shippingFee: 0,
     paymentMethod: "",
+    paymentStatus: "pending",
+    orderStatus: "pending",
     customerNote: "",
     sellerNote: ""
   });
@@ -43,6 +46,8 @@ const OrderEditModal = ({ orderId, onClose, onSave }) => {
           shippingMethod: orderData.shipping?.method || "",
           shippingFee: orderData.shipping?.fee || 0,
           paymentMethod: orderData.payment?.method || "",
+          paymentStatus: orderData.payment?.status || "pending",
+          orderStatus: orderData.status || "pending",
           customerNote: orderData.notes?.customerNote || "",
           sellerNote: orderData.notes?.sellerNote || ""
         });
@@ -83,6 +88,17 @@ const OrderEditModal = ({ orderId, onClose, onSave }) => {
         ...prev,
         [name]: value
       };
+      
+      // If payment status is changed to "paid", suggest updating order status
+      if (name === 'paymentStatus' && value === 'paid' && order.status === 'pending') {
+        if (window.confirm('Xác nhận thanh toán thành công. Cập nhật trạng thái đơn hàng thành "Đã xác nhận"?')) {
+          // Update both payment status and order status
+          return {
+            ...newFormData,
+            orderStatus: 'confirmed'
+          };
+        }
+      }
       
       // Recalculate totals if shipping fee changes
       if (name === 'shippingFee') {
@@ -174,7 +190,8 @@ const OrderEditModal = ({ orderId, onClose, onSave }) => {
         },
         payment: {
           ...order.payment,
-          method: formData.paymentMethod
+          method: formData.paymentMethod,
+          status: formData.paymentStatus  // Add payment status update
         },
         notes: {
           customerNote: formData.customerNote,
@@ -182,7 +199,8 @@ const OrderEditModal = ({ orderId, onClose, onSave }) => {
         },
         items: items,
         finalTotal: finalTotal,
-        removedItems: removedItems
+        removedItems: removedItems,
+        status: formData.orderStatus  // Add order status update
       };
       
       // Encode update data for URL
@@ -201,11 +219,17 @@ const OrderEditModal = ({ orderId, onClose, onSave }) => {
           notes: updateData.notes,
           items: updateData.items,
           finalTotal: updateData.finalTotal,
+          status: updateData.status,
           updatedAt: new Date().toISOString()
         };
         
         // Call the onSave callback with the locally updated order data
         onSave(updatedOrder);
+        
+        // Show success message for payment status changes
+        if (formData.paymentStatus === 'paid' && order.payment?.status !== 'paid') {
+          toast.success("Đã cập nhật trạng thái thanh toán thành công!");
+        }
       }
     } catch (err) {
       console.error("Error updating order:", err);
@@ -348,6 +372,52 @@ const OrderEditModal = ({ orderId, onClose, onSave }) => {
                   <option value="bank">Chuyển khoản ngân hàng</option>
                 </select>
               </div>
+              
+              {/* Add payment status field */}
+              <div className="mb-2">
+                <label className="block text-sm font-medium mb-1">Trạng thái thanh toán</label>
+                <select
+                  name="paymentStatus"
+                  value={formData.paymentStatus}
+                  onChange={handleChange}
+                  className="w-full border rounded px-3 py-2"
+                >
+                  <option value="pending">Chờ thanh toán</option>
+                  <option value="paid">Đã thanh toán</option>
+                  <option value="failed">Thanh toán thất bại</option>
+                </select>
+              </div>
+              
+              {/* Add order status field */}
+              <div className="mb-2">
+                <label className="block text-sm font-medium mb-1">Trạng thái đơn hàng</label>
+                <select
+                  name="orderStatus"
+                  value={formData.orderStatus}
+                  onChange={handleChange}
+                  className="w-full border rounded px-3 py-2"
+                >
+                  <option value="pending">Chờ xác nhận</option>
+                  <option value="confirmed">Đã xác nhận</option>
+                  <option value="completed">Hoàn thành</option>
+                  <option value="cancelled">Đã hủy</option>
+                </select>
+              </div>
+              
+              {/* Payment status notice for bank transfers */}
+              {formData.paymentMethod === 'bank' && formData.paymentStatus === 'pending' && (
+                <div className="mb-4 mt-2 bg-yellow-50 border border-yellow-200 rounded p-3 text-sm text-yellow-800">
+                  <p className="font-medium">Lưu ý: Đơn hàng thanh toán chuyển khoản</p>
+                  <p>Sau khi xác nhận khách hàng đã thanh toán, vui lòng cập nhật trạng thái thanh toán thành "Đã thanh toán".</p>
+                </div>
+              )}
+              
+              {formData.paymentMethod === 'bank' && formData.paymentStatus === 'paid' && (
+                <div className="mb-4 mt-2 bg-green-50 border border-green-200 rounded p-3 text-sm text-green-800">
+                  <p className="font-medium">Đã xác nhận thanh toán</p>
+                  <p>Khách hàng đã thanh toán đơn hàng này.</p>
+                </div>
+              )}
             </div>
           </div>
           
