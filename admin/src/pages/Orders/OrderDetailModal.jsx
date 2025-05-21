@@ -9,7 +9,7 @@ export default function OrderDetailModal({ orderId, onClose }) {
     useEffect(() => {
         const fetchOrderDetail = async () => {
             try {
-                const response = await axios.get(`http://localhost:3000/api/orders/${orderId}`);
+                const response = await axios.get(`${import.meta.env.VITE_APP_API_GATEWAY_URL}/orders/${orderId}`);
                 setOrderDetail(response.data);
             } catch (err) {
                 setError("Lỗi khi lấy chi tiết đơn hàng");
@@ -91,11 +91,11 @@ export default function OrderDetailModal({ orderId, onClose }) {
                             <div className="border p-4 rounded">
                                 <h3 className="font-semibold text-lg mb-2">Thông tin thanh toán</h3>
                                 <p>
-                                    <span className="font-bold">Phương thức:</span> {orderDetail.payment?.method === "cod" 
-                                      ? "Thanh toán khi nhận hàng (COD)" 
-                                      : orderDetail.payment?.method === "bank" 
-                                        ? "Chuyển khoản ngân hàng" 
-                                        : orderDetail.payment?.method}
+                                    <span className="font-bold">Phương thức:</span> {orderDetail.payment?.method === "cod"
+                                        ? "Thanh toán khi nhận hàng (COD)"
+                                        : orderDetail.payment?.method === "bank"
+                                            ? "Chuyển khoản ngân hàng"
+                                            : orderDetail.payment?.method}
                                 </p>
                                 <p>
                                     <span className="font-bold">Trạng thái:</span>{" "}

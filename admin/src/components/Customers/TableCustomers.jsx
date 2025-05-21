@@ -28,7 +28,7 @@ import AddUserModal from "./AddUserModal";
 import { toast } from "sonner";
 
 // Update API base URL to ensure direct access
-const USER_API_URL = "http://localhost:3000/api/auth/users";
+const USER_API_URL = `${import.meta.env.VITE_APP_API_GATEWAY_URL}/auth/users`;
 
 export function TableCustomers({ refresh: externalRefresh }) {
   const [data, setData] = useState([]);
