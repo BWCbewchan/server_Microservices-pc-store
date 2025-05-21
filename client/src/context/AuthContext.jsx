@@ -347,11 +347,19 @@ export const AuthProvider = ({ children }) => {
       window.localStorage.clear();
       window.sessionStorage.clear();
       
-      // 3. Explicitly remove common auth-related items one by one
+      // 3. Clear cookies (important - auth data might be stored in cookies)
+      document.cookie.split(';').forEach(cookie => {
+        const trimmedCookie = cookie.trim();
+        const cookieName = trimmedCookie.split('=')[0];
+        document.cookie = `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
+      });
+      
+      // 4. Explicitly remove common auth-related items one by one
       const storageTypes = [window.localStorage, window.sessionStorage];
       const itemsToRemove = [
         'token', 'user', 'tokenData', 'authExpiration', 'refreshToken', 
-        'userData', 'auth', 'session', 'currentUser', 'userInfo'
+        'userData', 'auth', 'session', 'currentUser', 'userInfo',
+        'cart', 'cartItems', 'pendingOrderId', 'lastOrder', 'paymentInProgress'
       ];
       
       storageTypes.forEach(storage => {
@@ -364,10 +372,10 @@ export const AuthProvider = ({ children }) => {
         storage.clear();
       });
       
-      // 4. Use our helper for token-specific cleanup
+      // 5. Use our helper for token-specific cleanup
       clearToken();
       
-      // 5. Verify localStorage is completely empty
+      // 6. Verify localStorage is completely empty
       if (window.localStorage.length > 0) {
         console.warn("localStorage still has items after clearing:", window.localStorage.length);
         
@@ -388,17 +396,12 @@ export const AuthProvider = ({ children }) => {
         window.localStorage.clear();
       }
       
-      // 6. Final verification
-      if (window.localStorage.length === 0 && window.sessionStorage.length === 0) {
-        console.log("Logout SUCCESS: All storage is completely empty");
-      } else {
-        console.error("Logout INCOMPLETE: Storage still contains items", {
-          localStorageLength: window.localStorage.length,
-          sessionStorageLength: window.sessionStorage.length
-        });
-      }
+      // 7. Force a page reload to completely reset application state
+      setTimeout(() => {
+        window.location.href = '/login'; // Redirect to login page
+      }, 100);
       
-      // 7. Return success but also inform caller if storage wasn't cleared
+      // 8. Return success but also inform caller if storage wasn't cleared
       return { 
         success: true, 
         storageCleared: window.localStorage.length === 0 && window.sessionStorage.length === 0 
@@ -406,10 +409,11 @@ export const AuthProvider = ({ children }) => {
     } catch (error) {
       console.error("Critical error during logout:", error);
       
-      // Last resort - try one more time with direct method
+      // Last resort - try one more time with direct method and force reload
       try {
         window.localStorage.clear();
         window.sessionStorage.clear();
+        window.location.href = '/login'; // Force redirect even on error
       } catch (e) {
         console.error("Final attempt to clear storage failed:", e);
       }
