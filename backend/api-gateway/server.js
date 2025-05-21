@@ -728,43 +728,43 @@ app.get('/status', (req, res) => {
 app.get('/status-config', (req, res) => {
   res.json({
     services: [
-      { 
-        name: "API Gateway", 
+      {
+        name: "API Gateway",
         url: `${req.protocol}://${req.get('host')}/api-status`,
         description: "Main entry point for all client requests"
       },
-      { 
-        name: "Product Catalog Service", 
+      {
+        name: "Product Catalog Service",
         url: `${services.products}/health`,
         description: "Manages product information and catalog"
       },
-      { 
-        name: "Auth Service", 
+      {
+        name: "Auth Service",
         url: `${services.auth}/health`,
         description: "Handles authentication and user management"
       },
-      { 
-        name: "Cart Service", 
+      {
+        name: "Cart Service",
         url: `${services.cart}/health`,
         description: "Manages shopping cart functionality"
       },
-      { 
-        name: "Order Service", 
+      {
+        name: "Order Service",
         url: `${services.orders}/health`,
         description: "Processes and manages orders"
       },
-      { 
-        name: "Inventory Service", 
+      {
+        name: "Inventory Service",
         url: `${services.inventory}/health`,
         description: "Tracks product inventory and availability"
       },
-      { 
-        name: "Notification Service", 
+      {
+        name: "Notification Service",
         url: `${services.notification}/health`,
         description: "Sends notifications to users"
       },
-      { 
-        name: "Payment Service", 
+      {
+        name: "Payment Service",
         url: `${services.payment}/health`,
         description: "Handles payment processing"
       }
@@ -869,3 +869,179 @@ const startServer = () => {
 };
 
 startServer();
+
+// Update user management handlers to correctly format and forward requests
+app.all('/api/auth/users*', (req, res) => {
+  const startTime = Date.now();
+  console.log(`[${new Date().toISOString()}] User management request: ${req.method} ${req.originalUrl}`);
+  console.log('Headers:', req.headers);
+
+  const http = require('http');
+
+  let bodyData = '';
+  if (req.method === 'POST' || req.method === 'PUT' || req.method === 'PATCH') {
+    bodyData = JSON.stringify(req.body);
+    console.log('Request body:', bodyData);
+  }
+
+  // Extract path from the original URL to forward to auth service
+  const apiPath = req.originalUrl.replace('/api/auth', '');
+
+  const options = {
+    hostname: 'localhost', // Changed from authServiceHostname to force localhost
+    port: authServicePort,
+    path: apiPath,  // Forward to the exact path on auth service
+    method: req.method,
+    headers: {
+      'Content-Type': 'application/json'
+    }
+  };
+
+  if (bodyData) {
+    options.headers['Content-Length'] = Buffer.byteLength(bodyData);
+  }
+
+  // Copy Authorization header - this is critical for admin authentication
+  if (req.headers.authorization) {
+    console.log('Forwarding Authorization header:', req.headers.authorization);
+    options.headers['Authorization'] = req.headers.authorization;
+  }
+
+  console.log(`Forwarding to auth service: ${options.method} ${options.hostname}:${options.port}${options.path}`);
+
+  const authReq = http.request(options, (authRes) => {
+    // Copy all response headers from auth service
+    Object.keys(authRes.headers).forEach(key => {
+      res.setHeader(key, authRes.headers[key]);
+    });
+
+    // Ensure CORS headers
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+
+    // Set status code
+    res.status(authRes.statusCode);
+
+    let responseData = '';
+    authRes.on('data', (chunk) => {
+      responseData += chunk;
+      res.write(chunk);
+    });
+
+    // Send response when complete
+    authRes.on('end', () => {
+      const duration = Date.now() - startTime;
+      console.log(`User management request completed in ${duration}ms with status ${authRes.statusCode}`);
+      if (responseData.length < 1000) {
+        console.log('Response data:', responseData);
+      } else {
+        console.log('Response data: (large response, first 200 chars)', responseData.substring(0, 200) + '...');
+      }
+      res.end();
+    });
+  });
+
+  authReq.on('error', (error) => {
+    console.error(`Auth service error: ${error.message}`);
+    res.status(502).json({
+      error: 'Bad Gateway',
+      message: error.message,
+      timestamp: new Date().toISOString()
+    });
+  });
+
+  authReq.setTimeout(10000, () => {
+    authReq.destroy();
+    res.status(504).json({
+      error: 'Gateway Timeout',
+      message: 'Request to auth service timed out',
+      timestamp: new Date().toISOString()
+    });
+  });
+
+  if (bodyData) {
+    authReq.write(bodyData);
+  }
+  authReq.end();
+});
+
+// Create a direct proxy for auth/users endpoint that bypasses other middleware
+app.use('/api/auth/users', (req, res) => {
+  const startTime = Date.now();
+  console.log(`[${new Date().toISOString()}] User API request: ${req.method} ${req.originalUrl}`);
+
+  const http = require('http');
+  const authServicePort = process.env.AUTH_SERVICE_PORT || 4006;
+
+  let bodyData = '';
+  if (req.method === 'POST' || req.method === 'PUT' || req.method === 'PATCH') {
+    bodyData = JSON.stringify(req.body);
+  }
+
+  // Extract the path to be forwarded
+  const forwardPath = req.url;
+  console.log(`Original URL: ${req.originalUrl}, Forwarding path: ${forwardPath}`);
+
+  const options = {
+    hostname: 'localhost', // Using localhost to ensure direct connectivity
+    port: authServicePort,
+    path: forwardPath,
+    method: req.method,
+    headers: {
+      'Content-Type': 'application/json'
+    }
+  };
+
+  if (bodyData) {
+    options.headers['Content-Length'] = Buffer.byteLength(bodyData);
+  }
+
+  // Forward the authorization header if present
+  if (req.headers.authorization) {
+    options.headers['Authorization'] = req.headers.authorization;
+  }
+
+  console.log(`Forwarding to auth service: ${options.method} http://${options.hostname}:${options.port}${options.path}`);
+
+  const authReq = http.request(options, (authRes) => {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+
+    res.status(authRes.statusCode);
+
+    authRes.on('data', (chunk) => {
+      res.write(chunk);
+    });
+
+    authRes.on('end', () => {
+      const duration = Date.now() - startTime;
+      console.log(`User API request completed in ${duration}ms with status ${authRes.statusCode}`);
+      res.end();
+    });
+  });
+
+  authReq.on('error', (error) => {
+    console.error(`Auth service error: ${error.message}`);
+    res.status(502).json({
+      error: 'Bad Gateway',
+      message: error.message,
+      timestamp: new Date().toISOString()
+    });
+  });
+
+  authReq.setTimeout(10000, () => {
+    authReq.destroy();
+    res.status(504).json({
+      error: 'Gateway Timeout',
+      message: 'Request to auth service timed out',
+      timestamp: new Date().toISOString()
+    });
+  });
+
+  if (bodyData) {
+    authReq.write(bodyData);
+  }
+  authReq.end();
+});
