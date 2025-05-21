@@ -1,0 +1,104 @@
+[33m81e6d64[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mnhanhtrinh[m[33m)[m Add client/.env to .gitignore
+[33m8b16b82[m Added Chatbox
+[33m4057464[m[33m ([m[1;31morigin/nhanhtrinh[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m, [m[1;32mmain[m[33m)[m edit api
+[33m161c837[m fix login
+[33m5d1d425[m fix file jenkin
+[33mbfd59dd[m fix file jenkin
+[33mcfe9bb8[m fix file jenkin
+[33m1bb56eb[m fix file jenkin
+[33mef36744[m fix file jenkin
+[33mf3c9a14[m fix file jenkin
+[33m0de6a8f[m fix file jenkin
+[33ma5e41df[m fix file .env
+[33m727ea0f[m edit check status
+[33m56dd139[m Merge pull request #5 from BWCbewchan/nhanhhuy
+[33m37e1d1e[m add thong ke
+[33maffd1f3[m Merge pull request #4 from BWCbewchan/nhanhphat
+[33m50ac927[m[33m ([m[1;31morigin/nhanhphat[m[33m)[m fix xung dot
+[33m832a91d[m edit api
+[33m6b10b0f[m fix link footer
+[33mb7eec83[m Merge branch 'main' of https://github.com/BWCbewchan/server_Microservices-pc-store into nhanhphat
+[33m1dfb9cb[m fix ket noi
+[33mf6ac3ed[m update services and manager services
+[33m4ad9b5f[m làm sort
+[33mc404efd[m sửa catalog
+[33m4a078e1[m sửa catalog
+[33m56d2b78[m edit jenkin
+[33m3a7100d[m edit dockerfile
+[33mef3d458[m sửa ProductDisplay
+[33ma319f51[m sửa ProductDisplay
+[33m3f9500f[m add edit jenkin
+[33md5c69b5[m add edit jenkin
+[33mae1b701[m add edit jenkin
+[33m79f1a52[m add edit jenkin
+[33me3c3191[m add edit jenkin
+[33m0b9f5d9[m them file
+[33m1f8fa90[m them file
+[33me778f9a[m add jenkin
+[33m0598e09[m Update TableNotification.jsx
+[33md8376d2[m Merge pull request #3 from BWCbewchan/nhanhphat
+[33m9e6aae1[m format giá tiền
+[33m568889c[m FIX DELOY
+[33m5aff841[m làm chức năng search
+[33mab2e0ce[m làm search san pham
+[33m4b80030[m fix responsive header
+[33m53225a7[m fix giao dien
+[33m3420803[m[33m ([m[1;31morigin/branch-moi[m[33m)[m update git action 8 no domain
+[33m241fa56[m update git action 7 no domain
+[33m4102d63[m update git action 7 client(for not find img)
+[33maec5bf0[m update git action 6 client(for find signup)
+[33mbdb232c[m update git action 5 client(for find signup)
+[33m28cf0d4[m update git action 4 client(for find signup)
+[33m8c255c2[m update git action 3 client(for find signup)
+[33m045d862[m update git action 2 client
+[33maf7d865[m update git action 1 client
+[33m0b85759[m update git action 2
+[33m161d3d5[m update git action 1
+[33me674a88[m update git action
+[33ma1afae2[m set up git ci/cd
+[33m502f945[m chỉnh checkout form và thêm order-confirmation
+[33m8ced01e[m đăng xuất xóa localstorage
+[33mac9eb13[m add services auth và đăng nhập đăng kí bên giao diện
+[33m045f68f[m thêm lịch sử đơn hàng trong profile
+[33mf68dc79[m hien thi ngay
+[33m1812d16[m edit oder
+[33m91fff84[m auth oke
+[33m858106c[m thêm thông tin chi tiết của user
+[33m06e0ebb[m them nut dang xuat
+[33m4307b73[m save token user
+[33me675097[m them router login
+[33m88d6266[m add services auth và đăng nhập đăng kí bên giao diện
+[33m6cd6851[m add .gitignore full
+[33m040c79d[m add .gitignore
+[33mffc10c4[m add order
+[33m842d8ac[m add payment
+[33m7a6aaf7[m add them cart service
+[33m15da9c1[m add inventory
+[33me8bfe3e[m add lại client
+[33md0c29b5[m sửa client
+[33m0fbd51d[m tạo bố cục thư mục lại
+[33m1e2258a[m Merge pull request #2 from BWCbewchan/develop
+[33mce70a64[m[33m ([m[1;31morigin/develop[m[33m)[m add admin and client
+[33mbd4ce68[m update
+[33maf3be8d[m add api gateway
+[33mef9ab23[m add api gateway
+[33m3f3d157[m Merge pull request #1 from BWCbewchan/feature/auth/user-management
+[33m0aa797d[m Move shipping-service to feature/shipping branch
+[33m82f9766[m Move review-service to feature/review branch
+[33m267d569[m Move inventory-service to feature/inventory branch
+[33m556db51[m Move payment-service to feature/payment branch
+[33mb95f4c4[m Move order-service to feature/order branch
+[33me378893[m Move product-service to feature/product branch
+[33m5d7a9a9[m Move cart-service to feature/cart branch
+[33m156ee1c[m Move auth-service to feature/auth branch
+[33mf3cec82[m[33m ([m[1;31morigin/feature/auth/user-management[m[33m)[m Move auth-service to feature/auth branch
+[33mab8f2ad[m[33m ([m[1;31morigin/release/v1.0.0[m[33m, [m[1;31morigin/feature/shipping/shipping-calculation[m[33m, [m[1;31morigin/feature/review/review-management[m[33m, [m[1;31morigin/feature/product/product-crud[m[33m, [m[1;31morigin/feature/payment/payment-integration[m[33m, [m[1;31morigin/feature/order/order-processing[m[33m, [m[1;31morigin/feature/inventory/stock-management[m[33m, [m[1;31morigin/feature/cart/cart-operations[m[33m)[m fix cart && order
+[33mebf1f1e[m fix server auth and inventory
+[33m406b2c0[m customer-support-service
+[33me42ff29[m order-payment-review
+[33mb906bc5[m [doc] create api-auth && inventory
+[33m74a440a[m doc api product edit find id product
+[33m17ec80b[m [doc] products-services
+[33m4cf5f2a[m update README.md
+[33m5501314[m chỉnh sửa port
+[33mfdfc106[m first commit
