@@ -1,13 +1,17 @@
 import PropTypes from "prop-types";
-import { useState } from "react";
+import { useState, useContext } from "react";
 import ICONS from "../constants/icons";
-import { NavLink } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
 import axios from "axios";
 import { toast } from 'react-toastify';
+import { AuthContext } from "../context/AuthContext";
+import { checkAuthBeforeCart } from "../utils/authChecker";
 
 const ProductCard = ({ _id, stock, image, rating, name, price, discount }) => {
   const [hover, setHover] = useState(false);
   const CART_API_URL = "http://localhost:3000/api/cart/add";
+  const navigate = useNavigate();
+  const { currentUser } = useContext(AuthContext);
 
   // UserId giả dùng cho demo
   const fakeUserId = "64e65e8d3d5e2b0c8a3e9f12";
@@ -26,12 +30,24 @@ const ProductCard = ({ _id, stock, image, rating, name, price, discount }) => {
   };
 
   // Xử lý thêm sản phẩm vào giỏ hàng
-  const handleAddToCart = async (productId) => {
+  const handleAddToCart = async (productId, e) => {
+    // Prevent navigation to product details
+    e.preventDefault();
+    e.stopPropagation();
+    
+    // Check authentication and verification
+    if (!checkAuthBeforeCart(currentUser, navigate)) {
+      return;
+    }
+    
     try {
-      const res = await axios.post(`${CART_API_URL}/${fakeUserId}/${productId}/1`);
+      // Use the actual user ID instead of fake one
+      const userId = currentUser.id || currentUser._id;
+      const res = await axios.post(`${CART_API_URL}/${userId}/${productId}/1`);
       toast.success("🛒Thêm vào giỏ hàng thành công");
     } catch (error) {
       console.error("Lỗi khi thêm vào giỏ hàng", error.response?.data || error.message);
+      toast.error("Không thể thêm sản phẩm vào giỏ hàng");
     }
   };
 
@@ -58,10 +74,7 @@ const ProductCard = ({ _id, stock, image, rating, name, price, discount }) => {
       {hover && stock > 0 && (
         <button
           className="position-absolute top-0 end-0 m-1 m-sm-2 btn m-0 p-0 border-0 hover"
-          onClick={(e) => {
-            e.preventDefault();
-            handleAddToCart(_id);
-          }}
+          onClick={(e) => handleAddToCart(_id, e)}
         >
           <img src={ICONS.Cart} alt="" className="hover cart-icon" style={{ maxWidth: "25px" }} />
         </button>
