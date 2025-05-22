@@ -7,9 +7,9 @@ import CheckoutPage from "../pages/CheckOut/CheckoutPage";
 import ContactUs from "../pages/ContactUs/ContactUs";
 import ProductDetailsAll from "../pages/Details/ProductDetailsAll";
 import OrderConfirmation from "../pages/OrderConfirmation/OrderConfirmation";
+import Signup from "../pages/Signup/Signup";
 import UserAccount from "../pages/UserAccount/UserAccount";
 import UserOrders from "../pages/UserAccount/UserOrders";
-import Signup from "../pages/Signup/Signup";
 import OTPVerification from "../pages/Verification/OTPVerification";
 
 // Các route công khai (ai cũng có thể truy cập)

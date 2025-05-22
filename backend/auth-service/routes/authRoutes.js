@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 const authController = require("../controllers/authController");
 const adminAuthController = require("../controllers/adminAuthController");
+const userController = require("../controllers/userController"); // Add this import
 const authMiddleware = require("../middleware/authMiddleware");
 
 // Add CORS headers to all routes
@@ -28,6 +29,13 @@ router.get('/ping', (req, res) => {
 
 // Add specific test endpoint for API gateway
 router.get('/test-connection', authController.testConnection);
+
+// User management routes - add missing endpoints
+router.get('/users', authMiddleware.protect, authMiddleware.restrictTo('admin'), userController.getAllUsers);
+router.get('/users/:userId', authMiddleware.protect, authMiddleware.restrictTo('admin'), userController.getUserById);
+router.put('/users/:userId', authMiddleware.protect, authMiddleware.restrictTo('admin'), userController.updateUser);
+router.put('/users/:userId/status', authMiddleware.protect, authMiddleware.restrictTo('admin'), userController.updateUserStatus);
+router.delete('/users/:userId', authMiddleware.protect, authMiddleware.restrictTo('admin'), userController.deleteUser);
 
 // Authentication routes
 router.post("/register", (req, res) => {

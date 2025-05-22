@@ -1,5 +1,5 @@
-import { createContext, useContext, useState, useEffect } from "react";
 import axios from "axios";
+import { createContext, useContext, useEffect, useState } from "react";
 
 // Create context
 const AuthContext = createContext();
@@ -32,18 +32,29 @@ export const AuthProvider = ({ children }) => {
     // Set auth token for axios requests
     useEffect(() => {
         if (token) {
+            // Set token directly without modifying it
             axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+            console.log("Authorization header set globally");
         } else {
             delete axios.defaults.headers.common["Authorization"];
+            console.log("Authorization header removed globally");
         }
     }, [token]);
 
     // Login function
     const login = (newToken, user) => {
-        localStorage.setItem("adminToken", newToken);
+        // Ensure token is trimmed and has no extra spaces before storing
+        const cleanToken = typeof newToken === 'string' ? newToken.trim() : newToken;
+        localStorage.setItem("adminToken", cleanToken);
         localStorage.setItem("adminUser", JSON.stringify(user));
-        setToken(newToken);
+        setToken(cleanToken);
         setCurrentUser(user);
+        
+        // Set the global axios default Authorization header
+        if (cleanToken) {
+            axios.defaults.headers.common["Authorization"] = `Bearer ${cleanToken}`;
+            console.log("Set global Authorization header:", `Bearer ${cleanToken}`);
+        }
     };
 
     // Logout function

@@ -1,30 +1,34 @@
 const express = require("express");
-const authController = require("../controllers/authController");
-const adminAuthController = require("../controllers/adminAuthController");
-const { protect, restrictTo } = require("../middleware/authMiddleware");
+const authRoutes = require("./authRoutes");
 const otpRoutes = require("./otpRoutes");
 
 const router = express.Router();
 
-// Auth routes
-router.post("/register", authController.register);
-router.post("/login", authController.login);
-router.get("/me", protect, authController.getCurrentUser);
-router.put("/update", protect, authController.updateUser);
-router.put("/update-avatar", protect, authController.updateUser);
+// CORS preflight for all routes
+router.options('*', (req, res) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.sendStatus(200);
+});
 
-// Admin routes
-router.post("/admin/login", adminAuthController.adminLogin);
-router.get("/admin/profile", protect, restrictTo("admin"), adminAuthController.getAdminProfile);
+// Log all requests for debugging
+router.use((req, res, next) => {
+  console.log(`${new Date().toISOString()} [REQUEST] ${req.method} ${req.originalUrl}`);
+  next();
+});
+
+// Use auth routes
+router.use("/", authRoutes);
 
 // OTP verification routes
 router.use("/otp", otpRoutes);
 
-// Health check
-router.get("/ping", (req, res) => {
-  res.status(200).json({
-    message: "pong",
-    timestamp: new Date().toISOString()
+// Handle 404 errors
+router.use("*", (req, res) => {
+  res.status(404).json({
+    message: "Endpoint not found",
+    requestedUrl: req.originalUrl
   });
 });
 
