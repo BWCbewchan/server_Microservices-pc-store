@@ -9,7 +9,7 @@ import { checkAuthBeforeCart } from "../utils/authChecker";
 
 const ProductCard = ({ _id, stock, image, rating, name, price, discount }) => {
   const [hover, setHover] = useState(false);
-  const CART_API_URL = "http://localhost:3000/api/cart/add";
+  const CART_API_URL = `${import.meta.env.VITE_APP_API_GATEWAY_URL}/cart/add`;
   const navigate = useNavigate();
   const { currentUser } = useContext(AuthContext);
 

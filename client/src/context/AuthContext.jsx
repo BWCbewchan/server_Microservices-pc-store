@@ -105,7 +105,7 @@ export const AuthProvider = ({ children }) => {
 
       // Try both API endpoints
       try {
-        const response = await axios.get(`${API_URL || 'http://localhost:3000'}/me`, config);
+        const response = await axios.get(`${API_URL}/me`, config);
         console.log("User data response:", response.data);
         
         if (response.data && response.data.user) {
@@ -124,7 +124,7 @@ export const AuthProvider = ({ children }) => {
         console.error("Primary endpoint failed, trying fallback:", err);
         
         // Try direct connection to auth service
-        const directResponse = await axios.get('http://localhost:4006/me', config);
+        const directResponse = await axios.get(`${API_URL}/me`, config);
         console.log("Direct user data response:", directResponse.data);
         
         if (directResponse.data && directResponse.data.user) {
@@ -232,7 +232,7 @@ export const AuthProvider = ({ children }) => {
 
       console.log("Checking API Gateway availability...");
       try {
-        const statusResponse = await fetch('http://localhost:3000/startup-check', { 
+        const statusResponse = await fetch(`${import.meta.env.VITE_APP_API_GATEWAY_LOCAL}/startup-check`, { 
           method: 'GET',
           mode: 'cors',
           cache: 'no-cache',
@@ -251,7 +251,7 @@ export const AuthProvider = ({ children }) => {
       const registrationMethods = [
         async () => {
           console.log("Trying direct register endpoint...");
-          const response = await fetch('http://localhost:3000/register', {
+          const response = await fetch(`${import.meta.env.VITE_APP_API_GATEWAY_URL}/auth/register`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json'
@@ -271,7 +271,7 @@ export const AuthProvider = ({ children }) => {
         },
         async () => {
           console.log("Trying direct auth service...");
-          const response = await fetch('http://localhost:4006/register', {
+          const response = await fetch( `${import.meta.env.VITE_APP_API_GATEWAY_URL}/auth/register`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json'
@@ -292,7 +292,7 @@ export const AuthProvider = ({ children }) => {
           console.log("Trying XMLHttpRequest fallback...");
           return new Promise((resolve, reject) => {
             const xhr = new XMLHttpRequest();
-            xhr.open('POST', 'http://localhost:3000/register');
+            xhr.open('POST', `${import.meta.env.VITE_APP_API_GATEWAY_URL}/auth/register`);
             xhr.setRequestHeader('Content-Type', 'application/json');
             xhr.timeout = 10000;
 
@@ -460,7 +460,7 @@ export const AuthProvider = ({ children }) => {
       try {
         console.log("Trying update with axios");
         const response = await axios.put(
-          `${import.meta.env.VITE_APP_API_GATEWAY_URL || 'http://localhost:3000'}/update`, 
+          `${import.meta.env.VITE_APP_API_GATEWAY_URL }/auth/update`, 
           userData,
           {
             headers: {
@@ -488,7 +488,7 @@ export const AuthProvider = ({ children }) => {
         // If axios fails, try fetch with simple mode
         try {
           console.log("Trying update with fetch");
-          const fetchResponse = await fetch('http://localhost:3000/update', {
+          const fetchResponse = await fetch(`${import.meta.env.VITE_APP_API_GATEWAY_URL}/auth/update`, {
             method: 'PUT',
             headers: {
               'Content-Type': 'application/json',
@@ -521,7 +521,7 @@ export const AuthProvider = ({ children }) => {
           return await new Promise((resolve, reject) => {
             console.log("Trying update with XMLHttpRequest");
             const xhr = new XMLHttpRequest();
-            xhr.open('PUT', 'http://localhost:3000/update');
+            xhr.open('PUT', `${import.meta.env.VITE_APP_API_GATEWAY_URL}/auth/update`);
             xhr.setRequestHeader('Content-Type', 'application/json');
             xhr.setRequestHeader('Authorization', `Bearer ${token}`);
             
