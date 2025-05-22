@@ -1,14 +1,12 @@
-import { useEffect, useState } from "react";
-import ProductDetailsHead from "../../components/ProductDetails/ProductDetailsHead";
-import ProductDetails from "../../components/ProductDetails/ProductDetails";
-import ProductSpecs from "../../components/ProductDetails/ProductSpecs";
-import OutplayCompetition from "../../components/ProductDetails/OutplayCompetition";
-import ImageDisplay from "../../components/ProductDetails/ImageDisplay";
-import Features from "../Home/Features";
-import FeaturesDetails from "../../components/ProductDetails/FeaturesDetails";
-import { useLocation } from "react-router-dom";
 import axios from "axios";
+import { useEffect, useState } from "react";
+import { useLocation } from "react-router-dom";
 import FakeSpecs from "../../components/ProductDetails/FakeSpecs";
+import FeaturesDetails from "../../components/ProductDetails/FeaturesDetails";
+import ImageDisplay from "../../components/ProductDetails/ImageDisplay";
+import OutplayCompetition from "../../components/ProductDetails/OutplayCompetition";
+import ProductDetailsHead from "../../components/ProductDetails/ProductDetailsHead";
+import Features from "../Home/Features";
 
 const ProductDetailsAll = () => {
   const [activeTab, setActiveTab] = useState("about");
@@ -35,10 +33,7 @@ const ProductDetailsAll = () => {
   }, [product]);
   return (
     <>
-      {/* Truyền activeTab và setActiveTab xuống ProductDetailsHead */}
-      <ProductDetailsHead activeTab={activeTab} setActiveTab={setActiveTab} price={product.price} />
-
-      {/* Breadcrumb */}
+    {/* Breadcrumb */}
       <div className="container">
         <nav
           aria-label="breadcrumb"
@@ -53,7 +48,7 @@ const ProductDetailsAll = () => {
               <a href="/">Home</a>
             </li>
             <li className="breadcrumb-item">
-              <a href="#laptops">Laptops</a>
+              <a href="/catalog?category=MSI%20Laptops">Laptops</a>
             </li>
             <li className="breadcrumb-item active" aria-current="page">
               {product?.name}
@@ -61,6 +56,10 @@ const ProductDetailsAll = () => {
           </ol>
         </nav>
       </div>
+      {/* Truyền activeTab và setActiveTab xuống ProductDetailsHead */}
+      <ProductDetailsHead activeTab={activeTab} setActiveTab={setActiveTab} price={product.price} />
+
+      
 
       {/* Product about */}
       {activeTab === "about" && (

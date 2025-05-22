@@ -183,7 +183,6 @@ const Cart = () => {
     return (
         <div className="bg-white d-flex flex-column overflow-hidden">
             <div className="container mt-4">
-                <span>Home</span> <span>›</span> <span>Cart</span>
                 <h1 className="fw-bold">Shopping Cart</h1>
                 <div className="row mt-4">
                     <div className="col-lg-8">
