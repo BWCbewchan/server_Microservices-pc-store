@@ -178,11 +178,11 @@ pipeline {
 
                     // Trước khi build, xóa tất cả images cũ để tránh lặp
                     echo "Removing old Docker images for all services..."
-                    services.each { service ->
-                        // Thử xóa các image cũ (sẽ bỏ qua lỗi nếu không tìm thấy)
-                        bat "docker rmi -f ${DOCKER_HUB_USERNAME}/smpcstr:${service} || echo Image not found"
-                        bat "docker image prune -f || echo No dangling images"
-                    }
+                    // services.each { service ->
+                    //     // Thử xóa các image cũ (sẽ bỏ qua lỗi nếu không tìm thấy)
+                    //     bat "docker rmi -f ${DOCKER_HUB_USERNAME}/smpcstr:${service} || echo Image not found"
+                    //     bat "docker image prune -f || echo No dangling images"
+                    // }
 
                     // Build và push các service với retry logic
                     services.each { service ->
