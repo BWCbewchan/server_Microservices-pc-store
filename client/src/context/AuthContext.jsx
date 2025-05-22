@@ -10,7 +10,7 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  const API_URL = `${import.meta.env.VITE_APP_API_GATEWAY_URL}/auth`;
+  const API_URL =  `${import.meta.env.VITE_APP_API_GATEWAY_URL}/auth`;
 
   useEffect(() => {
     console.log("AuthContext initialized - checking authentication");
