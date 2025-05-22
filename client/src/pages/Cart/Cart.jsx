@@ -1,32 +1,57 @@
-import * as React from "react";
 import axios from "axios";
+import * as React from "react";
+import { useContext } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { toast } from "react-toastify";
+import { AuthContext } from "../../context/AuthContext";
 import CartItem from "./CartItem";
 import CartSummary from "./CartSummary";
-import { Link } from "react-router-dom";
 
 // Định nghĩa các API URL (điều chỉnh theo backend của bạn)
 const CART_API_URL = "http://localhost:3000/api/cart";
 const PRODUCT_API_URLGetInfo = "http://localhost:3000/api/products/product"; // Giả sử endpoint lấy thông tin sản phẩm
-// const fakeUserId = "user9999";
-const fakeUserId = "64e65e8d3d5e2b0c8a3e9f12";
-
 
 const Cart = () => {
+    const { currentUser } = useContext(AuthContext);
+    const navigate = useNavigate();
     const [cart, setCart] = React.useState(null);
     const [products, setProducts] = React.useState({});
     const [selectedItems, setSelectedItems] = React.useState({});
     const [error, setError] = React.useState("");
 
-    // Load giỏ hàng khi component mount
+    // Check if user is logged in and verified
     React.useEffect(() => {
-        fetchCart();
-    }, []);
+        if (!currentUser) {
+            toast.error("Vui lòng đăng nhập để xem giỏ hàng");
+            navigate("/login");
+            return;
+        }
 
-    // Hàm lấy giỏ hàng theo userId
+        if (!currentUser.isVerified) {
+            toast.warning("Vui lòng xác thực tài khoản để sử dụng giỏ hàng");
+            navigate("/verify", {
+                state: {
+                    email: currentUser.email,
+                    fromCart: true
+                }
+            });
+            return;
+        }
+
+        fetchCart();
+    }, [currentUser, navigate]);
+
+    // Load giỏ hàng khi component mount
     const fetchCart = async () => {
         try {
             setError("");
-            const res = await axios.get(`${CART_API_URL}/${fakeUserId}`);
+            const userId = currentUser?.id || currentUser?._id;
+            if (!userId) {
+                toast.error("Không xác định được thông tin người dùng");
+                return;
+            }
+
+            const res = await axios.get(`${CART_API_URL}/${userId}`);
             const cartData = res.data;
             setCart(cartData);
 
@@ -70,8 +95,8 @@ const Cart = () => {
     const handleUpdateQuantity = async (productId, newQuantity) => {
         try {
             setError("");
-            // Thay vì gửi qua body, chuyển userId, productId, quantity vào URL
-            const res = await axios.put(`${CART_API_URL}/update/${fakeUserId}/${productId}/${newQuantity}`);
+            const userId = currentUser?.id || currentUser?._id;
+            const res = await axios.put(`${CART_API_URL}/update/${userId}/${productId}/${newQuantity}`);
             setCart(res.data.cart);
         } catch (err) {
             setError(err.response?.data?.message || err.message);
@@ -84,8 +109,8 @@ const Cart = () => {
         if (!window.confirm("Bạn có chắc muốn xóa sản phẩm này khỏi giỏ hàng?")) return;
         try {
             setError("");
-            // Truyền userId và productId trực tiếp qua URL
-            const res = await axios.delete(`${CART_API_URL}/remove/${fakeUserId}/${productId}`);
+            const userId = currentUser?.id || currentUser?._id;
+            const res = await axios.delete(`${CART_API_URL}/remove/${userId}/${productId}`);
             setCart(res.data.cart);
             setSelectedItems(prev => {
                 const newSelected = { ...prev };
@@ -103,7 +128,8 @@ const Cart = () => {
         if (!window.confirm("Bạn có chắc muốn xóa toàn bộ giỏ hàng?")) return;
         try {
             setError("");
-            const res = await axios.delete(`${CART_API_URL}/clear/${fakeUserId}`);
+            const userId = currentUser?.id || currentUser?._id;
+            const res = await axios.delete(`${CART_API_URL}/clear/${userId}`);
             setCart(res.data.cart);
             setSelectedItems({});
         } catch (err) {
@@ -152,11 +178,7 @@ const Cart = () => {
     const subtotal = selectedCartItems.reduce((acc, item) => {
         return acc + item.quantity * parseFloat(item.price.replace(",", ""));
     }, 0);
-    // const shipping = selectedCartItems.length > 0 ? 21.0 : 0;
-    // const tax = subtotal * 0.1;
-    // const total = subtotal + shipping + tax;
-    const total = subtotal  ;
-
+    const total = subtotal;
 
     return (
         <div className="bg-white d-flex flex-column overflow-hidden">
@@ -199,9 +221,7 @@ const Cart = () => {
                     </div>
 
                     <div className="col-lg-4">
-                        {/* <CartSummary subtotal={subtotal} shipping={shipping} tax={tax} total={total} selectedCartItems={selectedCartItems} /> */}
-                        <CartSummary subtotal={subtotal}  total={total} selectedCartItems={selectedCartItems} />
-
+                        <CartSummary subtotal={subtotal} total={total} selectedCartItems={selectedCartItems} />
                     </div>
                 </div>
             </div>

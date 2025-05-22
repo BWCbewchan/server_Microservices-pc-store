@@ -1,18 +1,21 @@
-import { useEffect, useState } from "react";
 import axios from "axios";
-import { useParams } from "react-router-dom";
+import { useContext, useEffect, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import { toast } from 'react-toastify';
+import { AuthContext } from "../../context/AuthContext";
+import { checkAuthBeforeCart } from "../../utils/authChecker";
 
 function ProductDetailsHead({ activeTab, setActiveTab, price }) {
   const { id } = useParams();
+  const navigate = useNavigate();
+  const { currentUser } = useContext(AuthContext);
+
   const styles = {
     container: {
       fontSize: 14,
       fontFamily: "Poppins, sans-serif",
       textAlign: "center",
       margin: "8px auto",
-
-
     },
     activeTab: { color: "#000", borderBottom: "2px solid #0156FF", cursor: "pointer" },
     tab: { borderBottom: "2px solid transparent", cursor: "pointer" },
@@ -57,11 +60,6 @@ function ProductDetailsHead({ activeTab, setActiveTab, price }) {
     if (id) fetchInventory();
   }, [id]);
 
-
-
-  // UserId giả dùng cho demo
-  // const fakeUserId = "user9999";
-  const fakeUserId = "64e65e8d3d5e2b0c8a3e9f12"
   // Định nghĩa API URL add to cart với URL params
   const CART_API_URL = "http://localhost:3000/api/cart/add";
 
@@ -69,20 +67,27 @@ function ProductDetailsHead({ activeTab, setActiveTab, price }) {
   const handleAddToCart = async () => {
     console.log("Thêm vào giỏ hàng với ID:", id);
 
+    // Check authentication and verification before proceeding
+    if (!checkAuthBeforeCart(currentUser, navigate)) {
+      return;
+    }
+
     if (!id) {
       alert("Product ID is not defined!");
       return;
     }
+    
     try {
-      const res = await axios.post(`${CART_API_URL}/${fakeUserId}/${id}/1`);
-      // console.log("Thêm vào giỏ hàng thành công", res.data);
-
+      // Use the actual user ID instead of fake one
+      const userId = currentUser.id || currentUser._id;
+      const res = await axios.post(`${CART_API_URL}/${userId}/${id}/1`);
+      
       toast.success("🛒Thêm vào giỏ hàng thành công");
     } catch (error) {
       console.error("Lỗi khi thêm vào giỏ hàng", error.response?.data || error.message);
+      toast.error("Không thể thêm sản phẩm vào giỏ hàng");
     }
   };
-
 
   // Tính giá sau discount
   const finalPrice = price;
@@ -112,15 +117,6 @@ function ProductDetailsHead({ activeTab, setActiveTab, price }) {
             <span style={styles.price}>
               On Sale from <span style={styles.priceBold}>{formatPrice(finalPrice)}</span>
             </span>
-            {/* <input
-              type="number"
-              min="1"
-              value={quantity}
-              onChange={(e) => setQuantity(parseInt(e.target.value, 10))}
-              className="form-control text-center"
-              style={styles.quantityInput}
-            /> */}
-
             {/* THÔNG BÁO SỐ LƯỢNG THẤP */}
             {inventoryInfo?.stockInInventory > 0 && inventoryInfo.stockInInventory < 10 && (
               <div className="text-danger fw-bold small">
@@ -142,7 +138,6 @@ function ProductDetailsHead({ activeTab, setActiveTab, price }) {
             >
               Add to Cart
             </button>
-
 
             <button
               className="btn btn-warning rounded-pill d-flex align-items-center justify-content-center"
