@@ -1,9 +1,9 @@
-import PropTypes from "prop-types";
-import { useState, useContext } from "react";
-import ICONS from "../constants/icons";
-import { NavLink, useNavigate } from "react-router-dom";
 import axios from "axios";
+import PropTypes from "prop-types";
+import { useContext, useState } from "react";
+import { NavLink, useNavigate } from "react-router-dom";
 import { toast } from 'react-toastify';
+import ICONS from "../constants/icons";
 import { AuthContext } from "../context/AuthContext";
 import { checkAuthBeforeCart } from "../utils/authChecker";
 
