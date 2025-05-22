@@ -444,6 +444,7 @@ const CheckoutForm = ({ selectedItems, shippingMethod, setShippingMethod, subtot
         method: formData.paymentMethod, 
         status: formData.paymentMethod === "bank" ? "paid" : "pending" 
       };
+      
       const notes = { customerNote: formData.customerNote, sellerNote: "" };
 
       // 1) Check inventory first
@@ -486,7 +487,7 @@ const CheckoutForm = ({ selectedItems, shippingMethod, setShippingMethod, subtot
         payment,
         finalTotal,
         notes,
-        // Always set status to "confirmed" when payment method is bank/MoMo
+        // Set order status to "confirmed" when payment method is bank/MoMo
         status: formData.paymentMethod === "bank" ? "confirmed" : "pending"
       };
 

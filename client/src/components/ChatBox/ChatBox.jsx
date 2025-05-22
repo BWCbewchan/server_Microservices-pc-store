@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
-import './ChatBox.css';
 import axios from 'axios';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import './ChatBox.css';
 
 const API_URL = `${import.meta.env.VITE_APP_API_GATEWAY_URL}/products`;
 
@@ -62,35 +62,52 @@ const ChatBot = () => {
     try {
       const searchQuery = query.toLowerCase();
       let results = [];
+  
       switch (mode) {
         case 'name':
           results = allProducts.filter(product =>
             product.name.toLowerCase().includes(searchQuery)
           );
           break;
+  
         case 'category':
           results = allProducts.filter(product =>
             product.category.toLowerCase().includes(searchQuery)
           );
           break;
+  
         case 'brand':
           results = allProducts.filter(product =>
             product.brand.toLowerCase().includes(searchQuery)
           );
           break;
+  
         case 'price':
-          const [min, max] = searchQuery.split('-').map(val => parseInt(val.replace(/[^\d]/g, '')));
-          results = allProducts.filter(product =>
-            product.price >= min * 1000000 && product.price <= max * 1000000
-          );
+          // Loại bỏ chữ, chỉ giữ số và dấu '-', ví dụ: "1 triệu - 3 triệu" => "1-3"
+          const cleanedInput = query.toLowerCase()
+            .replace(/triệu/g, '')   // bỏ chữ "triệu"
+            .replace(/\s+/g, '')     // bỏ khoảng trắng
+            .replace(/[^0-9\-]/g, ''); // chỉ giữ số và dấu '-'
+  
+          const [minStr, maxStr] = cleanedInput.split('-');
+          const minVal = parseInt(minStr) || 0;
+          const maxVal = parseInt(maxStr) || Number.MAX_SAFE_INTEGER;
+  
+          // product.price tính theo nghìn đồng, ví dụ 1000 = 1.000.000đ
+          results = allProducts.filter(product => {
+            const priceInDong = product.price * 1000;
+            return priceInDong >= minVal * 1000000 && priceInDong <= maxVal * 1000000;
+          });
           break;
+  
         case 'new':
           results = allProducts.filter(product => product.new);
           break;
+  
         default:
           results = allProducts;
       }
-
+  
       setFilteredProducts(results);
       return results.slice(0, 3);
     } catch (error) {
@@ -100,6 +117,7 @@ const ChatBot = () => {
       setLoading(false);
     }
   };
+  
 
   const handleProductClick = (productId) => {
     navigate(`/details/${productId}`);
