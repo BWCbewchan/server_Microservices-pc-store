@@ -1,6 +1,6 @@
-import { useState, useEffect } from "react";
 import axios from "axios";
 import { format } from "date-fns";
+import { useEffect, useState } from "react";
 
 // Update to use the correct API endpoint
 const USER_API_URL = "http://localhost:3000/api/auth/users"; // Correct endpoint
@@ -22,14 +22,42 @@ export default function CustomerDetailsModal({ userId, onClose, onUserUpdate }) 
         setLoading(true);
         console.log(`Fetching customer details for ID: ${userId}`);
 
-        const customerResponse = await axios.get(`${USER_API_URL}/${userId}`);
+        // Get the authentication token from localStorage
+        const token = localStorage.getItem("adminToken");
+        if (!token) {
+          setError("Không có token xác thực. Vui lòng đăng nhập lại.");
+          setLoading(false);
+          return;
+        }
+
+        // Add authorization header to the request
+        const customerResponse = await axios.get(`${USER_API_URL}/${userId}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Accept': 'application/json'
+          }
+        });
+
         console.log("Customer data response:", customerResponse.data);
         setCustomer(customerResponse.data);
         setSelectedRole(customerResponse.data.role || "user");
         setError(null);
       } catch (err) {
         console.error("Error fetching customer data:", err);
-        setError("Không thể tải thông tin khách hàng. Vui lòng thử lại sau.");
+        
+        if (err.response) {
+          if (err.response.status === 401) {
+            setError("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.");
+          } else if (err.response.status === 403) {
+            setError("Bạn không có quyền xem thông tin người dùng này.");
+          } else if (err.response.status === 404) {
+            setError("Không tìm thấy thông tin người dùng.");
+          } else {
+            setError(`Lỗi máy chủ: ${err.response.data?.message || "Không xác định"}`);
+          }
+        } else {
+          setError("Không thể tải thông tin khách hàng. Vui lòng thử lại sau.");
+        }
       } finally {
         setLoading(false);
       }

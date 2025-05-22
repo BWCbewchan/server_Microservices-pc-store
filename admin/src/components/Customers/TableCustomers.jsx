@@ -1,5 +1,3 @@
-import { useEffect, useState, useCallback } from "react";
-import axios from "axios";
 import {
   flexRender,
   getCoreRowModel,
@@ -8,7 +6,9 @@ import {
   getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table";
+import axios from "axios";
 import { ArrowUpDown, ChevronDown, MoreHorizontal, RefreshCw } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -23,11 +23,11 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import CustomerDetailsModal from "./CustomerDetailsModal";
-import AddUserModal from "./AddUserModal";
 import { toast } from "sonner";
+import AddUserModal from "./AddUserModal";
+import CustomerDetailsModal from "./CustomerDetailsModal";
 
-// Update API base URL to ensure direct access
+// Update API base URL to ensure direct access - using the API Gateway URL which has been configured
 const USER_API_URL = "http://localhost:3000/api/auth/users";
 
 export function TableCustomers({ refresh: externalRefresh }) {
@@ -55,13 +55,23 @@ export function TableCustomers({ refresh: externalRefresh }) {
         setRefreshing(true);
       }
 
+      // Get the authentication token from localStorage
+      const token = localStorage.getItem("adminToken");
+      if (!token) {
+        setError("Không có token xác thực. Vui lòng đăng nhập lại.");
+        setLoading(false);
+        setRefreshing(false);
+        return;
+      }
+
       console.log(`Fetching users from ${USER_API_URL}`);
 
-      // Make the request using axios with a timeout
+      // Make the request using axios with authentication token in headers
       const response = await axios.get(USER_API_URL, {
         timeout: 15000, // Increase timeout to 15 seconds
         headers: {
-          'Accept': 'application/json'
+          'Accept': 'application/json',
+          'Authorization': `Bearer ${token}` // Use token as-is without trim() which could cause issues
         }
       });
 
@@ -74,24 +84,35 @@ export function TableCustomers({ refresh: externalRefresh }) {
         } else {
           console.warn("API response is not an array:", response.data);
           setData([]);
-          setError("Data format unexpected: " + JSON.stringify(response.data).substring(0, 100));
+          setError("Dữ liệu không đúng định dạng: " + JSON.stringify(response.data).substring(0, 100));
         }
       } else {
         setData([]);
-        setError("No data received from API");
+        setError("Không nhận được dữ liệu từ API");
       }
     } catch (err) {
       console.error("Error fetching customers:", err);
 
       if (err.response) {
-        // The request was made and the server responded with a status code outside of 2xx
-        setError(`Error ${err.response.status}: ${JSON.stringify(err.response.data)}`);
+        if (err.response.status === 401) {
+          // Handle unauthorized - most likely token is invalid or expired
+          setError("Token xác thực không hợp lệ hoặc đã hết hạn. Vui lòng đăng nhập lại.");
+          
+          // You might want to force logout here
+          // localStorage.removeItem("adminToken");
+          // localStorage.removeItem("adminUser");
+          // window.location.href = "/login"; // Redirect to login page
+        } else if (err.response.status === 403) {
+          setError("Bạn không có quyền truy cập danh sách người dùng. Cần quyền Admin.");
+        } else {
+          setError(`Lỗi (${err.response.status}): ${err.response.data?.message || JSON.stringify(err.response.data)}`);
+        }
       } else if (err.request) {
         // The request was made but no response was received
-        setError("No response received. The server might be down.");
+        setError("Không thể kết nối đến máy chủ. Vui lòng kiểm tra kết nối mạng hoặc API gateway.");
       } else {
         // Something else caused the error
-        setError(`Error: ${err.message}`);
+        setError(`Lỗi: ${err.message}`);
       }
     } finally {
       setLoading(false);
