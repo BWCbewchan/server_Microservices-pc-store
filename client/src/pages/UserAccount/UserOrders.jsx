@@ -1,5 +1,5 @@
 import axios from "axios";
-import { useContext, useEffect, useState, useRef } from "react";
+import { useContext, useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import { AuthContext } from "../../context/AuthContext";
@@ -17,7 +17,6 @@ const UserOrders = () => {
   const [error, setError] = useState(null);
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [refreshData, setRefreshData] = useState(false);
-  const notificationShown = useRef(false);
 
   useEffect(() => {
     const fetchOrders = async () => {
@@ -276,21 +275,15 @@ const UserOrders = () => {
       order.payment.method !== 'cod'
     );
     
-    if (pendingPaymentOrders.length === 0) {
-      notificationShown.current = false; // Reset when there are no pending payments
-      return;
-    }
+    if (pendingPaymentOrders.length === 0) return;
     
     console.log(`Found ${pendingPaymentOrders.length} pending payment orders to monitor`);
     
-    // Add visual indicator that we're monitoring payments - ONLY ONCE
-    if (!notificationShown.current) {
-      toast.info(`Hệ thống đang tự động kiểm tra ${pendingPaymentOrders.length} đơn hàng chờ thanh toán`, {
-        autoClose: 3000,
-        position: "bottom-right"
-      });
-      notificationShown.current = true;
-    }
+    // Add visual indicator that we're monitoring payments
+    toast.info(`Hệ thống đang tự động kiểm tra ${pendingPaymentOrders.length} đơn hàng chờ thanh toán`, {
+      autoClose: 3000,
+      position: "bottom-right"
+    });
     
     // Check immediately on component mount
     pendingPaymentOrders.forEach(async (order) => {
