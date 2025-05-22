@@ -439,7 +439,11 @@ const CheckoutForm = ({ selectedItems, shippingMethod, setShippingMethod, subtot
         trackingNumber: "",
       };
 
-      const payment = { method: formData.paymentMethod, status: "pending" };
+      // Set payment status as "paid" if payment method is bank/MoMo
+      const payment = { 
+        method: formData.paymentMethod, 
+        status: formData.paymentMethod === "bank" ? "paid" : "pending" 
+      };
       const notes = { customerNote: formData.customerNote, sellerNote: "" };
 
       // 1) Check inventory first
@@ -482,6 +486,8 @@ const CheckoutForm = ({ selectedItems, shippingMethod, setShippingMethod, subtot
         payment,
         finalTotal,
         notes,
+        // Always set status to "confirmed" when payment method is bank/MoMo
+        status: formData.paymentMethod === "bank" ? "confirmed" : "pending"
       };
 
       console.log("Sending order data:", JSON.stringify(orderData));
@@ -575,6 +581,13 @@ const CheckoutForm = ({ selectedItems, shippingMethod, setShippingMethod, subtot
         localStorage.setItem('lastOrder', JSON.stringify(orderResp.data.order));
         localStorage.setItem('pendingOrderId', orderResp.data.order.id || orderResp.data.order._id);
         
+        // Also store the complete order data with confirmed status
+        localStorage.setItem('pendingOrder', JSON.stringify({
+          ...orderResp.data.order,
+          payment: { ...orderResp.data.order.payment, status: 'paid' },
+          status: 'confirmed'
+        }));
+
         // Clear cart - Enhanced cart clearing mechanism with multiple fallbacks
         console.log("Beginning cart clearing process for userId:", userId);
         let cartCleared = false;
