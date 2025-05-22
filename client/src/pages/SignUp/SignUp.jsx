@@ -11,7 +11,7 @@ const Signup = () => {
     confirmPassword: ''
   });
   const [loading, setLoading] = useState(false);
-  const { register } = useContext(AuthContext);
+  const { register, requestOTP } = useContext(AuthContext);
   const navigate = useNavigate();
 
   const handleChange = (e) => {
@@ -52,7 +52,17 @@ const Signup = () => {
       
       if (result.success) {
         toast.success('Đăng ký thành công!');
-        navigate('/');
+        
+        // Request OTP for verification
+        await requestOTP(formData.email);
+        
+        // Navigate to verification page
+        navigate('/verify', { 
+          state: { 
+            email: formData.email,
+            fromSignup: true // Indicate we're coming from signup
+          }
+        });
       } else {
         toast.error(result.message || 'Đăng ký thất bại');
       }

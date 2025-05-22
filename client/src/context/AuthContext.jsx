@@ -182,6 +182,28 @@ export const AuthProvider = ({ children }) => {
       console.log("Login response:", response.data);
 
       const { token, user } = response.data;
+      
+      // Check if user is verified
+      if (user && !user.isVerified) {
+        console.log("User is not verified:", user.email);
+        // We'll still save the token and user data
+        saveToken(token);
+        
+        const userData = JSON.stringify(user);
+        localStorage.setItem('user', userData);
+        sessionStorage.setItem('user', userData);
+        
+        setCurrentUser(user);
+        
+        // Return success but indicate verification is needed
+        return { 
+          success: true, 
+          user,
+          requiresVerification: true 
+        };
+      }
+      
+      // User is verified, proceed normally
       saveToken(token);
 
       const userData = JSON.stringify(user);
@@ -552,6 +574,156 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const verifyOTP = async (email, otp) => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const verifyUrl = import.meta.env.VITE_APP_API_GATEWAY_URL 
+        ? `${API_URL}/otp/verify` 
+        : "http://localhost:4006/otp/verify";
+      
+      console.log("Verifying OTP for email:", email);
+      
+      const response = await axios.post(verifyUrl, {
+        email,
+        otp
+      }, {
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        timeout: 10000
+      });
+      
+      console.log("OTP verification response:", response.data);
+      
+      if (response.data.isVerified) {
+        // Update current user with verified status
+        if (currentUser) {
+          const updatedUser = { ...currentUser, isVerified: true };
+          setCurrentUser(updatedUser);
+          
+          // Update stored user data
+          localStorage.setItem('user', JSON.stringify(updatedUser));
+          sessionStorage.setItem('user', JSON.stringify(updatedUser));
+        }
+        
+        return { success: true };
+      } else {
+        return { 
+          success: false, 
+          message: response.data.message || "Xác thực không thành công" 
+        };
+      }
+    } catch (err) {
+      console.error('OTP verification error:', err);
+      setError(err.response?.data?.message || "Verification failed");
+      return { 
+        success: false, 
+        message: err.response?.data?.message || "Xác thực không thành công" 
+      };
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  const resendOTP = async (email) => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const resendUrl = import.meta.env.VITE_APP_API_GATEWAY_URL 
+        ? `${API_URL}/otp/resend` 
+        : "http://localhost:4006/otp/resend";
+      
+      console.log("Requesting new OTP for email:", email);
+      
+      const response = await axios.post(resendUrl, {
+        email
+      }, {
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        timeout: 10000
+      });
+      
+      console.log("Resend OTP response:", response.data);
+      
+      return { 
+        success: true, 
+        message: response.data.message || "Đã gửi mã xác thực mới" 
+      };
+    } catch (err) {
+      console.error('Resend OTP error:', err);
+      setError(err.response?.data?.message || "Failed to resend OTP");
+      return { 
+        success: false, 
+        message: err.response?.data?.message || "Không thể gửi lại mã xác thực" 
+      };
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  const requestOTP = async (email) => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      // Try multiple endpoints to ensure we can reach the auth service
+      const endpoints = [
+        `${API_URL}/otp/request`,
+        `http://localhost:3000/api/auth/otp/request`, 
+        `http://localhost:4006/otp/request`
+      ];
+      
+      console.log("Requesting OTP for email:", email);
+      
+      let response = null;
+      let success = false;
+      let lastError = null;
+      
+      // Try each endpoint until one works
+      for (const endpoint of endpoints) {
+        try {
+          console.log(`Trying OTP request endpoint: ${endpoint}`);
+          response = await axios.post(endpoint, {
+            email
+          }, {
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            timeout: 8000
+          });
+          success = true;
+          break; // Exit loop on success
+        } catch (err) {
+          console.warn(`Failed to request OTP via ${endpoint}:`, err.message);
+          lastError = err;
+        }
+      }
+      
+      if (success && response) {
+        console.log("Request OTP response:", response.data);
+        return { 
+          success: true, 
+          message: response.data.message || "Đã gửi mã xác thực" 
+        };
+      } else {
+        throw lastError || new Error("All OTP request methods failed");
+      }
+    } catch (err) {
+      console.error('Request OTP error:', err);
+      setError(err.response?.data?.message || "Failed to request OTP");
+      return { 
+        success: false, 
+        message: err.response?.data?.message || "Không thể gửi mã xác thực" 
+      };
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const isLoggedIn = () => {
     const token = getToken();
     if (!token) return false;
@@ -585,7 +757,10 @@ export const AuthProvider = ({ children }) => {
         logout,
         updateProfile,
         isLoggedIn,
-        isAuthenticated // Add the new method
+        isAuthenticated,
+        verifyOTP,
+        resendOTP,
+        requestOTP
       }}
     >
       {children}

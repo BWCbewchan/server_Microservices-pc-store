@@ -1,61 +1,78 @@
 const mongoose = require("mongoose");
-const bcrypt = require("bcryptjs");
+const bcrypt = require("bcrypt");
 
-const userSchema = new mongoose.Schema({
-  name: {
-    type: String,
-    required: true,
-    trim: true
+const userSchema = new mongoose.Schema(
+  {
+    name: {
+      type: String,
+      required: [true, "Tên không được để trống"],
+      trim: true,
+    },
+    email: {
+      type: String,
+      required: [true, "Email không được để trống"],
+      unique: true,
+      lowercase: true,
+      trim: true,
+    },
+    password: {
+      type: String,
+      required: [true, "Password không được để trống"],
+      select: false,
+    },
+    role: {
+      type: String,
+      enum: ["user", "admin"],
+      default: "user",
+    },
+    avatar: {
+      type: String,
+      default: "https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y",
+    },
+    phone: {
+      type: String,
+      default: "",
+    },
+    address: {
+      street: String,
+      city: String,
+      state: String,
+      zipCode: String,
+      country: String,
+    },
+    dateOfBirth: Date,
+    gender: {
+      type: String,
+      enum: ["male", "female", "other"],
+    },
+    lastLogin: Date,
+    isActive: {
+      type: Boolean,
+      default: true,
+    },
+    // New fields for OTP verification
+    isVerified: {
+      type: Boolean,
+      default: false
+    },
+    otp: {
+      type: String,
+      select: false
+    },
+    otpExpires: {
+      type: Date,
+      select: false
+    }
   },
-  email: {
-    type: String,
-    required: true,
-    unique: true,
-    trim: true,
-    lowercase: true
-  },
-  // Fix username field configuration to avoid conflicting options
-  username: {
-    type: String,
-    required: false,
-    index: false  // Only keep index: false, remove sparse
-  },
-  password: {
-    type: String,
-    required: true,
-    minlength: 6
-  },
-  role: {
-    type: String,
-    enum: ["user", "admin"],
-    default: "user"
-  },
-  avatar: {
-    type: String,
-    default: "https://res.cloudinary.com/da5yv576h/image/upload/v1613356035/avatar/default_avatar_pzjqmj.png"
-  },
-  address: {
-    street: String,
-    city: String,
-    state: String,
-    zipCode: String,
-    country: String
-  },
-  phone: String,
-  isVerified: {
-    type: Boolean,
-    default: false
-  },
-  createdAt: {
-    type: Date,
-    default: Date.now
+  {
+    timestamps: true,
   }
-});
+);
 
 // Hash password before saving
-userSchema.pre("save", async function(next) {
+userSchema.pre("save", async function (next) {
   if (!this.isModified("password")) return next();
-  
+
   try {
     const salt = await bcrypt.genSalt(10);
     this.password = await bcrypt.hash(this.password, salt);
@@ -65,42 +82,24 @@ userSchema.pre("save", async function(next) {
   }
 });
 
-// Method to compare password
-userSchema.methods.comparePassword = async function(candidatePassword) {
-  return await bcrypt.compare(candidatePassword, this.password);
+// Don't hash if it's an OTP (since we handle that separately)
+userSchema.pre("save", function (next) {
+  if (this.isModified("otp") && !this.isModified("password")) {
+    next();
+  } else {
+    next();
+  }
+});
+
+// Compare password method
+userSchema.methods.comparePassword = async function (candidatePassword) {
+  try {
+    return await bcrypt.compare(candidatePassword, this.password);
+  } catch (error) {
+    throw error;
+  }
 };
 
-// Create the model
 const User = mongoose.model("User", userSchema);
-
-// Update the index drop approach
-(async () => {
-  try {
-    // This will execute after the connection is established
-    mongoose.connection.on('connected', async () => {
-      try {
-        // Check if the collection exists before trying to drop the index
-        const collections = await mongoose.connection.db.listCollections({ name: 'users' }).toArray();
-        if (collections.length > 0) {
-          console.log('Checking for username index to drop...');
-          // Get existing indexes
-          const indexes = await mongoose.connection.db.collection('users').indexes();
-          const hasUsernameIndex = indexes.some(index => index.name === 'username_1');
-          
-          if (hasUsernameIndex) {
-            await mongoose.connection.db.collection('users').dropIndex('username_1');
-            console.log('✅ Dropped username index successfully');
-          } else {
-            console.log('No username index found to drop');
-          }
-        }
-      } catch (error) {
-        console.log('Note: Index operation attempted but not completed:', error.message);
-      }
-    });
-  } catch (error) {
-    console.log('Note: Index check setup failed:', error.message);
-  }
-})();
 
 module.exports = User;

@@ -15,7 +15,14 @@ const Login = () => {
   // Chuyển hướng nếu đã đăng nhập
   useEffect(() => {
     if (currentUser) {
-      navigate("/home");
+      // Check if user needs verification
+      if (!currentUser.isVerified) {
+        navigate("/verify", { 
+          state: { email: currentUser.email }
+        });
+      } else {
+        navigate("/home");
+      }
     }
   }, [currentUser, navigate]);
 
@@ -32,8 +39,19 @@ const Login = () => {
     setIsLoading(false);
     
     if (result.success) {
-      toast.success("Đăng nhập thành công!");
-      navigate("/home");
+      if (result.requiresVerification) {
+        toast.warning("Vui lòng xác thực tài khoản của bạn!");
+        // Redirect to verification page without indicating we came from signup
+        // This will trigger the automatic OTP request
+        navigate("/verify", { 
+          state: { 
+            email: email 
+          }
+        });
+      } else {
+        toast.success("Đăng nhập thành công!");
+        navigate("/home");
+      }
     } else {
       toast.error(result.message || "Đăng nhập thất bại");
     }

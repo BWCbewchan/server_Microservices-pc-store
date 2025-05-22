@@ -9,9 +9,8 @@ import ProductDetailsAll from "../pages/Details/ProductDetailsAll";
 import OrderConfirmation from "../pages/OrderConfirmation/OrderConfirmation";
 import UserAccount from "../pages/UserAccount/UserAccount";
 import UserOrders from "../pages/UserAccount/UserOrders";
-
-// Use Login component as temporary placeholder for Signup until we can create that component
 import Signup from "../pages/Signup/Signup";
+import OTPVerification from "../pages/Verification/OTPVerification";
 
 // Các route công khai (ai cũng có thể truy cập)
 const publicRoutes = [
@@ -19,6 +18,7 @@ const publicRoutes = [
   { path: "/home", component: Home },
   { path: "/login", component: Login },
   { path: "/signup", component: Signup },
+  { path: "/verify", component: OTPVerification },
   { path: "/details/:id", component: ProductDetailsAll },
   { path: "/catalog", component: Catalog },
   { path: "/contactUs", component: ContactUs },
