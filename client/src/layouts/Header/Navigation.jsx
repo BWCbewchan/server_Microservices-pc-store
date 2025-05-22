@@ -200,14 +200,12 @@ const Navigation = () => {
         }).format(price);
     };
 
+    // Replace the existing categories array with a more comprehensive list
     const categories = [
-        "Laptops",
-        "Desktop PCs",
-        "Networking Devices",
-        "Printers & Scanners",
-        "PC Parts",
-        "All Other Products",
-        "Repairs",
+        { name: "Laptops", value: "MSI Laptops" },
+        { name: "Custom Builds", value: "Custome Builds" },
+        { name: "Desktop PCs", value: "Desktops" },
+        { name: "Gaming Monitors", value: "Gaming Monitors" },
     ];
 
     return (
@@ -416,19 +414,28 @@ const Navigation = () => {
                         </div>
                     )}
 
-                    {/* Category Links */}
+                    {/* Category Links - Updated with query parameters for filtering */}
                     <ul className="navbar-nav mx-auto mb-2 mb-lg-0">
                         {categories.map((category, index) => (
                             <li className="nav-item" key={index}>
                                 <Link
                                     className="nav-link"
-                                    to="/catalog"
+                                    to={`/catalog?category=${encodeURIComponent(category.value)}`}
                                     onClick={() => setExpanded(false)}
                                 >
-                                    {category}
+                                    {category.name}
                                 </Link>
                             </li>
                         ))}
+                        <li className="nav-item">
+                            <Link
+                                className="nav-link fw-bold text-primary"
+                                to="/catalog"
+                                onClick={() => setExpanded(false)}
+                            >
+                                All Products
+                            </Link>
+                        </li>
                     </ul>
 
                     {/* User Menu for Desktop and Mobile (trong navbar) */}
