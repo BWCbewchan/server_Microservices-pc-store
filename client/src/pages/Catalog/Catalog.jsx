@@ -151,14 +151,6 @@ const Catalog = () => {
         <div className="mb-4">
           <img src={IMAGES.BannerCatalog} alt="Catalog" className="img-fluid w-100 rounded mb-3" />
           <div className="d-flex justify-content-between align-items-center flex-wrap">
-            <div>
-              <BreadcrumbNav />
-              <h1 className="h2 fw-bold mt-2">
-                MSI PS Series
-                <span className="text-muted fs-6 ms-2">({products.length} items)</span>
-              </h1>
-            </div>
-
             {/* Mobile Filter Toggle Button */}
             <button
               className="btn btn-outline-primary d-lg-none mt-2"
@@ -218,7 +210,7 @@ const Catalog = () => {
               setClearFilter={setClearFilter}
             />
 
-            {/* Additional Sidebar Components */}
+            {/* Additional Sidebar Components
             <div className="card shadow-sm border-0 mt-4">
               <div className="card-body text-center p-3">
                 <h5 className="card-title fw-bold mb-3">Brands</h5>
@@ -231,14 +223,14 @@ const Catalog = () => {
                   />
                 </div>
               </div>
-            </div>
+            </div> */}
 
-            <div className="card shadow-sm border-0 mt-4">
+            {/* <div className="card shadow-sm border-0 mt-4">
               <div className="card-body text-center p-3">
                 <h5 className="card-title fw-bold mb-3">My Wish List</h5>
                 <p className="text-muted">You have no items in your wish list.</p>
               </div>
-            </div>
+            </div> */}
           </div>
 
           {/* Product Grid */}

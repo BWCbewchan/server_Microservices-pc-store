@@ -63,7 +63,7 @@ function App() {
           {/* Chat Button */}
           <div className="position-fixed bottom-0 end-0 mx-2 my-4" style={{ zIndex: 1000 }}>
             <button
-             
+
               onClick={() => setIsChatOpen(true)}
             >
               <span style={{ fontSize: "14px", fontWeight: "bold" }}>AI</span>
@@ -71,9 +71,9 @@ function App() {
           </div>
 
           {/* Chat Box */}
-          <ChatBox 
-            isOpen={isChatOpen} 
-            onClose={() => setIsChatOpen(false)} 
+          <ChatBox
+            isOpen={isChatOpen}
+            onClose={() => setIsChatOpen(false)}
           />
 
           {/* Toast Container */}
