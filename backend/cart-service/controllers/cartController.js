@@ -67,7 +67,7 @@ async function checkInventory(productId) {
       source.cancel(`Timeout khi gọi inventory cho productId=${productId}`);
     }, 3000);
 
-    const response = await axios.get(`http://localhost:3000/api/inventory/${productId}`, {
+    const response = await axios.get(`${process.env.API_GATEWAY_URL}/api/inventory/${productId}`, {
       cancelToken: source.token
     });
 
@@ -252,7 +252,7 @@ exports.checkCart = async (req, res) => {
     setTimeout(() => source.cancel("Timeout gọi inventory bulk"), 5000);
 
     const inventoryRes = await axios.get(
-      `http://localhost:3000/api/inventory/bulk/${productIds.join(',')}`,
+      `${process.env.API_GATEWAY_URL}/api/inventory/bulk/${productIds.join(',')}`,
       { cancelToken: source.token }
     );
 

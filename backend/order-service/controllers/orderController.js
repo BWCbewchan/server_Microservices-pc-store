@@ -1,10 +1,10 @@
 const Order = require("../models/Order");
 const axios = require("axios");
 
-const CART_API_URL = "http://localhost:3000/api/cart";
-const INVENTORY_API = "http://localhost:3000/api/inventory";
-const PRODUCT_SERVICE_URLImport = "http://localhost:3000/api/product";
-const PRODUCT_UPDATE_STOCK_URL = "http://localhost:3000/api/products/update-stock";
+const CART_API_URL = `${process.env.API_GATEWAY_URL}/api/cart` || "http://localhost:3000/api/cart";
+const INVENTORY_API = `${process.env.API_GATEWAY_URL}/api/inventory` || "http://localhost:3000/api/inventory";
+const PRODUCT_SERVICE_URLImport = `${process.env.API_GATEWAY_URL}/api/product` || "http://localhost:3000/api/product";
+const PRODUCT_UPDATE_STOCK_URL = `${process.env.API_GATEWAY_URL}/api/products/update-stock` || "http://localhost:3000/api/products/update-stock";
 
 // 📌 Tạo đơn hàng
 
