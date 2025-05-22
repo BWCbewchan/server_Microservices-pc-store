@@ -107,20 +107,6 @@ pipeline {
                     }
                 }
 
-                stage('API Gateway') {
-                    when {
-                        anyOf {
-                            changeset "backend/api-gateway/**"
-                            expression { return params.FORCE_BUILD_ALL }
-                        }
-                    }
-                    steps {
-                        dir('backend/api-gateway') {
-                            bat 'npm install'
-                            bat 'npm test || exit 0'
-                        }
-                    }
-                }
                 stage('auth services') {
                     when {
                         anyOf {
@@ -135,6 +121,22 @@ pipeline {
                         }
                     }
                 }
+
+                stage('API Gateway') {
+                    when {
+                        anyOf {
+                            changeset "backend/api-gateway/**"
+                            expression { return params.FORCE_BUILD_ALL }
+                        }
+                    }
+                    steps {
+                        dir('backend/api-gateway') {
+                            bat 'npm install'
+                            bat 'npm test || exit 0'
+                        }
+                    }
+                }
+                
             }
         }
 
@@ -174,15 +176,15 @@ pipeline {
                         error "Failed to log in to Docker Hub after ${loginAttempts} attempts. Skipping build and push."
                     }
 
-                    def services = ["product-catalog-service", "inventory-service", "cart-service", "notification-service", "order-service", "payment-service", "api-gateway","auth-service"]
+                    def services = ["product-catalog-service", "inventory-service", "cart-service", "notification-service", "order-service", "payment-service","auth-service", "api-gateway"]
 
                     // Trước khi build, xóa tất cả images cũ để tránh lặp
                     echo "Removing old Docker images for all services..."
-                    // services.each { service ->
-                    //     // Thử xóa các image cũ (sẽ bỏ qua lỗi nếu không tìm thấy)
-                    //     bat "docker rmi -f ${DOCKER_HUB_USERNAME}/smpcstr:${service} || echo Image not found"
-                    //     bat "docker image prune -f || echo No dangling images"
-                    // }
+                    services.each { service ->
+                        // Thử xóa các image cũ (sẽ bỏ qua lỗi nếu không tìm thấy)
+                        bat "docker rmi -f ${DOCKER_HUB_USERNAME}/smpcstr:${service} || echo Image not found"
+                        bat "docker image prune -f || echo No dangling images"
+                    }
 
                     // Build và push các service với retry logic
                     services.each { service ->
@@ -281,6 +283,7 @@ pipeline {
                             "kt-tkpm-project-notification-service",
                             "kt-tkpm-project-order-service",
                             "kt-tkpm-project-payment-service",
+                            "kt-tkpm-project-auth-service",
                             "kt-tkpm-project-api-gateway-v1"
                         ]
 
