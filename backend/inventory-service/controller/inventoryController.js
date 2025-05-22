@@ -2,9 +2,9 @@ const Inventory = require("../models/InventoryModels");
 const axios = require("axios");
 
 // URL của Product Service (đổi nếu cần)
-const PRODUCT_SERVICE_URL = `${process.env.API_GATEWAY_URL}/api/products/products` || "http://localhost:3000/api/products/products";
-const PRODUCT_SERVICE_URLImport = `${process.env.API_GATEWAY_URL}/api/products/product` || "http://localhost:3000/api/products/product";
-const PRODUCT_UPDATE_STOCK_URL = `${process.env.API_GATEWAY_URL}/api/products/update-stock` || "http://localhost:3000/api/products/update-stock";
+const PRODUCT_SERVICE_URL = "http://localhost:3000/api/products/products";
+const PRODUCT_SERVICE_URLImport = "http://localhost:3000/api/products/product";
+const PRODUCT_UPDATE_STOCK_URL = "http://localhost:3000/api/products/update-stock";
 const LOW_STOCK_THRESHOLD = 5; // Ngưỡng cảnh báo tồn kho thấp
 
 // ------------------------------

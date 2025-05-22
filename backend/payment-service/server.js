@@ -27,7 +27,11 @@ app.get('/health', (req, res) => {
 app.get('/payment', async (req, res) => {
   const { amount, orderInfo, orderId, requestId, extraData } = req.query;
 
+<<<<<<< HEAD
+  const redirectUrl = 'http://localhost:2000/home';
+=======
   const redirectUrl = 'http://localhost:2000/home'|| `${process.env.FRONTEND_URL}/home`  ;
+>>>>>>> 73751e4e587150575b8897c6bd75f0172af9e2f2
   const ipnUrl = 'https://6745-171-252-189-124.ngrok-free.app/callback';
   const requestType = "payWithMethod";
   const autoCapture = true;
@@ -123,7 +127,7 @@ app.post('/callback', async (req, res) => {
     });
     try {
       const updateOrderResponse = await axios.put(
-        `${process.env.API_GATEWAY_URL}/api/orders/update/${extraData}/${encodeURIComponent(updateData)}` || `http://localhost:3000/api/orders/update/${extraData}/${encodeURIComponent(updateData)}`
+        `http://localhost:3000/api/orders/update/${extraData}/${encodeURIComponent(updateData)}`
       );
       console.log('✅ Order updated:', updateOrderResponse.data);
       return res.status(200).json({ message: 'Payment successful and order updated' });
@@ -139,7 +143,7 @@ app.post('/callback', async (req, res) => {
     });
     try {
       await axios.put(
-        `${process.env.API_GATEWAY_URL}/api/orders/update/${extraData}/${encodeURIComponent(updateData)}` || `http://localhost:3000/api/orders/update/${extraData}/${encodeURIComponent(updateData)}`
+        `http://localhost:3000/api/orders/update/${extraData}/${encodeURIComponent(updateData)}`
       );
       console.log('✅ Order set to failed');
     } catch (err) {

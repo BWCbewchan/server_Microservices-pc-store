@@ -26,7 +26,7 @@ app.use(
       const allowedOrigins = [
         process.env.FRONTEND_URL || "http://localhost:2000",
         process.env.FRONTEND_URL_2 || "http://localhost:5173",
-        process.env.API_GATEWAY_URL || "http://localhost:3000" // Allow API Gateway
+        "http://localhost:3000" // Allow API Gateway
       ];
       
       if (!origin || allowedOrigins.includes(origin)) {

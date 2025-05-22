@@ -107,21 +107,6 @@ pipeline {
                     }
                 }
 
-                stage('auth services') {
-                    when {
-                        anyOf {
-                            changeset "backend/auth-services/**"
-                            expression { return params.FORCE_BUILD_ALL }
-                        }
-                    }
-                    steps {
-                        dir('backend/auth-services') {
-                            bat 'npm install'
-                            bat 'npm test || exit 0'
-                        }
-                    }
-                }
-
                 stage('API Gateway') {
                     when {
                         anyOf {
@@ -136,7 +121,20 @@ pipeline {
                         }
                     }
                 }
-                
+                stage('auth services') {
+                    when {
+                        anyOf {
+                            changeset "backend/auth-services/**"
+                            expression { return params.FORCE_BUILD_ALL }
+                        }
+                    }
+                    steps {
+                        dir('backend/auth-services') {
+                            bat 'npm install'
+                            bat 'npm test || exit 0'
+                        }
+                    }
+                }
             }
         }
 
@@ -176,7 +174,7 @@ pipeline {
                         error "Failed to log in to Docker Hub after ${loginAttempts} attempts. Skipping build and push."
                     }
 
-                    def services = ["product-catalog-service", "inventory-service", "cart-service", "notification-service", "order-service", "payment-service","auth-service", "api-gateway"]
+                    def services = ["product-catalog-service", "inventory-service", "cart-service", "notification-service", "order-service", "payment-service", "api-gateway","auth-service"]
 
                     // Trước khi build, xóa tất cả images cũ để tránh lặp
                     echo "Removing old Docker images for all services..."
@@ -277,14 +275,13 @@ pipeline {
 
                         // Đối với mỗi service đã được định nghĩa trong Render
                         def services = [
-                            "srv-d0mc8sjuibrs73eja2jg", // product-catalog-service
-                            "srv-d0mclsje5dus738dhtn0",// inventory-service
-                            "srv-d0mcmkre5dus738diic0", //cart-service
-                            "srv-d0mcn9m3jp1c73885nj0", //notification-service
-                            "srv-d0mcnq3e5dus738djhj0", //order-service
-                            "srv-d0mcvrm3jp1c7388dgig", //payment-service
-                            "srv-d0mcoeu3jp1c73886sjg", //auth-service
-                            "srv-d0md1mm3jp1c7388f7p0" //api-gateway
+                            "kt-tkpm-project-product-catalog-service", // Tên chính xác của dịch vụ trên Render
+                            "kt-tkpm-project-inventory-service",
+                            "kt-tkpm-project-cart-service",
+                            "kt-tkpm-project-notification-service",
+                            "kt-tkpm-project-order-service",
+                            "kt-tkpm-project-payment-service",
+                            "kt-tkpm-project-api-gateway-v1"
                         ]
 
                         services.each { service ->

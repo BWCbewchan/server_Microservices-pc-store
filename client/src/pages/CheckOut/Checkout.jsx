@@ -2,6 +2,7 @@ import { useContext, useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import { AuthContext } from "../../context/AuthContext";
+import CheckoutForm from "./CheckoutForm";
 
 const Checkout = () => {
   const navigate = useNavigate();
@@ -61,26 +62,37 @@ const Checkout = () => {
     fetchCartItems();
   }, [currentUser, location.state, navigate]);
 
+  // Format price with Vietnamese currency
+  const formatPrice = (value) => {
+    if (!value && value !== 0) return '';
+    return new Intl.NumberFormat('vi-VN', {
+      style: 'currency',
+      currency: 'VND',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
+    }).format(value);
+  };
+
   return (
     <div className="container my-5">
-      <h1 className="mb-4" style={{ 
-        color: "#0F172A", 
-        fontSize: "28px", 
+      <h1 className="mb-4" style={{
+        color: "#0F172A",
+        fontSize: "28px",
         fontWeight: "700",
         textAlign: "center"
       }}>Thanh toán đơn hàng</h1>
-      
+
       <div className="row">
         {/* Cart Items */}
         <div className="col-lg-5 mb-4">
-          <div className="card" style={{ 
-            borderRadius: "12px", 
+          <div className="card" style={{
+            borderRadius: "12px",
             overflow: "hidden",
             border: "none",
             boxShadow: "0 4px 20px rgba(0, 0, 0, 0.08)"
           }}>
-            <div className="card-header" style={{ 
-              backgroundColor: "#F8FAFC", 
+            <div className="card-header" style={{
+              backgroundColor: "#F8FAFC",
               borderBottom: "1px solid #E2E8F0",
               padding: "15px 20px"
             }}>
@@ -96,15 +108,15 @@ const Checkout = () => {
               ) : (
                 <div>
                   {selectedItems.map((item) => (
-                    <div 
-                      key={item.productId} 
+                    <div
+                      key={item.productId}
                       className="d-flex align-items-center p-3 border-bottom"
                       style={{ padding: "15px 20px" }}
                     >
                       <div className="me-3" style={{ width: "70px", height: "70px" }}>
-                        <img 
-                          src={item.image || "https://via.placeholder.com/70"} 
-                          alt={item.name} 
+                        <img
+                          src={item.image || "https://via.placeholder.com/70"}
+                          alt={item.name}
                           className="img-fluid rounded"
                           style={{ width: "100%", height: "100%", objectFit: "cover" }}
                         />
@@ -116,42 +128,30 @@ const Checkout = () => {
                             SL: {item.quantity}
                           </div>
                           <div className="fw-bold" style={{ color: "#C94D3F" }}>
-                            {new Intl.NumberFormat('vi-VN', {
-                              style: 'currency',
-                              currency: 'VND'
-                            }).format(item.price * item.quantity)}
+                            {formatPrice(item.price * item.quantity)}
                           </div>
                         </div>
                       </div>
                     </div>
                   ))}
-                  
+
                   <div style={{ padding: "15px 20px" }}>
                     <div className="d-flex justify-content-between mb-2">
                       <span style={{ color: "#6B7280" }}>Tạm tính:</span>
                       <span>
-                        {new Intl.NumberFormat('vi-VN', {
-                          style: 'currency',
-                          currency: 'VND'
-                        }).format(subtotal)}
+                        {formatPrice(subtotal)}
                       </span>
                     </div>
                     <div className="d-flex justify-content-between mb-2">
                       <span style={{ color: "#6B7280" }}>Phí vận chuyển:</span>
                       <span>
-                        {new Intl.NumberFormat('vi-VN', {
-                          style: 'currency',
-                          currency: 'VND'
-                        }).format(shippingMethod === "standard" ? 30000 : 50000)}
+                        {formatPrice(shippingMethod === "standard" ? 30000 : 50000)}
                       </span>
                     </div>
                     <div className="d-flex justify-content-between fw-bold mt-3 pt-3 border-top">
                       <span>Tổng cộng:</span>
                       <span style={{ color: "#C94D3F", fontSize: "18px" }}>
-                        {new Intl.NumberFormat('vi-VN', {
-                          style: 'currency',
-                          currency: 'VND'
-                        }).format(finalTotal)}
+                        {formatPrice(finalTotal)}
                       </span>
                     </div>
                   </div>
@@ -160,7 +160,7 @@ const Checkout = () => {
             </div>
           </div>
         </div>
-        
+
         {/* Checkout Form */}
         <div className="col-lg-7">
           <CheckoutForm

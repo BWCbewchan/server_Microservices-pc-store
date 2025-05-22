@@ -22,9 +22,6 @@ router.delete("/clear/:userId", cartController.clearCart);
 // Ví dụ: GET /cart/check/USER_ID
 router.get("/check/:userId", cartController.checkCart);
 
-// Kiểm tra kết nối và lưu trữ Redis
-// Ví dụ: GET /redis-test
-router.get("/redis-test", cartController.testRedis);
 
 // Lấy giỏ hàng của user (userId qua params)
 // Ví dụ: GET /cart/USER_ID

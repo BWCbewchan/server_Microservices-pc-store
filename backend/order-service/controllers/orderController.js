@@ -1,6 +1,12 @@
 const Order = require("../models/Order");
 const axios = require("axios");
 
+<<<<<<< HEAD
+const CART_API_URL = "http://localhost:3000/api/cart";
+const INVENTORY_API = "http://localhost:3000/api/inventory";
+const PRODUCT_SERVICE_URLImport = "http://localhost:3000/api/product";
+const PRODUCT_UPDATE_STOCK_URL = "http://localhost:3000/api/products/update-stock";
+=======
 // Properly handle API URLs with conditional logic to avoid 'undefined' in URLs
 const API_GATEWAY_URL = process.env.API_GATEWAY_URL || "http://localhost:3000";
 const CART_API_URL = `${API_GATEWAY_URL}/api/cart`;
@@ -35,6 +41,7 @@ const axiosWithRetry = async (config, retries = 3, delay = 3000) => {
     }
     throw lastError;
 };
+>>>>>>> 73751e4e587150575b8897c6bd75f0172af9e2f2
 
 // 📌 Tạo đơn hàng
 
