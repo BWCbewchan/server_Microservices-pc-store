@@ -1,10 +1,47 @@
 const Order = require("../models/Order");
 const axios = require("axios");
 
+<<<<<<< HEAD
 const CART_API_URL = "http://localhost:3000/api/cart";
 const INVENTORY_API = "http://localhost:3000/api/inventory";
 const PRODUCT_SERVICE_URLImport = "http://localhost:3000/api/product";
 const PRODUCT_UPDATE_STOCK_URL = "http://localhost:3000/api/products/update-stock";
+=======
+// Properly handle API URLs with conditional logic to avoid 'undefined' in URLs
+const API_GATEWAY_URL = process.env.API_GATEWAY_URL || "http://localhost:3000";
+const CART_API_URL = `${API_GATEWAY_URL}/api/cart`;
+const INVENTORY_API = `${API_GATEWAY_URL}/api/inventory`;
+const PRODUCT_SERVICE_URL = `${API_GATEWAY_URL}/api/products`;
+const PRODUCT_UPDATE_STOCK_URL = `${PRODUCT_SERVICE_URL}/update-stock`;
+
+// Add retry mechanism for API calls
+const axiosWithRetry = async (config, retries = 3, delay = 3000) => {
+    let lastError;
+    for (let attempt = 0; attempt <= retries; attempt++) {
+        try {
+            console.log(`Attempt ${attempt + 1}/${retries + 1} for ${config.method || 'GET'} ${config.url}`);
+            return await axios(config);
+        } catch (error) {
+            lastError = error;
+            console.warn(`API call failed (attempt ${attempt + 1}/${retries + 1}): ${error.message}`);
+            
+            // Check if we should retry - don't retry if it's a 4xx client error
+            if (error.response && error.response.status >= 400 && error.response.status < 500) {
+                console.warn(`Client error ${error.response.status}, not retrying.`);
+                throw error;
+            }
+            
+            if (attempt < retries) {
+                console.log(`Waiting ${delay}ms before retry...`);
+                await new Promise(resolve => setTimeout(resolve, delay));
+                // Exponential backoff
+                delay = delay * 1.5;
+            }
+        }
+    }
+    throw lastError;
+};
+>>>>>>> 73751e4e587150575b8897c6bd75f0172af9e2f2
 
 // 📌 Tạo đơn hàng
 
@@ -40,8 +77,17 @@ exports.createOrder = async (req, res) => {
         // Chuyển mảng productIds thành chuỗi phân cách bởi dấu phẩy để truyền qua params
         const productIdsParam = productIds.join(',');
 
-        // Gọi API bulk của Inventory theo kiểu GET, truyền productIds qua params
-        const { data: inventoryData } = await axios.get(`${INVENTORY_API}/bulk/${productIdsParam}`);
+        // Log the inventory API URL for debugging
+        console.log(`Checking inventory for products: ${productIdsParam}`);
+        console.log(`Inventory API URL: ${INVENTORY_API}/bulk/${productIdsParam}`);
+
+        // Gọi API bulk của Inventory với retry logic
+        const { data: inventoryData } = await axiosWithRetry({
+            method: 'GET',
+            url: `${INVENTORY_API}/bulk/${productIdsParam}`,
+            timeout: 5000
+        });
+
         if (!inventoryData || inventoryData.length === 0) {
             return res.status(400).json({ message: "Không tìm thấy sản phẩm trong kho" });
         }
@@ -56,13 +102,22 @@ exports.createOrder = async (req, res) => {
 
         // Chuyển mảng items thành chuỗi JSON và encode để truyền qua params
         const itemsParam = encodeURIComponent(JSON.stringify(itemsArr));
-        // Gọi API confirm của Inventory qua POST với dữ liệu items truyền qua params
-        const confirmRes = await axios.post(`${INVENTORY_API}/confirm/${itemsParam}`);
+        
+        // Log confirm API URL for debugging
+        console.log(`Confirming inventory: ${INVENTORY_API}/confirm/${itemsParam}`);
+        
+        // Gọi API confirm của Inventory với retry logic
+        const confirmRes = await axiosWithRetry({
+            method: 'POST',
+            url: `${INVENTORY_API}/confirm/${itemsParam}`,
+            timeout: 5000
+        });
+        
         if (!confirmRes.data.success) {
             return res.status(400).json({ message: "Xác nhận tồn kho thất bại" });
         }
 
-        // Tạo đơn hàng (giả sử Order đã được import)
+        // Tạo đơn hàng
         const order = new Order({
             userId,
             customer: customerObj,
@@ -80,7 +135,11 @@ exports.createOrder = async (req, res) => {
             
             // Try clearing the entire cart first (most reliable approach)
             try {
-                await axios.delete(`${CART_API_URL}/clear/${userId}`, { timeout: 5000 });
+                await axiosWithRetry({
+                    method: 'DELETE',
+                    url: `${CART_API_URL}/clear/${userId}`,
+                    timeout: 5000
+                });
                 console.log(`Successfully cleared entire cart for user: ${userId}`);
             } catch (clearError) {
                 console.warn(`Failed to clear entire cart: ${clearError.message}, falling back to removing individual items`);
@@ -88,7 +147,11 @@ exports.createOrder = async (req, res) => {
                 // Fallback: try removing individual items
                 for (let item of itemsArr) {
                     try {
-                        await axios.delete(`${CART_API_URL}/remove/${userId}/${item.productId}`, { timeout: 3000 });
+                        await axiosWithRetry({
+                            method: 'DELETE',
+                            url: `${CART_API_URL}/remove/${userId}/${item.productId}`,
+                            timeout: 3000
+                        });
                         console.log(`Removed item ${item.productId} from cart`);
                     } catch (removeError) {
                         // Log but don't fail if individual item removal fails
@@ -140,8 +203,17 @@ exports.createOrderJSON = async (req, res) => {
         const productIds = items.map(item => item.productId);
         const productIdsParam = productIds.join(',');
 
-        // Gọi API bulk của Inventory theo kiểu GET, truyền productIds qua params
-        const { data: inventoryData } = await axios.get(`${INVENTORY_API}/bulk/${productIdsParam}`);
+        // Log the inventory API URL for debugging
+        console.log(`Checking inventory for products: ${productIdsParam}`);
+        console.log(`Inventory API URL: ${INVENTORY_API}/bulk/${productIdsParam}`);
+
+        // Gọi API bulk của Inventory với retry logic
+        const { data: inventoryData } = await axiosWithRetry({
+            method: 'GET',
+            url: `${INVENTORY_API}/bulk/${productIdsParam}`,
+            timeout: 5000
+        });
+
         if (!inventoryData || inventoryData.length === 0) {
             return res.status(400).json({ message: "Không tìm thấy sản phẩm trong kho" });
         }
@@ -156,7 +228,17 @@ exports.createOrderJSON = async (req, res) => {
 
         // Chuyển mảng items thành chuỗi JSON và encode để truyền qua params
         const itemsParam = encodeURIComponent(JSON.stringify(items));
-        const confirmRes = await axios.post(`${INVENTORY_API}/confirm/${itemsParam}`);
+        
+        // Log confirm API URL for debugging
+        console.log(`Confirming inventory: ${INVENTORY_API}/confirm/${itemsParam}`);
+        
+        // Gọi API confirm của Inventory với retry logic
+        const confirmRes = await axiosWithRetry({
+            method: 'POST',
+            url: `${INVENTORY_API}/confirm/${itemsParam}`,
+            timeout: 5000
+        });
+        
         if (!confirmRes.data.success) {
             return res.status(400).json({ message: "Xác nhận tồn kho thất bại" });
         }
@@ -177,13 +259,17 @@ exports.createOrderJSON = async (req, res) => {
         const savedOrder = await order.save();
         console.log(`Order saved with ID ${savedOrder._id} for user ${userId}`);
         
-        // Improved cart clearing process
+        // Improved cart clearing process with retry
         try {
             console.log(`Attempting to clear cart items for user: ${userId}`);
             
             // Try clearing the entire cart first (most reliable approach)
             try {
-                await axios.delete(`${CART_API_URL}/clear/${userId}`, { timeout: 5000 });
+                await axiosWithRetry({
+                    method: 'DELETE',
+                    url: `${CART_API_URL}/clear/${userId}`,
+                    timeout: 5000
+                });
                 console.log(`Successfully cleared entire cart for user: ${userId}`);
             } catch (clearError) {
                 console.warn(`Failed to clear entire cart: ${clearError.message}, falling back to removing individual items`);
@@ -191,7 +277,11 @@ exports.createOrderJSON = async (req, res) => {
                 // Fallback: try removing individual items
                 for (let item of items) {
                     try {
-                        await axios.delete(`${CART_API_URL}/remove/${userId}/${item.productId}`, { timeout: 3000 });
+                        await axiosWithRetry({
+                            method: 'DELETE',
+                            url: `${CART_API_URL}/remove/${userId}/${item.productId}`,
+                            timeout: 3000
+                        });
                         console.log(`Removed item ${item.productId} from cart`);
                     } catch (removeError) {
                         // Log but don't fail if individual item removal fails
