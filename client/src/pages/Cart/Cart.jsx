@@ -8,8 +8,8 @@ import CartItem from "./CartItem";
 import CartSummary from "./CartSummary";
 
 // Định nghĩa các API URL (điều chỉnh theo backend của bạn)
-const CART_API_URL = "http://localhost:3000/api/cart";
-const PRODUCT_API_URLGetInfo = "http://localhost:3000/api/products/product"; // Giả sử endpoint lấy thông tin sản phẩm
+const CART_API_URL = `${import.meta.env.VITE_APP_API_GATEWAY_URL}/cart`;
+const PRODUCT_API_URLGetInfo = `${import.meta.env.VITE_APP_API_GATEWAY_URL}/products/product`; // Giả sử endpoint lấy thông tin sản phẩm
 
 const Cart = () => {
     const { currentUser } = useContext(AuthContext);

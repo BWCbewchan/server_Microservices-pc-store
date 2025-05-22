@@ -51,7 +51,7 @@ function ProductDetailsHead({ activeTab, setActiveTab, price }) {
   useEffect(() => {
     const fetchInventory = async () => {
       try {
-        const { data } = await axios.get(`http://localhost:3000/api/inventory/${id}`);
+        const { data } = await axios.get(`${import.meta.env.VITE_APP_API_GATEWAY_URL}/inventory/${id}`);
         setInventoryInfo(data);
       } catch (error) {
         console.error("Lỗi khi lấy thông tin tồn kho", error);
@@ -61,7 +61,7 @@ function ProductDetailsHead({ activeTab, setActiveTab, price }) {
   }, [id]);
 
   // Định nghĩa API URL add to cart với URL params
-  const CART_API_URL = "http://localhost:3000/api/cart/add";
+  const CART_API_URL = `${import.meta.env.VITE_APP_API_GATEWAY_URL}/cart/add`;
 
   // Xử lý thêm sản phẩm vào giỏ hàng qua API
   const handleAddToCart = async () => {

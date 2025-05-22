@@ -40,7 +40,7 @@ const OrderConfirmation = () => {
       if (userId) {
         try {
           // Run this in background
-          fetch(`http://localhost:3000/api/cart/clear/${userId}`, { method: 'DELETE' })
+          fetch( `${import.meta.env.VITE_APP_API_GATEWAY_URL}/cart/clear/${userId}`, { method: 'DELETE' })
             .catch(e => console.warn("Background cart clear failed:", e));
         } catch (e) {
           console.warn("Error in final cart clear attempt:", e);
