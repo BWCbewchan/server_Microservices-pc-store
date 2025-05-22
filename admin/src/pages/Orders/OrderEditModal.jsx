@@ -3,7 +3,7 @@ import axios from "axios";
 
 
 // Base URL for API requests
-const ORDER_API_URL = "http://localhost:3000/api/orders";
+const ORDER_API_URL = `${import.meta.env.VITE_APP_API_GATEWAY_URL}/orders`;
 
 const OrderEditModal = ({ orderId, onClose, onSave }) => {
   const [order, setOrder] = useState(null);

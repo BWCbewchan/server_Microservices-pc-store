@@ -19,7 +19,7 @@ import { format } from "date-fns";
 import { Calendar as CalendarIcon } from "lucide-react";
 
 // Đường dẫn API (sửa lại nếu cần)
-const ORDER_API_URL = "http://localhost:3000/api/orders";
+const ORDER_API_URL = `${import.meta.env.VITE_APP_API_GATEWAY_URL}/orders`;
 
 // Data mẫu (bạn có thể thay bằng axios.get khi API đã ổn)
 const sampleData = [
@@ -72,13 +72,13 @@ export default function TableOrders() {
   const [error, setError] = useState("");
   const [modalOrderId, setModalOrderId] = useState(null);
   const [editingOrderId, setEditingOrderId] = useState(null);
-  
+
   // Add date filtering state
   const [startDate, setStartDate] = useState(null);
   const [endDate, setEndDate] = useState(null);
   const [isStartDateOpen, setIsStartDateOpen] = useState(false);
   const [isEndDateOpen, setIsEndDateOpen] = useState(false);
-  
+
   // Lấy danh sách đơn hàng
   useEffect(() => {
     const fetchOrders = async () => {
@@ -100,31 +100,31 @@ export default function TableOrders() {
   // Apply date filters when date range changes
   useEffect(() => {
     if (!orders.length) return;
-    
+
     let filtered = [...orders];
-    
+
     if (startDate) {
       // Set time to beginning of day
       const start = new Date(startDate);
       start.setHours(0, 0, 0, 0);
-      
+
       filtered = filtered.filter(order => {
         const orderDate = new Date(order.createdAt);
         return orderDate >= start;
       });
     }
-    
+
     if (endDate) {
       // Set time to end of day
       const end = new Date(endDate);
       end.setHours(23, 59, 59, 999);
-      
+
       filtered = filtered.filter(order => {
         const orderDate = new Date(order.createdAt);
         return orderDate <= end;
       });
     }
-    
+
     setFilteredOrders(filtered);
   }, [startDate, endDate, orders]);
 
@@ -156,11 +156,11 @@ export default function TableOrders() {
       const updateData = encodeURIComponent(JSON.stringify({ status: newStatus }));
       // Gọi API update với endpoint theo định dạng: /:orderId/:updateData
       const response = await axios.put(`${ORDER_API_URL}/update/${orderId}/${updateData}`);
-      
+
       // Update just this order in the state instead of reloading all orders
       if (response.data) {
-        setOrders(prevOrders => 
-          prevOrders.map(order => 
+        setOrders(prevOrders =>
+          prevOrders.map(order =>
             order._id === orderId ? { ...order, status: newStatus } : order
           )
         );
@@ -178,26 +178,26 @@ export default function TableOrders() {
     if (window.confirm(`Xác nhận thay đổi trạng thái thanh toán sang "${newPaymentStatus === 'paid' ? 'Đã thanh toán' : 'Chờ thanh toán'}"?`)) {
       try {
         setActionLoading(true);
-        
+
         // Prepare update data
         const updateData = {
           'payment.status': newPaymentStatus
         };
-        
+
         // If payment status is changed to "paid" and order is pending, also update order status
         if (newPaymentStatus === 'paid' && order.status === 'pending') {
           if (window.confirm('Xác nhận thanh toán thành công. Cập nhật trạng thái đơn hàng thành "Đã xác nhận"?')) {
             updateData.status = 'confirmed';
           }
         }
-        
+
         // Send update request
         const encodedUpdateData = encodeURIComponent(JSON.stringify(updateData));
         const response = await axios.put(`${ORDER_API_URL}/update/${orderId}/${encodedUpdateData}`);
-        
+
         if (response.data) {
           // Update order in state
-          setOrders(prevOrders => 
+          setOrders(prevOrders =>
             prevOrders.map(o => {
               if (o._id === orderId) {
                 return {
@@ -212,7 +212,7 @@ export default function TableOrders() {
               return o;
             })
           );
-          
+
           toast.success('Cập nhật trạng thái thanh toán thành công!');
         }
       } catch (err) {
@@ -239,12 +239,12 @@ export default function TableOrders() {
       try {
         setActionLoading(true);
         const response = await axios.post(`${ORDER_API_URL}/admin/cancel/${orderId}`);
-        
+
         if (response.data) {
           alert("Đơn hàng đã được hủy bởi Admin");
           // Update just this order in the state
-          setOrders(prevOrders => 
-            prevOrders.map(order => 
+          setOrders(prevOrders =>
+            prevOrders.map(order =>
               order._id === orderId ? { ...order, status: "cancelled" } : order
             )
           );
@@ -271,7 +271,7 @@ export default function TableOrders() {
         setActionLoading(true);
         await axios.delete(`${ORDER_API_URL}/admin/delete/${orderId}`);
         alert("Đơn hàng đã được xóa bởi Admin");
-        
+
         // Remove the deleted order from state
         setOrders(prevOrders => prevOrders.filter(order => order._id !== orderId));
       } catch (err) {
@@ -308,7 +308,7 @@ export default function TableOrders() {
       cell: (info) => {
         const status = info.getValue();
         const order = info.row.original;
-        
+
         // Return a styled badge based on status
         if (status === 'paid') {
           return (
@@ -323,7 +323,7 @@ export default function TableOrders() {
             </span>
           );
         }
-        
+
         return (
           <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
             Thanh toán thất bại
@@ -476,15 +476,15 @@ export default function TableOrders() {
   return (
     <div className="p-4">
       <h2 className="mb-4 text-xl font-bold">Quản lý đơn hàng (Admin)</h2>
-      
+
       {/* Date filtering controls */}
       <div className="mb-6 flex flex-wrap items-center gap-4">
         <div>
           <label className="block text-sm font-medium mb-1">Từ ngày:</label>
           <Popover open={isStartDateOpen} onOpenChange={setIsStartDateOpen}>
             <PopoverTrigger asChild>
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 className={`w-[200px] justify-start text-left font-normal ${!startDate && 'text-gray-400'}`}
               >
                 <CalendarIcon className="mr-2 h-4 w-4" />
@@ -504,13 +504,13 @@ export default function TableOrders() {
             </PopoverContent>
           </Popover>
         </div>
-        
+
         <div>
           <label className="block text-sm font-medium mb-1">Đến ngày:</label>
           <Popover open={isEndDateOpen} onOpenChange={setIsEndDateOpen}>
             <PopoverTrigger asChild>
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 className={`w-[200px] justify-start text-left font-normal ${!endDate && 'text-gray-400'}`}
               >
                 <CalendarIcon className="mr-2 h-4 w-4" />
@@ -530,17 +530,17 @@ export default function TableOrders() {
             </PopoverContent>
           </Popover>
         </div>
-        
+
         <div className="flex items-end">
-          <Button 
-            variant="ghost" 
+          <Button
+            variant="ghost"
             onClick={handleResetDateFilters}
             className="mb-0.5"
           >
             Xóa bộ lọc
           </Button>
         </div>
-        
+
         <div className="ml-auto flex items-end gap-2">
           <Button
             variant="outline"
@@ -620,14 +620,14 @@ export default function TableOrders() {
           Next
         </Button>
       </div>
-      
+
       {modalOrderId && (
         <OrderDetailModal
           orderId={modalOrderId}
           onClose={() => setModalOrderId(null)}
         />
       )}
-      
+
       {/* Add the Edit Modal with improved onSave handler */}
       {editingOrderId && (
         <OrderEditModal
@@ -635,8 +635,8 @@ export default function TableOrders() {
           onClose={() => setEditingOrderId(null)}
           onSave={(updatedOrder) => {
             // Update the orders list with the edited order without reloading
-            setOrders(prevOrders => 
-              prevOrders.map(order => 
+            setOrders(prevOrders =>
+              prevOrders.map(order =>
                 order._id === updatedOrder._id ? updatedOrder : order
               )
             );
