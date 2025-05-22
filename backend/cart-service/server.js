@@ -24,10 +24,24 @@ app.get('/redis-test', cartController.testRedis);
 app.use(cartRoutes);
 // app.use("/api/cart", cartRoutes);
 
-app.get('/health', (req, res) => {
+// Cập nhật health endpoint với thông tin Redis
+app.get('/health', async (req, res) => {
+  const redisClient = cartController.getRedisClient();
+  let redisStatus = 'disconnected';
+  
+  try {
+    // Kiểm tra kết nối Redis
+    const redisConnected = await cartController.checkRedisConnection();
+    redisStatus = redisConnected ? 'connected' : 'disconnected';
+  } catch (error) {
+    redisStatus = `error: ${error.message}`;
+  }
+  
   res.status(200).json({
     status: 'ok',
     service: 'cart-service',
+    redis: redisStatus,
+    environment: process.env.NODE_ENV || 'development',
     timestamp: new Date().toISOString()
   });
 });
