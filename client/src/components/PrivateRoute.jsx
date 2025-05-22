@@ -1,16 +1,22 @@
-import { useContext } from "react";
-import { Navigate, useLocation } from "react-router-dom";
-import { toast } from "react-toastify";
-import { AuthContext } from "../context/AuthContext";
+import { useContext, useEffect } from 'react';
+import { Navigate, useLocation } from 'react-router-dom';
+import { AuthContext } from '../context/AuthContext';
+import { toast } from 'react-toastify';
 
 const PrivateRoute = ({ children }) => {
   const { currentUser, loading, isAuthenticated } = useContext(AuthContext);
   const location = useLocation();
 
+  useEffect(() => {
+    // If user is logged in but not verified
+    if (currentUser && !currentUser.isVerified) {
+      toast.warning('Vui lòng xác thực tài khoản của bạn để tiếp tục');
+    }
+  }, [currentUser]);
+
   if (loading) {
-    // Show loading spinner while checking authentication
     return (
-      <div className="d-flex justify-content-center align-items-center" style={{ height: "100vh" }}>
+      <div className="container d-flex justify-content-center align-items-center" style={{ height: '60vh' }}>
         <div className="spinner-border text-primary" role="status">
           <span className="visually-hidden">Loading...</span>
         </div>
@@ -18,27 +24,17 @@ const PrivateRoute = ({ children }) => {
     );
   }
 
-  // Enhanced authentication check
-  if (!currentUser) {
-    // Even if currentUser is null, check if we have stored user data
-    if (!isAuthenticated()) {
-      // No stored user data, redirect to login
-      toast.info("Vui lòng đăng nhập để tiếp tục");
-      
-      return (
-        <Navigate 
-          to="/login" 
-          state={{ returnTo: location.pathname }} 
-          replace 
-        />
-      );
-    }
-    
-    // We have stored user data but no currentUser - this is fine, let them through
-    console.log("Using stored user data for protected route");
+  // Check if user is authenticated
+  if (!isAuthenticated()) {
+    toast.error('Vui lòng đăng nhập để tiếp tục');
+    return <Navigate to="/login" state={{ from: location }} replace />;
   }
-  
-  // User is authenticated
+
+  // If user is not verified, redirect to verification page
+  if (currentUser && !currentUser.isVerified) {
+    return <Navigate to="/verify" state={{ email: currentUser.email, from: location }} replace />;
+  }
+
   return children;
 };
 
