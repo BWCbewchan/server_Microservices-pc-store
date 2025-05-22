@@ -9,19 +9,20 @@
     "start": "node server.js"
   },
   "dependencies": {
+    "auth-service": "file:",
     "bcrypt": "^5.1.0",
     "compression": "^1.8.0",
     "cors": "^2.8.5",
+    "crypto": "^1.0.1",
     "dotenv": "^16.0.3",
     "express": "^4.18.2",
+    "express-rate-limit": "^6.7.0",
+    "express-validator": "^7.0.1",
+    "helmet": "^7.0.0",
     "jsonwebtoken": "^9.0.0",
     "mongoose": "^7.1.0",
     "nodemailer": "^6.10.1",
-    "swagger-ui-express": "^4.6.3",
-    "express-rate-limit": "^6.7.0",
-    "helmet": "^7.0.0",
-    "crypto": "^1.0.1",
-    "express-validator": "^7.0.1"
+    "swagger-ui-express": "^4.6.3"
   },
   "devDependencies": {
     "nodemon": "^2.0.22"
