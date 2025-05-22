@@ -54,7 +54,9 @@ const OrderSummary = ({ items, subtotal, shippingFee, finalTotal }) => {
                             Qty: {item.quantity} x{" "}
                             {item.price.toLocaleString("vi-VN", {
                                 style: "currency",
-                                currency: "VND"
+                                currency: "VND",
+                                minimumFractionDigits: 0,
+                                maximumFractionDigits: 0
                             })}
                         </div>
                     </div>

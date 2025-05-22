@@ -10,12 +10,22 @@ const FilterSection = ({ initialCategory, setProducts, appliedFilters, setApplie
   const [categories, setCategories] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState(null);
 
-  // Price range state
+  // Price range state - Cập nhật giá tối đa
   const [minPrice, setMinPrice] = useState(0);
-  const [maxPrice, setMaxPrice] = useState(10000);
+  const [maxPrice, setMaxPrice] = useState(100000000); // Tăng giá tối đa lên 100,000,000 đ
   const [currentMinPrice, setCurrentMinPrice] = useState(0);
-  const [currentMaxPrice, setCurrentMaxPrice] = useState(10000);
+  const [currentMaxPrice, setCurrentMaxPrice] = useState(100000000);
   const [priceFilterApplied, setPriceFilterApplied] = useState(false);
+
+  // Hàm định dạng tiền tệ Việt Nam
+  const formatVND = (value) => {
+    return new Intl.NumberFormat('vi-VN', {
+      style: 'currency',
+      currency: 'VND',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
+    }).format(value);
+  };
 
   useEffect(() => {
     const fetchFilterData = async () => {
@@ -26,7 +36,8 @@ const FilterSection = ({ initialCategory, setProducts, appliedFilters, setApplie
         // Set min/max price from API without applying filters
         if (response.data.priceRange) {
           const min = response.data.priceRange.min || 0;
-          const max = response.data.priceRange.max || 5000;
+          // Đảm bảo giá tối đa không vượt quá 100,000,000 đ
+          const max = Math.min(response.data.priceRange.max || 5000000, 100000000);
           setMinPrice(min);
           setMaxPrice(max);
           setCurrentMinPrice(min);
@@ -95,7 +106,8 @@ const FilterSection = ({ initialCategory, setProducts, appliedFilters, setApplie
         // Only include price in the filter if price filter has been applied
         setAppliedFilters({
           category: selectedCategory,
-          price: priceFilterApplied ? `$${currentMinPrice}-$${currentMaxPrice}` : ""
+          // Cập nhật định dạng giá hiển thị thành VND
+          price: priceFilterApplied ? `${formatVND(currentMinPrice)}-${formatVND(currentMaxPrice)}` : ""
         });
       } else {
         setAppliedFilters({ category: "", price: "" });
@@ -108,7 +120,8 @@ const FilterSection = ({ initialCategory, setProducts, appliedFilters, setApplie
   const handlePriceApply = () => {
     setAppliedFilters((prev) => ({
       ...prev,
-      price: `$${currentMinPrice}-$${currentMaxPrice}`
+      // Cập nhật hiển thị giá theo định dạng VND
+      price: `${formatVND(currentMinPrice)}-${formatVND(currentMaxPrice)}`
     }));
   };
 
@@ -152,7 +165,8 @@ const FilterSection = ({ initialCategory, setProducts, appliedFilters, setApplie
     if (priceFilterApplied) {
       setAppliedFilters((prev) => ({
         ...prev,
-        price: `$${min}-$${max}`
+        // Cập nhật hiển thị giá theo định dạng VND
+        price: `${formatVND(min)}-${formatVND(max)}`
       }));
     }
   };
@@ -258,7 +272,7 @@ const FilterSection = ({ initialCategory, setProducts, appliedFilters, setApplie
                     <div className="row g-2">
                       <div className="col-6">
                         <div className="input-group">
-                          <span className="input-group-text fw-bold">$</span>
+                          <span className="input-group-text fw-bold">₫</span>
                           <input
                             type="number"
                             className="form-control py-2 fs-5"
@@ -271,7 +285,7 @@ const FilterSection = ({ initialCategory, setProducts, appliedFilters, setApplie
                       </div>
                       <div className="col-6">
                         <div className="input-group">
-                          <span className="input-group-text fw-bold">$</span>
+                          <span className="input-group-text fw-bold">₫</span>
                           <input
                             type="number"
                             className="form-control py-2 fs-5"
@@ -289,8 +303,8 @@ const FilterSection = ({ initialCategory, setProducts, appliedFilters, setApplie
                   <div className="price-range-container mb-4 px-2">
                     {/* Price range labels */}
                     <div className="d-flex justify-content-between mb-0">
-                      <small className="text-muted">${minPrice}</small>
-                      <small className="text-muted">${maxPrice}</small>
+                      <small className="text-muted">{formatVND(minPrice)}</small>
+                      <small className="text-muted">{formatVND(maxPrice)}</small>
                     </div>
 
                     {/* Min price slider */}

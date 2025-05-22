@@ -30,14 +30,14 @@ function ProductDetailsHead({ activeTab, setActiveTab, price }) {
     },
   };
 
-  // Format price with dollar sign, commas and two decimal places
+  // Format price with Vietnamese currency
   const formatPrice = (value) => {
-    if (!value) return '$0.00';
-    return new Intl.NumberFormat('en-US', {
+    if (!value && value !== 0) return '';
+    return new Intl.NumberFormat('vi-VN', {
       style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2
+      currency: 'VND',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
     }).format(value);
   };
 
@@ -76,12 +76,12 @@ function ProductDetailsHead({ activeTab, setActiveTab, price }) {
       alert("Product ID is not defined!");
       return;
     }
-    
+
     try {
       // Use the actual user ID instead of fake one
       const userId = currentUser.id || currentUser._id;
       const res = await axios.post(`${CART_API_URL}/${userId}/${id}/1`);
-      
+
       toast.success("🛒Thêm vào giỏ hàng thành công");
     } catch (error) {
       console.error("Lỗi khi thêm vào giỏ hàng", error.response?.data || error.message);
@@ -115,7 +115,7 @@ function ProductDetailsHead({ activeTab, setActiveTab, price }) {
           </div>
           <div className="d-flex align-items-center gap-3 py-2">
             <span style={styles.price}>
-              On Sale from <span style={styles.priceBold}>{formatPrice(finalPrice)}</span>
+              Giá từ <span style={styles.priceBold}>{formatPrice(finalPrice)}</span>
             </span>
             {/* THÔNG BÁO SỐ LƯỢNG THẤP */}
             {inventoryInfo?.stockInInventory > 0 && inventoryInfo.stockInInventory < 10 && (

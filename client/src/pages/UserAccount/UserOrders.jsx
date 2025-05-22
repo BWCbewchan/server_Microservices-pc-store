@@ -81,9 +81,9 @@ const UserOrders = () => {
   };
 
   const formatDate = (dateString) => {
-    const options = { 
-      year: 'numeric', 
-      month: 'long', 
+    const options = {
+      year: 'numeric',
+      month: 'long',
       day: 'numeric',
       hour: '2-digit',
       minute: '2-digit'
@@ -111,12 +111,15 @@ const UserOrders = () => {
     }
   };
 
-  const formatPrice = (price) => {
-    return new Intl.NumberFormat('vi-VN', { 
-      style: 'currency', 
+  // Format giá tiền theo định dạng tiền Việt Nam
+  const formatPrice = (value) => {
+    if (!value && value !== 0) return '';
+    return new Intl.NumberFormat('vi-VN', {
+      style: 'currency',
       currency: 'VND',
+      minimumFractionDigits: 0,
       maximumFractionDigits: 0
-    }).format(price);
+    }).format(value);
   };
 
   const handleViewDetails = (order) => {
@@ -131,17 +134,17 @@ const UserOrders = () => {
   const checkPaymentStatus = async (orderId) => {
     try {
       const response = await axios.get(`${ORDER_API_URL}/${orderId}/payment-status`);
-      
+
       if (response.data && response.data.isPaid) {
         // If payment is confirmed as paid, update the local order data
-        setOrders(prevOrders => 
-          prevOrders.map(order => 
-            order._id === orderId 
-              ? { ...order, payment: { ...order.payment, status: 'paid' }} 
+        setOrders(prevOrders =>
+          prevOrders.map(order =>
+            order._id === orderId
+              ? { ...order, payment: { ...order.payment, status: 'paid' } }
               : order
           )
         );
-        
+
         // If currently viewing this order in the modal, update the selected order too
         if (selectedOrder && selectedOrder._id === orderId) {
           setSelectedOrder(prev => ({
@@ -149,7 +152,7 @@ const UserOrders = () => {
             payment: { ...prev.payment, status: 'paid' }
           }));
         }
-        
+
         toast.success("Thanh toán thành công!");
         return true;
       }
@@ -163,7 +166,7 @@ const UserOrders = () => {
   // Function to verify QR payment for the currently selected order
   const verifyQrPayment = async () => {
     if (!selectedOrder) return;
-    
+
     try {
       const isPaid = await checkPaymentStatus(selectedOrder._id);
       if (!isPaid) {
@@ -182,41 +185,41 @@ const UserOrders = () => {
   // Add function to manually mark payment as completed
   const markPaymentAsCompleted = async () => {
     if (!selectedOrder) return;
-    
+
     try {
       setLoading(true);
-      
+
       const orderId = selectedOrder._id;
-      
+
       // Try multiple approaches to update the payment status
       let updated = false;
-      
+
       // Approach 1: Try API Gateway with encoded update data
       try {
         const updateData = {
           'payment.status': 'paid',
           'status': selectedOrder.status === 'pending' ? 'confirmed' : selectedOrder.status
         };
-        
+
         const encodedUpdateData = encodeURIComponent(JSON.stringify(updateData));
         await axios.put(`${ORDER_API_URL}/update/${orderId}/${encodedUpdateData}`);
         updated = true;
       } catch (err1) {
         console.warn("Failed to update payment via API Gateway:", err1.message);
-        
+
         // Approach 2: Try direct connection to order service
         try {
           const updateData = {
             'payment.status': 'paid',
             'status': selectedOrder.status === 'pending' ? 'confirmed' : selectedOrder.status
           };
-          
+
           const encodedUpdateData = encodeURIComponent(JSON.stringify(updateData));
           await axios.put(`${DIRECT_ORDER_API_URL}/update/${orderId}/${encodedUpdateData}`);
           updated = true;
         } catch (err2) {
           console.warn("Failed to update payment via direct connection:", err2.message);
-          
+
           // Approach 3: Try direct PUT with JSON body
           try {
             await axios.put(`${DIRECT_ORDER_API_URL}/orders/${orderId}`, {
@@ -229,10 +232,10 @@ const UserOrders = () => {
           }
         }
       }
-      
+
       if (updated) {
         // Update the local data
-        setOrders(prevOrders => 
+        setOrders(prevOrders =>
           prevOrders.map(order => {
             if (order._id === orderId) {
               return {
@@ -244,14 +247,14 @@ const UserOrders = () => {
             return order;
           })
         );
-        
+
         // Update the selected order
         setSelectedOrder(prev => ({
           ...prev,
           payment: { ...prev.payment, status: 'paid' },
           status: prev.status === 'pending' ? 'confirmed' : prev.status
         }));
-        
+
         toast.success("Thanh toán đã được xác nhận thành công!");
       } else {
         toast.error("Không thể cập nhật trạng thái thanh toán. Vui lòng thử lại sau.");
@@ -267,24 +270,24 @@ const UserOrders = () => {
   // Enhance the automatic payment status polling with better error handling
   useEffect(() => {
     if (!orders || orders.length === 0) return;
-    
+
     // Find orders with pending payment status that use bank transfer
-    const pendingPaymentOrders = orders.filter(order => 
-      order.payment && 
-      order.payment.status !== 'paid' && 
+    const pendingPaymentOrders = orders.filter(order =>
+      order.payment &&
+      order.payment.status !== 'paid' &&
       order.payment.method !== 'cod'
     );
-    
+
     if (pendingPaymentOrders.length === 0) return;
-    
+
     console.log(`Found ${pendingPaymentOrders.length} pending payment orders to monitor`);
-    
+
     // Add visual indicator that we're monitoring payments
     toast.info(`Hệ thống đang tự động kiểm tra ${pendingPaymentOrders.length} đơn hàng chờ thanh toán`, {
       autoClose: 3000,
       position: "bottom-right"
     });
-    
+
     // Check immediately on component mount
     pendingPaymentOrders.forEach(async (order) => {
       try {
@@ -293,30 +296,30 @@ const UserOrders = () => {
         console.error(`Initial payment check failed for order ${order._id}:`, error);
       }
     });
-    
+
     // Set up interval to check payment status more frequently - every 5 seconds
     const intervalId = setInterval(async () => {
       let updatedAny = false;
-      
+
       for (const order of pendingPaymentOrders) {
         try {
           // Skip orders that have been marked as paid in the UI
           const currentOrderData = orders.find(o => o._id === order._id);
           if (currentOrderData?.payment?.status === 'paid') continue;
-          
+
           // Check if payment is completed using the enhanced check method with silent=true
           const isPaid = await enhancedCheckPaymentStatus(order._id, true);
-          
+
           if (isPaid) {
             console.log(`Payment for order ${order._id} has been automatically confirmed`);
             updatedAny = true;
-            
+
             // Show a non-disruptive notification that payment was detected
             toast.success(`Thanh toán cho đơn hàng #${order._id.substring(order._id.length - 8)} đã được xác nhận!`, {
               position: "bottom-right",
               autoClose: 3000
             });
-            
+
             // Auto-close the modal if this is the currently selected order
             if (selectedOrder && selectedOrder._id === order._id) {
               // Wait a moment for the user to see the updated status before closing
@@ -334,20 +337,20 @@ const UserOrders = () => {
           // Continue to next order even if there's an error
         }
       }
-      
+
       // If we updated any orders, refresh the main list
       if (updatedAny) {
         // Use this to trigger a gentle UI refresh if needed
         setRefreshData(prev => !prev);
       }
-      
+
       // Get fresh list of pending orders
-      const stillPendingOrders = orders.filter(order => 
-        order.payment && 
-        order.payment.status !== 'paid' && 
+      const stillPendingOrders = orders.filter(order =>
+        order.payment &&
+        order.payment.status !== 'paid' &&
         order.payment.method !== 'cod'
       );
-      
+
       // If all orders are now paid, clear the interval
       if (stillPendingOrders.length === 0) {
         console.log("All pending payments are now verified, stopping polling");
@@ -358,7 +361,7 @@ const UserOrders = () => {
         clearInterval(intervalId);
       }
     }, 5000); // Check every 5 seconds
-    
+
     // Set up a visual indicator that auto-checking is happening
     const statusCheckIndicator = setInterval(() => {
       // Find any payment method elements in the order list and add pulsing effect
@@ -368,7 +371,7 @@ const UserOrders = () => {
         setTimeout(() => badge.classList.remove('pulse-animation'), 1000);
       });
     }, 15000); // Visual pulse every 15 seconds
-    
+
     // Clean up all intervals on component unmount
     return () => {
       clearInterval(intervalId);
@@ -381,15 +384,15 @@ const UserOrders = () => {
     // Set up a periodic refresh of order data to catch any external updates
     const refreshInterval = setInterval(() => {
       // Only refresh if we're not loading and there are pending payments
-      if (!loading && orders.some(order => 
-        order.payment && 
-        order.payment.status !== 'paid' && 
+      if (!loading && orders.some(order =>
+        order.payment &&
+        order.payment.status !== 'paid' &&
         order.payment.method !== 'cod'
       )) {
         setRefreshData(prev => !prev);
       }
     }, 30000); // Refresh every 30 seconds
-    
+
     return () => clearInterval(refreshInterval);
   }, [loading, orders]);
 
@@ -397,11 +400,11 @@ const UserOrders = () => {
   const enhancedCheckPaymentStatus = async (orderId, silent = false) => {
     // Don't show loading indicator during automatic checks
     if (!silent) setLoading(true);
-    
+
     try {
       // Try multiple approaches
       let paymentVerified = false;
-      
+
       // Method 1: Standard API check
       try {
         const response = await axios.get(`${ORDER_API_URL}/${orderId}/payment-status`);
@@ -410,7 +413,7 @@ const UserOrders = () => {
         }
       } catch (err1) {
         console.warn("Standard payment check failed:", err1.message);
-        
+
         // Method 2: Direct check
         try {
           const response = await axios.get(`${DIRECT_ORDER_API_URL}/${orderId}/payment-status`);
@@ -421,10 +424,10 @@ const UserOrders = () => {
           console.warn("Direct payment check failed:", err2.message);
         }
       }
-      
+
       if (paymentVerified) {
         // Update orders in state
-        setOrders(prevOrders => 
+        setOrders(prevOrders =>
           prevOrders.map(order => {
             if (order._id === orderId) {
               return {
@@ -436,7 +439,7 @@ const UserOrders = () => {
             return order;
           })
         );
-        
+
         // Update selected order if applicable
         if (selectedOrder && selectedOrder._id === orderId) {
           setSelectedOrder(prev => ({
@@ -445,14 +448,14 @@ const UserOrders = () => {
             status: prev.status === 'pending' ? 'confirmed' : prev.status
           }));
         }
-        
+
         // Only show toast for manual checks, not automatic ones
         if (!silent) {
           toast.success("Thanh toán của bạn đã được xác nhận!");
         }
         return true;
       }
-      
+
       // Only show info message for manual checks
       if (!silent) {
         toast.info("Hệ thống chưa ghi nhận thanh toán của bạn. Vui lòng đợi hoặc xác nhận lại sau.");
@@ -470,7 +473,7 @@ const UserOrders = () => {
       if (!silent) setLoading(false);
     }
   };
-  
+
   return (
     <div className="container my-5">
       <style>
@@ -502,7 +505,7 @@ const UserOrders = () => {
               <Link to="/userAccount/wishlist" className="list-group-item list-group-item-action">
                 Sản phẩm yêu thích
               </Link>
-              <button 
+              <button
                 className="list-group-item list-group-item-action text-danger"
                 onClick={handleLogout}
               >
@@ -511,7 +514,7 @@ const UserOrders = () => {
             </div>
           </div>
         </div>
-        
+
         {/* Main content */}
         <div className="col-lg-9">
           <div className="card">
@@ -561,7 +564,7 @@ const UserOrders = () => {
                             </span>
                           </td>
                           <td>
-                            <button 
+                            <button
                               className="btn btn-sm btn-outline-primary"
                               onClick={() => handleViewDetails(order)}
                             >
@@ -596,14 +599,14 @@ const UserOrders = () => {
                     <h6 className="fw-bold">Thông tin đơn hàng</h6>
                     <p className="mb-1"><strong>Ngày đặt:</strong> {formatDate(selectedOrder.createdAt)}</p>
                     <p className="mb-1">
-                      <strong>Trạng thái:</strong> 
+                      <strong>Trạng thái:</strong>
                       <span className={`badge ${getStatusBadgeClass(selectedOrder.status)} ms-2`}>
                         {getStatusText(selectedOrder.status)}
                       </span>
                     </p>
                     <p className="mb-1"><strong>Phương thức thanh toán:</strong> {selectedOrder.payment.method === 'cod' ? 'Thanh toán khi nhận hàng' : selectedOrder.payment.method === 'bank' ? 'Chuyển khoản ngân hàng' : 'Thanh toán QR'}</p>
                     <p className="mb-1">
-                      <strong>Trạng thái thanh toán:</strong> 
+                      <strong>Trạng thái thanh toán:</strong>
                       <span className={`badge ${selectedOrder.payment.status === 'paid' ? 'bg-success' : 'bg-warning'} ms-2`}>
                         {selectedOrder.payment.status === 'paid' ? 'Đã thanh toán' : 'Chưa thanh toán'}
                       </span>
@@ -617,7 +620,7 @@ const UserOrders = () => {
                     <p className="mb-1"><strong>Email:</strong> {selectedOrder.customer.email}</p>
                   </div>
                 </div>
-                
+
                 <h6 className="fw-bold">Sản phẩm đặt mua</h6>
                 <div className="table-responsive">
                   <table className="table table-bordered">
@@ -655,7 +658,7 @@ const UserOrders = () => {
                     </tfoot>
                   </table>
                 </div>
-                
+
                 {selectedOrder.notes && selectedOrder.notes.customerNote && (
                   <div className="mt-3">
                     <h6 className="fw-bold">Ghi chú đơn hàng</h6>
@@ -667,29 +670,29 @@ const UserOrders = () => {
                 {selectedOrder.status === 'pending' && (
                   <button className="btn btn-danger me-auto">Hủy đơn hàng</button>
                 )}
-                
+
                 {/* Payment verification buttons */}
-                {selectedOrder.payment && 
-                 selectedOrder.payment.method !== 'cod' && 
-                 selectedOrder.payment.status !== 'paid' && (
-                  <div className="me-auto">
-                    <button 
-                      className="btn btn-warning me-2" 
-                      onClick={() => enhancedCheckPaymentStatus(selectedOrder._id)}
-                      disabled={loading}
-                    >
-                      {loading ? 'Đang kiểm tra...' : 'Kiểm tra thanh toán'}
-                    </button>
-                    <button 
-                      className="btn btn-success me-2" 
-                      onClick={markPaymentAsCompleted}
-                      disabled={loading}
-                    >
-                      {loading ? 'Đang xử lý...' : 'Xác nhận đã thanh toán'}
-                    </button>
-                  </div>
-                )}
-                
+                {selectedOrder.payment &&
+                  selectedOrder.payment.method !== 'cod' &&
+                  selectedOrder.payment.status !== 'paid' && (
+                    <div className="me-auto">
+                      <button
+                        className="btn btn-warning me-2"
+                        onClick={() => enhancedCheckPaymentStatus(selectedOrder._id)}
+                        disabled={loading}
+                      >
+                        {loading ? 'Đang kiểm tra...' : 'Kiểm tra thanh toán'}
+                      </button>
+                      <button
+                        className="btn btn-success me-2"
+                        onClick={markPaymentAsCompleted}
+                        disabled={loading}
+                      >
+                        {loading ? 'Đang xử lý...' : 'Xác nhận đã thanh toán'}
+                      </button>
+                    </div>
+                  )}
+
                 <button className="btn btn-secondary" onClick={handleCloseDetails}>Đóng</button>
                 <button className="btn btn-primary">In đơn hàng</button>
               </div>

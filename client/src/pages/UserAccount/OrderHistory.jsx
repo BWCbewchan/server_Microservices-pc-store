@@ -33,23 +33,34 @@ const OrderHistory = () => {
   const handleCancelOrder = async (orderId) => {
     try {
       if (!window.confirm('Bạn có chắc chắn muốn hủy đơn hàng này?')) return;
-      
+
       await axios.post(`${import.meta.env.VITE_APP_API_GATEWAY_URL}/orders/cancel/${orderId}`);
-      
+
       // Cập nhật trạng thái đơn hàng trong state
-      setOrders(prevOrders => 
-        prevOrders.map(order => 
-          order._id === orderId 
-            ? { ...order, status: 'cancelled' } 
+      setOrders(prevOrders =>
+        prevOrders.map(order =>
+          order._id === orderId
+            ? { ...order, status: 'cancelled' }
             : order
         )
       );
-      
+
       toast.success('Hủy đơn hàng thành công');
     } catch (error) {
       console.error('Lỗi khi hủy đơn hàng:', error);
       toast.error('Không thể hủy đơn hàng. ' + (error.response?.data?.message || ''));
     }
+  };
+
+  // Format giá tiền theo định dạng tiền Việt Nam
+  const formatPrice = (value) => {
+    if (!value && value !== 0) return '';
+    return new Intl.NumberFormat('vi-VN', {
+      style: 'currency',
+      currency: 'VND',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
+    }).format(value);
   };
 
   // Hàm lấy màu cho trạng thái đơn hàng
@@ -79,7 +90,7 @@ const OrderHistory = () => {
   return (
     <div className="container my-5">
       <h2 className="mb-4">Lịch sử đơn hàng</h2>
-      
+
       {loading ? (
         <div className="text-center">
           <div className="spinner-border text-primary" role="status">
@@ -105,24 +116,24 @@ const OrderHistory = () => {
                 <tr key={order._id}>
                   <td>{order._id.slice(-8).toUpperCase()}</td>
                   <td>{new Date(order.createdAt).toLocaleDateString('vi-VN')}</td>
-                  <td>{Number(order.finalTotal).toLocaleString('vi-VN')} ₫</td>
+                  <td>{formatPrice(Number(order.finalTotal))}</td>
                   <td className={getStatusColor(order.status)}>
                     {getStatusName(order.status)}
                   </td>
                   <td>
-                    {order.payment?.method === 'cod' ? 'Thanh toán khi nhận hàng' : 
-                     order.payment?.method === 'bank' ? 'Chuyển khoản ngân hàng' : 
-                     order.payment?.method}
+                    {order.payment?.method === 'cod' ? 'Thanh toán khi nhận hàng' :
+                      order.payment?.method === 'bank' ? 'Chuyển khoản ngân hàng' :
+                        order.payment?.method}
                   </td>
                   <td>
                     <div className="d-flex gap-2">
                       <Link to={`/order/${order._id}`} className="btn btn-sm btn-outline-primary">
                         Chi tiết
                       </Link>
-                      
+
                       {/* Chỉ hiển thị nút hủy nếu đơn hàng đang ở trạng thái "pending" */}
                       {order.status === 'pending' && (
-                        <button 
+                        <button
                           className="btn btn-sm btn-outline-danger"
                           onClick={() => handleCancelOrder(order._id)}
                         >

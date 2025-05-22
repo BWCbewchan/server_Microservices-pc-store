@@ -146,6 +146,16 @@ const Cart = () => {
         }));
     };
 
+    // Format price with Vietnamese currency
+    const formatPrice = (value) => {
+        return new Intl.NumberFormat('vi-VN', {
+            style: 'currency',
+            currency: 'VND',
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 0
+        }).format(value);
+    };
+
     if (error) {
         return <div className="container mx-auto p-4">Lỗi: {error}</div>;
     }
@@ -176,7 +186,7 @@ const Cart = () => {
 
     // Tính toán tổng tiền chỉ tính cho sản phẩm được chọn
     const subtotal = selectedCartItems.reduce((acc, item) => {
-        return acc + item.quantity * parseFloat(item.price.replace(",", ""));
+        return acc + item.quantity * parseFloat(item.price.toString().replace(/[^\d]/g, ""));
     }, 0);
     const total = subtotal;
 

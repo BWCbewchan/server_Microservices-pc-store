@@ -40,7 +40,7 @@ const OrderConfirmation = () => {
       if (userId) {
         try {
           // Run this in background
-          fetch( `${import.meta.env.VITE_APP_API_GATEWAY_URL}/cart/clear/${userId}`, { method: 'DELETE' })
+          fetch(`${import.meta.env.VITE_APP_API_GATEWAY_URL}/cart/clear/${userId}`, { method: 'DELETE' })
             .catch(e => console.warn("Background cart clear failed:", e));
         } catch (e) {
           console.warn("Error in final cart clear attempt:", e);
@@ -56,12 +56,14 @@ const OrderConfirmation = () => {
     return () => clearTimeout(clearTimer);
   }, [location, navigate]);
 
+  // Format giá tiền theo định dạng tiền Việt Nam
   const formatPrice = (value) => {
-    return new Intl.NumberFormat('en-US', {
+    if (!value && value !== 0) return '';
+    return new Intl.NumberFormat('vi-VN', {
       style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2
+      currency: 'VND',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
     }).format(value);
   };
 

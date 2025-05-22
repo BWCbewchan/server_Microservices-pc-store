@@ -4,12 +4,22 @@ const CartSummary = ({ subtotal, total, selectedCartItems }) => {
   const navigate = useNavigate();
 
   const formatPrice = (value) => {
-    return new Intl.NumberFormat('en-US', {
+    // Chuyển đổi giá trị thành số
+    const numValue = Number(value);
+
+    // Kiểm tra nếu không phải số hợp lệ
+    if (isNaN(numValue) && numValue !== 0) {
+      return "Liên hệ";
+    }
+
+    // Định dạng theo tiền Việt Nam
+    return new Intl.NumberFormat('vi-VN', {
       style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2
-    }).format(value);
+      currency: 'VND',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+      useGrouping: true // Đảm bảo sử dụng dấu phân cách hàng nghìn
+    }).format(numValue);
   };
 
   const handleCheckout = () => {
@@ -45,10 +55,10 @@ const CartSummary = ({ subtotal, total, selectedCartItems }) => {
           alignItems: "center",
         }}
       >
-        <div style={{ fontSize: "24px", fontWeight: "600" }}>Summary</div>
+        <div style={{ fontSize: "24px", fontWeight: "600" }}>Tóm tắt</div>
       </div>
       <div style={{ fontSize: "14px", color: "#666" }}>
-        Enter your destination to get a shipping estimate.
+        Nhập địa chỉ của bạn để nhận ước tính phí vận chuyển.
       </div>
 
       <div
@@ -59,8 +69,8 @@ const CartSummary = ({ subtotal, total, selectedCartItems }) => {
         }}
       >
         <div style={{ fontSize: "14px", lineHeight: "2" }}>
-          <div>Subtotal</div>
-          <div style={{ fontWeight: "600", marginTop: "10px" }}>Order Total</div>
+          <div>Tạm tính</div>
+          <div style={{ fontWeight: "600", marginTop: "10px" }}>Tổng đơn hàng</div>
         </div>
         <div style={{ fontSize: "14px", textAlign: "right", lineHeight: "2" }}>
           <div>{formatPrice(subtotal)}</div>
@@ -86,7 +96,7 @@ const CartSummary = ({ subtotal, total, selectedCartItems }) => {
         onClick={handleCheckout}
         disabled={selectedCartItems.length === 0}
       >
-        Proceed to Checkout
+        Tiến hành thanh toán
       </button>
     </div>
   );
