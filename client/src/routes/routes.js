@@ -7,7 +7,7 @@ import CheckoutPage from "../pages/CheckOut/CheckoutPage";
 import ContactUs from "../pages/ContactUs/ContactUs";
 import ProductDetailsAll from "../pages/Details/ProductDetailsAll";
 import OrderConfirmation from "../pages/OrderConfirmation/OrderConfirmation";
-import Signup from "../pages/Signup/Signup";
+import Signup from "../pages/SignUp/SignUp";
 import UserAccount from "../pages/UserAccount/UserAccount";
 import UserOrders from "../pages/UserAccount/UserOrders";
 import OTPVerification from "../pages/Verification/OTPVerification";
