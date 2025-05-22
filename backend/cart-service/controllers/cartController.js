@@ -2,14 +2,52 @@ const Cart = require("../models/Cart");
 const axios = require("axios");
 const redis = require("redis");
 
-// Khởi tạo Redis client
+// Khởi tạo Redis client với Upstash Redis
 const redisClient = redis.createClient({
-  url: process.env.REDIS_URL || 'redis://localhost:6379'
+  url: 'rediss://default:AWMMAAIjcDFjNGMyNTllOWFiNWE0NGVhYjdkNjg1NzBlMDcxODg5OXAxMA@fresh-unicorn-25356.upstash.io:6379',
+  socket: {
+    tls: true
+  },
+  // Disable client commands explicitly for Upstash compatibility
+  disableCommands: ['CLIENT'],
+  // Disable additional features that might use incompatible commands
+  clientTracking: false
+  // Removed readonly: true as it's causing compatibility issues
 });
 
-redisClient.connect()
-  .then(() => console.log('Redis connected successfully'))
-  .catch(err => console.error('Redis connection error:', err));
+// Xử lý kết nối Redis - chỉ log lỗi nghiêm trọng
+redisClient.on('error', (err) => {
+  // Bỏ qua lỗi về CLIENT SETINFO và các lỗi compatibility khác
+  if (!err.message.includes('Command is not available:') && 
+      !err.message.includes('rediscompatibility')) {
+    console.error('Redis critical error:', err.message);
+  }
+});
+
+// Bỏ log thông báo kết nối thành công
+redisClient.on('connect', () => {
+  // Không log ra console
+});
+
+// Kết nối Redis
+(async () => {
+  try {
+    await redisClient.connect();
+  } catch (err) {
+    console.error('Failed to connect to Redis:', err.message);
+  }
+})();
+
+// Thêm hàm kiểm tra kết nối Redis
+async function checkRedisConnection() {
+  try {
+    await redisClient.ping();
+    return true;
+  } catch (error) {
+    console.error('Redis connection check failed:', error);
+    return false;
+  }
+}
 
 // Timeout helper cho Promise
 function withTimeout(promise, ms) {
@@ -236,5 +274,57 @@ exports.checkCart = async (req, res) => {
     } else {
       res.status(500).json({ message: "Lỗi khi kiểm tra giỏ hàng", error: error.message });
     }
+  }
+};
+
+// Kiểm tra Redis đã lưu trữ dữ liệu thành công hay không
+exports.testRedis = async (req, res) => {
+  try {
+    // Kiểm tra kết nối Redis trước
+    const isConnected = await checkRedisConnection();
+    if (!isConnected) {
+      return res.status(500).json({
+        success: false,
+        message: 'Không thể kết nối đến Redis cloud'
+      });
+    }
+
+    const testKey = 'test:redis:' + Date.now();
+    const testValue = {
+      message: 'Test Redis value',
+      timestamp: new Date().toISOString(),
+      environment: 'Upstash Cloud Redis'
+    };
+    
+    // Lưu dữ liệu vào Redis
+    await redisClient.setEx(testKey, 60, JSON.stringify(testValue));
+    console.log('Đã lưu dữ liệu vào Redis cloud với key:', testKey);
+    
+    // Lấy dữ liệu từ Redis
+    const retrievedData = await redisClient.get(testKey);
+    console.log('Đã đọc dữ liệu từ Redis cloud:', retrievedData);
+    
+    if (retrievedData) {
+      const parsedData = JSON.parse(retrievedData);
+      res.json({
+        success: true,
+        message: 'Redis cloud lưu trữ dữ liệu thành công',
+        originalData: testValue,
+        retrievedData: parsedData,
+        match: JSON.stringify(testValue) === retrievedData
+      });
+    } else {
+      res.status(500).json({
+        success: false,
+        message: 'Redis cloud không lưu trữ được dữ liệu'
+      });
+    }
+  } catch (error) {
+    console.error('Lỗi kiểm tra Redis cloud:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Lỗi khi kiểm tra Redis cloud',
+      error: error.message
+    });
   }
 };
