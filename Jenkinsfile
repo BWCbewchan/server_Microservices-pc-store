@@ -284,7 +284,7 @@ pipeline {
                             "smpcstr:order-service",
                             "smpcstr:payment-service",
                             "smpcstr:auth-service",
-                            "smpcstr:api-gateway"
+                            "https://dashboard.render.com/web/srv-d0md1mm3jp1c7388f7p0"
                         ]
 
                         services.each { service ->
