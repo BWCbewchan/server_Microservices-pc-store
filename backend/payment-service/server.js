@@ -27,7 +27,7 @@ app.get('/health', (req, res) => {
 app.get('/payment', async (req, res) => {
   const { amount, orderInfo, orderId, requestId, extraData } = req.query;
 
-  const redirectUrl = `${process.env.FRONTEND_URL}/home` || 'http://localhost:2000/home';
+  const redirectUrl = 'http://localhost:2000/home'|| `${process.env.FRONTEND_URL}/home`  ;
   const ipnUrl = 'https://6745-171-252-189-124.ngrok-free.app/callback';
   const requestType = "payWithMethod";
   const autoCapture = true;
