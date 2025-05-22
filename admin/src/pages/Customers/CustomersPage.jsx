@@ -1,36 +1,43 @@
-import { useState } from "react";
-import { TableCustomers } from "@/components/Customers/TableCustomers";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Users } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import React, { useState } from 'react';
+import { TableCustomers } from '@/components/Customers/TableCustomers';
+import { Button } from '@/components/ui/button';
+import { RefreshCw } from 'lucide-react';
 
 export default function CustomersPage() {
-  const [refresh, setRefresh] = useState(false);
+  const [refresh, setRefresh] = useState(0);
 
-  // Function to refresh customers list
-  const refreshCustomers = () => {
-    setRefresh(prev => !prev);
+  // Function to trigger refresh
+  const handleRefresh = () => {
+    setRefresh(prev => prev + 1);
   };
-  
+
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-3xl font-bold">Quản lý khách hàng</h2>
-        
-        <Button onClick={refreshCustomers}>
-          Làm mới
+    <div className="container mx-auto py-6">
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold">Quản lý khách hàng</h1>
+        <Button
+          onClick={handleRefresh}
+          variant="outline"
+          className="flex items-center gap-2"
+        >
+          <RefreshCw className="h-4 w-4" />
+          Tải lại
         </Button>
       </div>
-      
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between pb-2">
-          <CardTitle className="text-lg font-medium">Danh sách khách hàng</CardTitle>
-          <Users className="h-5 w-5 text-gray-500" />
-        </CardHeader>
-        <CardContent>
+
+      <div className="bg-white rounded-lg shadow">
+        <div className="p-6">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-xl font-semibold">Danh sách khách hàng</h2>
+            <p className="text-sm text-gray-500">
+              Quản lý tất cả khách hàng trong hệ thống
+            </p>
+          </div>
+
+          {/* Pass the refresh trigger to TableCustomers */}
           <TableCustomers refresh={refresh} />
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </div>
   );
 }

@@ -9,7 +9,7 @@ export default function OrderDetailModal({ orderId, onClose }) {
     useEffect(() => {
         const fetchOrderDetail = async () => {
             try {
-                const response = await axios.get(`http://localhost:3000/api/orders/${orderId}`);
+                const response = await axios.get(`${import.meta.env.VITE_APP_API_GATEWAY_URL}/orders/${orderId}`);
                 setOrderDetail(response.data);
             } catch (err) {
                 setError("Lỗi khi lấy chi tiết đơn hàng");

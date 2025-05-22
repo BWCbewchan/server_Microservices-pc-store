@@ -1,12 +1,12 @@
-import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import axios from "axios";
-import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import axios from "axios";
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 
 export default function LoginPage() {
     const [email, setEmail] = useState("admin@example.com"); // Pre-filled for demo
@@ -37,54 +37,27 @@ export default function LoginPage() {
         try {
             setLoading(true);
 
-            // For demo purposes, directly authenticate with hardcoded credentials
-            if (email === "admin@example.com" && password === "111111") {
-                // Mock successful login response
-                const mockUser = {
-                    id: "admin-123456",
-                    name: "Admin User",
-                    email: "admin@example.com",
-                    role: "admin"
-                };
-
-                // Create a mock token (in a real app this would come from the server)
-                const mockToken = "mock-jwt-token-for-admin-demo";
-
-                // Save to localStorage
-                localStorage.setItem("adminToken", mockToken);
-                localStorage.setItem("adminUser", JSON.stringify(mockUser));
-
-                // Set authorization header for future requests
-                axios.defaults.headers.common["Authorization"] = `Bearer ${mockToken}`;
-
-                toast.success("Đăng nhập thành công", {
-                    description: "Chào mừng bạn quay trở lại!"
-                });
-
-                // Redirect to dashboard
-                setTimeout(() => {
-                    navigate("/dashboard");
-                }, 500);
-
-                return;
-            }
-
-            // If not using hardcoded credentials, attempt API login
-            const apiUrl = import.meta.env.VITE_APP_API_GATEWAY_URL || 'http://localhost:3000/api';
-            const response = await axios.post(`${apiUrl}/auth/admin/login`, {
+            // Use the real authentication API endpoint instead of mock data
+            const apiUrl = 'http://localhost:3000/api/auth';
+            
+            // Make direct call to admin login endpoint
+            const response = await axios.post(`${apiUrl}/admin/login`, {
                 email,
-                password,
-                rememberMe
+                password
             });
 
-            // Handle successful login
+            // Check if we received a valid response with token
             if (response.data && response.data.token) {
-                // Save token and user info to localStorage
-                localStorage.setItem("adminToken", response.data.token);
-                localStorage.setItem("adminUser", JSON.stringify(response.data.user));
+                // Store the real token and user info
+                const token = response.data.token;
+                const user = response.data.user;
+                
+                // Save to localStorage
+                localStorage.setItem("adminToken", token);
+                localStorage.setItem("adminUser", JSON.stringify(user));
 
                 // Set authorization header for future requests
-                axios.defaults.headers.common["Authorization"] = `Bearer ${response.data.token}`;
+                axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
 
                 toast.success("Đăng nhập thành công", {
                     description: "Chào mừng bạn quay trở lại!"
@@ -94,7 +67,7 @@ export default function LoginPage() {
                 navigate("/dashboard");
             } else {
                 toast.error("Đăng nhập thất bại", {
-                    description: "Thông tin phản hồi không hợp lệ"
+                    description: "Không nhận được token xác thực"
                 });
             }
         } catch (error) {

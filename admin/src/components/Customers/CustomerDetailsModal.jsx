@@ -1,33 +1,63 @@
-import { useState, useEffect } from "react";
 import axios from "axios";
 import { format } from "date-fns";
+import { useEffect, useState } from "react";
 
-// Constants
-const USER_API_URL = "http://localhost:3000/api/users"; // Adjust as needed
-const ORDER_API_URL = "http://localhost:3000/api/orders"; // Adjust as needed
+// Update to use the correct API endpoint
+const USER_API_URL = `${import.meta.env.VITE_APP_API_GATEWAY_URL}/auth/users`; // Correct endpoint
 
-export default function CustomerDetailsModal({ userId, onClose }) {
+export default function CustomerDetailsModal({ userId, onClose, onUserUpdate }) {
   const [customer, setCustomer] = useState(null);
-  const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [activeTab, setActiveTab] = useState("info"); // 'info', 'orders', 'activity'
+  const [editMode, setEditMode] = useState(false);
+  const [selectedRole, setSelectedRole] = useState("");
+  const [updating, setUpdating] = useState(false);
+  const [updateMessage, setUpdateMessage] = useState(null);
 
+  // Fetch customer data
   useEffect(() => {
     const fetchCustomerData = async () => {
       try {
         setLoading(true);
+        console.log(`Fetching customer details for ID: ${userId}`);
 
-        // Fetch customer details
-        const customerResponse = await axios.get(`${USER_API_URL}/${userId}`);
+        // Get the authentication token from localStorage
+        const token = localStorage.getItem("adminToken");
+        if (!token) {
+          setError("Không có token xác thực. Vui lòng đăng nhập lại.");
+          setLoading(false);
+          return;
+        }
+
+        // Add authorization header to the request
+        const customerResponse = await axios.get(`${USER_API_URL}/${userId}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Accept': 'application/json'
+          }
+        });
+
+        console.log("Customer data response:", customerResponse.data);
         setCustomer(customerResponse.data);
-
-        // Fetch customer orders
-        const ordersResponse = await axios.get(`${ORDER_API_URL}/user/${userId}`);
-        setOrders(ordersResponse.data || []);
+        setSelectedRole(customerResponse.data.role || "user");
+        setError(null);
       } catch (err) {
         console.error("Error fetching customer data:", err);
-        setError("Không thể tải thông tin khách hàng");
+        
+        if (err.response) {
+          if (err.response.status === 401) {
+            setError("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.");
+          } else if (err.response.status === 403) {
+            setError("Bạn không có quyền xem thông tin người dùng này.");
+          } else if (err.response.status === 404) {
+            setError("Không tìm thấy thông tin người dùng.");
+          } else {
+            setError(`Lỗi máy chủ: ${err.response.data?.message || "Không xác định"}`);
+          }
+        } else {
+          setError("Không thể tải thông tin khách hàng. Vui lòng thử lại sau.");
+        }
       } finally {
         setLoading(false);
       }
@@ -36,35 +66,58 @@ export default function CustomerDetailsModal({ userId, onClose }) {
     fetchCustomerData();
   }, [userId]);
 
-  // Calculate customer statistics
-  const calculateStats = () => {
-    if (!orders || orders.length === 0) {
-      return {
-        totalOrders: 0,
-        totalSpent: 0,
-        averageOrderValue: 0,
-        completedOrders: 0,
-        cancelledOrders: 0
-      };
+  // Handle role update
+  const handleRoleUpdate = async () => {
+    if (!customer || selectedRole === customer.role) {
+      return; // No change or no customer
     }
 
-    const completedOrders = orders.filter(order => order.status === "completed").length;
-    const cancelledOrders = orders.filter(order => order.status === "cancelled").length;
-    
-    const totalSpent = orders.reduce((sum, order) => {
-      return order.status !== "cancelled" ? sum + order.finalTotal : sum;
-    }, 0);
+    try {
+      setUpdating(true);
+      setUpdateMessage(null);
 
-    return {
-      totalOrders: orders.length,
-      totalSpent,
-      averageOrderValue: totalSpent / (orders.length - cancelledOrders || 1),
-      completedOrders,
-      cancelledOrders
-    };
+      // Get token from localStorage
+      const token = localStorage.getItem("adminToken");
+      if (!token) {
+        setUpdateMessage({ type: "error", text: "Authentication required. Please log in again." });
+        setUpdating(false);
+        return;
+      }
+
+      // Call API to update user role
+      const response = await axios.put(
+        `${USER_API_URL}/${userId}`,
+        { role: selectedRole },
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+
+      // Update local state
+      setCustomer(prev => ({ ...prev, role: selectedRole }));
+      setEditMode(false);
+      setUpdateMessage({ type: "success", text: "Role updated successfully" });
+
+      // Notify parent component
+      if (onUserUpdate) {
+        onUserUpdate({ ...customer, role: selectedRole });
+      }
+    } catch (error) {
+      console.error("Failed to update role:", error);
+      setUpdateMessage({ type: "error", text: "Failed to update role. Please try again." });
+    } finally {
+      setUpdating(false);
+    }
   };
 
-  const stats = calculateStats();
+  // Cancel edit mode
+  const handleCancelEdit = () => {
+    setSelectedRole(customer?.role || "user");
+    setEditMode(false);
+  };
 
   return (
     <div className="fixed inset-0 z-50 bg-black bg-opacity-50 flex items-center justify-center overflow-auto">
@@ -91,34 +144,10 @@ export default function CustomerDetailsModal({ userId, onClose }) {
             <div className="border-b">
               <div className="flex px-6">
                 <button
-                  className={`py-3 px-4 border-b-2 font-medium text-sm ${
-                    activeTab === "info"
-                      ? "border-blue-500 text-blue-600"
-                      : "border-transparent text-gray-500 hover:text-gray-700"
-                  }`}
+                  className="py-3 px-4 border-b-2 border-blue-500 text-blue-600 font-medium text-sm"
                   onClick={() => setActiveTab("info")}
                 >
                   Thông tin cá nhân
-                </button>
-                <button
-                  className={`py-3 px-4 border-b-2 font-medium text-sm ${
-                    activeTab === "orders"
-                      ? "border-blue-500 text-blue-600"
-                      : "border-transparent text-gray-500 hover:text-gray-700"
-                  }`}
-                  onClick={() => setActiveTab("orders")}
-                >
-                  Đơn hàng
-                </button>
-                <button
-                  className={`py-3 px-4 border-b-2 font-medium text-sm ${
-                    activeTab === "activity"
-                      ? "border-blue-500 text-blue-600"
-                      : "border-transparent text-gray-500 hover:text-gray-700"
-                  }`}
-                  onClick={() => setActiveTab("activity")}
-                >
-                  Hoạt động
                 </button>
               </div>
             </div>
@@ -127,56 +156,85 @@ export default function CustomerDetailsModal({ userId, onClose }) {
             <div className="p-6">
               {activeTab === "info" && (
                 <div className="space-y-8">
+                  {/* Update Message */}
+                  {updateMessage && (
+                    <div className={`p-3 rounded-md ${updateMessage.type === "success"
+                      ? "bg-green-100 text-green-800"
+                      : "bg-red-100 text-red-800"
+                      }`}>
+                      {updateMessage.text}
+                    </div>
+                  )}
+
                   {/* Customer Overview */}
-                  <div className="flex items-start gap-4">
-                    <div className="bg-gray-200 rounded-full w-16 h-16 flex items-center justify-center">
-                      <span className="text-2xl font-bold text-gray-700">
-                        {customer?.name?.charAt(0) || "U"}
-                      </span>
-                    </div>
-                    <div>
-                      <h3 className="text-xl font-semibold">{customer?.name}</h3>
-                      <p className="text-gray-600">{customer?.email}</p>
-                      <p className="mt-1 text-sm">
-                        <span className={`inline-block px-2 py-1 rounded-full text-xs ${
-                          customer?.isActive 
-                            ? "bg-green-100 text-green-800" 
-                            : "bg-red-100 text-red-800"
-                        }`}>
-                          {customer?.isActive ? "Hoạt động" : "Đã khóa"}
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-start gap-4">
+                      <div className="bg-gray-200 rounded-full w-16 h-16 flex items-center justify-center">
+                        <span className="text-2xl font-bold text-gray-700">
+                          {customer?.name?.charAt(0) || "U"}
                         </span>
-                        <span className="ml-2 text-gray-500">
-                          Tham gia: {customer?.createdAt ? format(new Date(customer.createdAt), 'dd/MM/yyyy') : 'N/A'}
-                        </span>
-                      </p>
+                      </div>
+                      <div>
+                        <h3 className="text-xl font-semibold">{customer?.name}</h3>
+                        <p className="text-gray-600">{customer?.email}</p>
+                        <p className="mt-1 text-sm">
+                          <span className={`inline-block px-2 py-1 rounded-full text-xs ${customer?.role === 'admin'
+                            ? "bg-purple-100 text-purple-800"
+                            : "bg-blue-100 text-blue-800"
+                            }`}>
+                            {customer?.role === 'admin' ? 'Admin' : 'Người dùng'}
+                          </span>
+                          <span className="ml-2 text-gray-500">
+                            Tham gia: {customer?.createdAt ? format(new Date(customer.createdAt), 'dd/MM/yyyy') : 'N/A'}
+                          </span>
+                        </p>
+                      </div>
                     </div>
+
+                    {/* Edit Role Button */}
+                    <button
+                      onClick={() => setEditMode(true)}
+                      className="px-3 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm"
+                      disabled={editMode}
+                    >
+                      Sửa vai trò
+                    </button>
                   </div>
 
-                  {/* Customer Summary Stats */}
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="border rounded-lg p-4">
-                      <p className="text-sm text-gray-500">Tổng chi tiêu</p>
-                      <p className="text-2xl font-bold">
-                        {new Intl.NumberFormat("vi-VN", {
-                          style: "currency",
-                          currency: "VND",
-                        }).format(stats.totalSpent)}
-                      </p>
+                  {/* Role Edit Section */}
+                  {editMode && (
+                    <div className="bg-gray-50 p-4 rounded-md border">
+                      <h4 className="font-medium mb-3">Thay đổi vai trò người dùng</h4>
+                      <div className="flex items-center gap-3 mb-4">
+                        <label className="text-sm font-medium">Vai trò:</label>
+                        <select
+                          value={selectedRole}
+                          onChange={(e) => setSelectedRole(e.target.value)}
+                          className="border rounded py-1 px-2"
+                          disabled={updating}
+                        >
+                          <option value="user">Người dùng</option>
+                          <option value="admin">Admin</option>
+                        </select>
+                      </div>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={handleRoleUpdate}
+                          className="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm"
+                          disabled={updating || selectedRole === customer?.role}
+                        >
+                          {updating ? "Đang cập nhật..." : "Lưu"}
+                        </button>
+                        <button
+                          onClick={handleCancelEdit}
+                          className="px-3 py-1 bg-gray-300 text-gray-700 rounded hover:bg-gray-400 text-sm"
+                          disabled={updating}
+                        >
+                          Hủy
+                        </button>
+                      </div>
                     </div>
-                    <div className="border rounded-lg p-4">
-                      <p className="text-sm text-gray-500">Số đơn hàng</p>
-                      <p className="text-2xl font-bold">{stats.totalOrders}</p>
-                    </div>
-                    <div className="border rounded-lg p-4">
-                      <p className="text-sm text-gray-500">Giá trị đơn trung bình</p>
-                      <p className="text-2xl font-bold">
-                        {new Intl.NumberFormat("vi-VN", {
-                          style: "currency",
-                          currency: "VND",
-                        }).format(stats.averageOrderValue)}
-                      </p>
-                    </div>
-                  </div>
+                  )}
 
                   {/* Personal Information */}
                   <div>
@@ -195,166 +253,50 @@ export default function CustomerDetailsModal({ userId, onClose }) {
                         <p>{customer?.phone || "N/A"}</p>
                       </div>
                       <div>
-                        <p className="text-sm text-gray-500">Địa chỉ</p>
-                        <p>{customer?.address || "N/A"}</p>
+                        <p className="text-sm text-gray-500">Vai trò</p>
+                        <p>{customer?.role === 'admin' ? 'Admin' : 'Người dùng'}</p>
                       </div>
                     </div>
                   </div>
 
-                  {/* Additional Information (if available) */}
-                  {customer?.birthdate && (
+                  {/* Address Information */}
+                  {customer?.address && (
                     <div>
-                      <h3 className="text-lg font-semibold mb-3">Thông tin khác</h3>
+                      <h3 className="text-lg font-semibold mb-3">Địa chỉ</h3>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                          <p className="text-sm text-gray-500">Ngày sinh</p>
-                          <p>{format(new Date(customer.birthdate), 'dd/MM/yyyy')}</p>
-                        </div>
-                        <div>
-                          <p className="text-sm text-gray-500">Giới tính</p>
-                          <p>{customer?.gender || "N/A"}</p>
-                        </div>
+                        {customer.address.street && (
+                          <div>
+                            <p className="text-sm text-gray-500">Đường</p>
+                            <p>{customer.address.street}</p>
+                          </div>
+                        )}
+                        {customer.address.city && (
+                          <div>
+                            <p className="text-sm text-gray-500">Thành phố</p>
+                            <p>{customer.address.city}</p>
+                          </div>
+                        )}
+                        {customer.address.state && (
+                          <div>
+                            <p className="text-sm text-gray-500">Tiểu bang/Tỉnh</p>
+                            <p>{customer.address.state}</p>
+                          </div>
+                        )}
+                        {customer.address.zipCode && (
+                          <div>
+                            <p className="text-sm text-gray-500">Mã bưu điện</p>
+                            <p>{customer.address.zipCode}</p>
+                          </div>
+                        )}
+                        {customer.address.country && (
+                          <div>
+                            <p className="text-sm text-gray-500">Quốc gia</p>
+                            <p>{customer.address.country}</p>
+                          </div>
+                        )}
                       </div>
                     </div>
                   )}
-                </div>
-              )}
-
-              {activeTab === "orders" && (
-                <div>
-                  <div className="flex justify-between items-center mb-4">
-                    <h3 className="text-lg font-semibold">Lịch sử đơn hàng</h3>
-                    <div className="text-sm text-gray-500">
-                      Tổng số: {orders.length} đơn hàng
-                    </div>
-                  </div>
-
-                  {orders.length === 0 ? (
-                    <p className="text-center py-4 text-gray-500">Khách hàng chưa có đơn hàng nào</p>
-                  ) : (
-                    <div className="border rounded-lg overflow-hidden">
-                      <table className="min-w-full divide-y divide-gray-200">
-                        <thead className="bg-gray-50">
-                          <tr>
-                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Mã đơn</th>
-                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ngày đặt</th>
-                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tổng tiền</th>
-                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Trạng thái</th>
-                          </tr>
-                        </thead>
-                        <tbody className="bg-white divide-y divide-gray-200">
-                          {orders.map((order) => (
-                            <tr key={order._id} className="hover:bg-gray-50">
-                              <td className="px-4 py-3 whitespace-nowrap">
-                                {order._id.substring(order._id.length - 8)}
-                              </td>
-                              <td className="px-4 py-3 whitespace-nowrap">
-                                {format(new Date(order.createdAt), 'dd/MM/yyyy HH:mm')}
-                              </td>
-                              <td className="px-4 py-3 whitespace-nowrap">
-                                {new Intl.NumberFormat("vi-VN", {
-                                  style: "currency",
-                                  currency: "VND",
-                                }).format(order.finalTotal)}
-                              </td>
-                              <td className="px-4 py-3 whitespace-nowrap">
-                                <span className={`px-2 py-1 rounded-full text-xs ${
-                                  order.status === 'completed' ? 'bg-green-100 text-green-800' :
-                                  order.status === 'pending' ? 'bg-blue-100 text-blue-800' :
-                                  order.status === 'confirmed' ? 'bg-yellow-100 text-yellow-800' :
-                                  'bg-red-100 text-red-800'
-                                }`}>
-                                  {order.status}
-                                </span>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {activeTab === "activity" && (
-                <div>
-                  <h3 className="text-lg font-semibold mb-4">Nhật ký hoạt động</h3>
-                  
-                  <div className="space-y-4">
-                    {/* Account Creation */}
-                    <div className="border-l-2 border-blue-500 pl-4 pb-4">
-                      <div className="flex items-center">
-                        <div className="rounded-full bg-blue-100 p-2 mr-3">
-                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
-                          </svg>
-                        </div>
-                        <div>
-                          <p className="font-medium">Tạo tài khoản</p>
-                          <p className="text-sm text-gray-500">
-                            {customer?.createdAt ? format(new Date(customer.createdAt), 'dd/MM/yyyy HH:mm') : 'N/A'}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Last Login */}
-                    {customer?.lastLogin && (
-                      <div className="border-l-2 border-green-500 pl-4 pb-4">
-                        <div className="flex items-center">
-                          <div className="rounded-full bg-green-100 p-2 mr-3">
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
-                            </svg>
-                          </div>
-                          <div>
-                            <p className="font-medium">Đăng nhập gần nhất</p>
-                            <p className="text-sm text-gray-500">
-                              {format(new Date(customer.lastLogin), 'dd/MM/yyyy HH:mm')}
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* First Order */}
-                    {orders.length > 0 && (
-                      <div className="border-l-2 border-purple-500 pl-4 pb-4">
-                        <div className="flex items-center">
-                          <div className="rounded-full bg-purple-100 p-2 mr-3">
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
-                            </svg>
-                          </div>
-                          <div>
-                            <p className="font-medium">Đơn hàng đầu tiên</p>
-                            <p className="text-sm text-gray-500">
-                              {format(new Date(orders[orders.length - 1].createdAt), 'dd/MM/yyyy HH:mm')}
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Latest Order */}
-                    {orders.length > 0 && (
-                      <div className="border-l-2 border-yellow-500 pl-4">
-                        <div className="flex items-center">
-                          <div className="rounded-full bg-yellow-100 p-2 mr-3">
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-yellow-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
-                            </svg>
-                          </div>
-                          <div>
-                            <p className="font-medium">Đơn hàng mới nhất</p>
-                            <p className="text-sm text-gray-500">
-                              {format(new Date(orders[0].createdAt), 'dd/MM/yyyy HH:mm')}
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                  </div>
                 </div>
               )}
             </div>

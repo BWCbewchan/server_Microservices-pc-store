@@ -6,7 +6,6 @@ import { FiShoppingCart } from "react-icons/fi";
 import { FaUser, FaSignOutAlt, FaClipboardList, FaHeart } from "react-icons/fa";
 import { Link, useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
-import Logo from "../../assets/images/logo.png";
 import { AuthContext } from "../../context/AuthContext";
 import axios from "axios";
 
@@ -214,15 +213,16 @@ const Navigation = () => {
     return (
         <nav className="navbar navbar-expand-lg navbar-light bg-white py-2">
             <div className="container">
-                {/* Logo */}
+                {/* Logo replaced with text */}
                 <Link className="navbar-brand" to="/">
-                    <img
-                        src={Logo}
-                        alt="Logo"
-                        width="50"
-                        height="50"
-                        className="d-inline-block"
-                    />
+                    <span style={{
+                        fontSize: "24px",
+                        fontWeight: "700",
+                        color: "black",
+                        letterSpacing: "0.5px"
+                    }}>
+                        PCStore
+                    </span>
                 </Link>
 
                 {/* Mobile Actions: Search, Cart, User Icon */}

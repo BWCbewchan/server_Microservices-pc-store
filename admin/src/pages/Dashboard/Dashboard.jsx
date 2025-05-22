@@ -24,7 +24,7 @@ import { format } from "date-fns";
 import { Calendar as CalendarIcon, TrendingUp, TrendingDown, Package, Users, DollarSign, ShoppingCart, Mail, Phone, User } from "lucide-react";
 
 // API URLs
-const ORDER_API_URL = "http://localhost:3000/api/orders";
+const ORDER_API_URL = `${import.meta.env.VITE_APP_API_GATEWAY_URL}/orders`;
 const PRODUCT_API_URL = "http://localhost:4004/products";
 const USER_API_URL = "http://localhost:3000/api/users"; // Adjust according to your setup
 
@@ -586,9 +586,9 @@ export default function Dashboard() {
                       </td>
                       <td className="py-3 px-4">
                         <span className={`px-2 py-1 rounded-full text-xs ${order.status === 'completed' ? 'bg-green-100 text-green-800' :
-                            order.status === 'pending' ? 'bg-blue-100 text-blue-800' :
-                              order.status === 'confirmed' ? 'bg-yellow-100 text-yellow-800' :
-                                'bg-red-100 text-red-800'
+                          order.status === 'pending' ? 'bg-blue-100 text-blue-800' :
+                            order.status === 'confirmed' ? 'bg-yellow-100 text-yellow-800' :
+                              'bg-red-100 text-red-800'
                           }`}>
                           {order.status}
                         </span>
