@@ -277,14 +277,14 @@ pipeline {
 
                         // Đối với mỗi service đã được định nghĩa trong Render
                         def services = [
-                            "kt-tkpm-project-product-catalog-service", // Tên chính xác của dịch vụ trên Render
-                            "kt-tkpm-project-inventory-service",
-                            "kt-tkpm-project-cart-service",
-                            "kt-tkpm-project-notification-service",
-                            "kt-tkpm-project-order-service",
-                            "kt-tkpm-project-payment-service",
-                            "kt-tkpm-project-auth-service",
-                            "kt-tkpm-project-api-gateway-v1"
+                            "smpcstr:product-catalog-service", // Tên chính xác của dịch vụ trên Render
+                            "smpcstr:inventory-service",
+                            "smpcstr:cart-service",
+                            "smpcstr:notification-service",
+                            "smpcstr:order-service",
+                            "smpcstr:payment-service",
+                            "smpcstr:auth-service",
+                            "smpcstr:api-gateway"
                         ]
 
                         services.each { service ->
