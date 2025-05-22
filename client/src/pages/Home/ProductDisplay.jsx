@@ -7,7 +7,6 @@ import { useEffect, useState } from "react";
 import io from "socket.io-client";
 import ProductFeatures from "../../components/ProductDisplay/ProductFeatures";
 import TestimonialCard from "../../components/ProductDisplay/TestimonialCard";
-import ICONS from "../../constants/icons";
 import IMAGES from "../../constants/images";
 
 const ProductDisplay = () => {
@@ -22,7 +21,7 @@ const ProductDisplay = () => {
     const fetchNewProducts = async () => {
       try {
         // Try the main endpoint first
-        const url = `${import.meta.env.VITE_APP_API_GATEWAY_URL}/products/products-new`;
+        const url =`https://smpcstr-api-gateway.onrender.com/api/products/products-new` ||`${import.meta.env.VITE_APP_API_GATEWAY_URL}/products/products-new` ;
         console.log('Fetching new products from:', url);
 
         let response;

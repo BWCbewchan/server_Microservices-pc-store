@@ -4,7 +4,7 @@ const cors = require("cors");
 require("dotenv").config();
 
 const app = express();
-const allowedOrigins = process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(',') : ["http://localhost:2000", "http://localhost:5173"];
+const allowedOrigins = process.env.ALLOWED_ORIGINS
 const PORT = process.env.PORT || 3000;
 console.log("Allowed Origins:", allowedOrigins);
 
