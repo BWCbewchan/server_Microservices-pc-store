@@ -1,13 +1,13 @@
+import axios from "axios";
 import "bootstrap/dist/css/bootstrap.min.css";
-import { useContext, useState, useEffect, useRef, useCallback } from "react";
+import { useCallback, useContext, useEffect, useRef, useState } from "react";
 import { AiOutlineClose } from "react-icons/ai";
 import { CiSearch } from "react-icons/ci";
+import { FaClipboardList, FaHeart, FaSignOutAlt, FaUser } from "react-icons/fa";
 import { FiShoppingCart } from "react-icons/fi";
-import { FaUser, FaSignOutAlt, FaClipboardList, FaHeart } from "react-icons/fa";
 import { Link, useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import { AuthContext } from "../../context/AuthContext";
-import axios from "axios";
 
 const Navigation = () => {
     const [showSearch, setShowSearch] = useState(false);

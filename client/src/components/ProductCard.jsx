@@ -19,13 +19,12 @@ const ProductCard = ({ _id, stock, image, rating, name, price, discount }) => {
   // Calculate final price
   const finalPrice = price - (price * discount) / 100;
 
-  // Format price with dollar sign, commas and two decimal places
+  // Format price with VND
   const formatPrice = (value) => {
-    return new Intl.NumberFormat('en-US', {
+    return new Intl.NumberFormat('vi-VN', {
       style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2
+      currency: 'VND',
+      maximumFractionDigits: 0
     }).format(value);
   };
 

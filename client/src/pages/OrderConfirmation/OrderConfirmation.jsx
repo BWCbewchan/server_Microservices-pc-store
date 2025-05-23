@@ -57,11 +57,10 @@ const OrderConfirmation = () => {
   }, [location, navigate]);
 
   const formatPrice = (value) => {
-    return new Intl.NumberFormat('en-US', {
+    return new Intl.NumberFormat('vi-VN', {
       style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2
+      currency: 'VND',
+      maximumFractionDigits: 0
     }).format(value);
   };
 

@@ -4,13 +4,12 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 const CartItem = ({ name, image, description, price, quantity, isChecked, onToggle, onEdit, onRemove, onQuantityChange }) => {
     const [currentQuantity, setCurrentQuantity] = React.useState(quantity);
 
-    // Format price with dollar sign, commas and two decimal places
+    // Format price with VND
     const formatPrice = (value) => {
-        return new Intl.NumberFormat('en-US', {
+        return new Intl.NumberFormat('vi-VN', {
             style: 'currency',
-            currency: 'USD',
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 2
+            currency: 'VND',
+            maximumFractionDigits: 0
         }).format(value);
     };
 

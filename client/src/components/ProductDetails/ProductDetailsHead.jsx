@@ -30,14 +30,13 @@ function ProductDetailsHead({ activeTab, setActiveTab, price }) {
     },
   };
 
-  // Format price with dollar sign, commas and two decimal places
+  // Format price with VND
   const formatPrice = (value) => {
-    if (!value) return '$0.00';
-    return new Intl.NumberFormat('en-US', {
+    if (!value) return '0 ₫';
+    return new Intl.NumberFormat('vi-VN', {
       style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2
+      currency: 'VND',
+      maximumFractionDigits: 0
     }).format(value);
   };
 
